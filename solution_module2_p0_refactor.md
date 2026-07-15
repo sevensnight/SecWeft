@@ -95,6 +95,7 @@ SSE 固定返回 `text/event-stream`，支持非负整数 `Last-Event-ID` 断点
 
 | 门禁 | 真实结果 |
 |---|---|
+| `solve_p0_baseline.py --full` | 14/14 PASS，0 failed，0 skipped，73.982s |
 | Ruff | All checks passed |
 | mypy | 29 source files，0 issues |
 | pytest | 60 passed in 13.30s；包含 18 项契约/迁移测试 |

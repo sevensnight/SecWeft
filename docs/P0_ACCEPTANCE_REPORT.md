@@ -126,6 +126,7 @@ OpenAPI 语义快照锁定 operationId、路径、参数、状态码和成功媒
 
 | 检查 | 真实结果 |
 |---|---|
+| `solve_p0_baseline.py --full` | 14/14 PASS，0 failed，0 skipped，73.982s |
 | `ruff check .` | 通过 |
 | `mypy apps/control-plane/src/vulnlab` | 29 source files，0 issues |
 | `pytest -q` | 60 passed in 13.30s |
