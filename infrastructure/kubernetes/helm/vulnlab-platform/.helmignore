@@ -1,0 +1,5 @@
+.git/
+.github/
+*.tgz
+*.tmp
+values.local.yaml

@@ -1,0 +1,25 @@
+{
+  "name": "@vulnlab/api-client",
+  "version": "1.0.0-p0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "lint": "eslint src",
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vulnlab/shared-types": "workspace:*",
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "@vulnlab/config": "workspace:*",
+    "eslint": "10.6.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

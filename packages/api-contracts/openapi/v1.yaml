@@ -1,0 +1,296 @@
+openapi: 3.1.0
+info:
+  title: VulnLab Module 2 Enterprise Control Plane API
+  version: 1.0.0-p0
+  description: >-
+    P0 contract-first baseline for read-only system and task projections. Existing
+    write APIs remain compatibility endpoints until P1 introduces tenant/project identity.
+servers:
+  - url: /api/v1
+tags:
+  - name: System
+  - name: Tasks
+security:
+  - ApiKeyAuth: []
+paths:
+  /system/requirements:
+    get:
+      operationId: getSystemRequirements
+      tags: [System]
+      summary: Return capability and migration status
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Capability status
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemRequirements'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [Tasks]
+      summary: List tasks visible to the authenticated principal
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Task collection
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /tasks/{task_id}:
+    get:
+      operationId: getTask
+      tags: [Tasks]
+      summary: Get one task projection
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task projection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{task_id}/events:
+    get:
+      operationId: listTaskEvents
+      tags: [Tasks]
+      summary: List persisted task events
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Ordered event collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{task_id}/events/stream:
+    get:
+      operationId: streamTaskEvents
+      tags: [Tasks]
+      summary: Stream persisted task events incrementally
+      description: >-
+        Server-Sent Events stream. Consumers resume with Last-Event-ID; each data field
+        contains one TaskEvent JSON object. The P0 implementation tails the durable
+        compatibility store and will move to NATS fan-out in P3.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Incremental task event stream with periodic keepalive comments
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-cache
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Compatibility authentication for P0 only; P1 replaces it with OIDC.
+  parameters:
+    XRequestId:
+      name: X-Request-ID
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  headers:
+    XRequestId:
+      description: End-to-end request correlation identifier
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: Authentication is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: The principal lacks the required permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: The resource does not exist or is outside the principal data scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [detail]
+      properties:
+        detail:
+          type: string
+        code:
+          type: [string, 'null']
+        request_id:
+          type: [string, 'null']
+    SystemRequirements:
+      type: object
+      required: [scope, implemented, p0_migration, excluded]
+      properties:
+        scope:
+          type: string
+        implemented:
+          type: object
+          additionalProperties:
+            type: string
+        p0_migration:
+          type: object
+          required: [status, target, compatibility, legacy_execution_enabled]
+          properties:
+            status:
+              type: string
+            target:
+              type: string
+            compatibility:
+              type: string
+            legacy_execution_enabled:
+              type: boolean
+        excluded:
+          type: array
+          items:
+            type: string
+    Task:
+      type: object
+      required:
+        - id
+        - title
+        - target
+        - intent
+        - indicators
+        - scope_id
+        - status
+        - approval_status
+        - created_by
+        - assigned_skills
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        target:
+          type: string
+        intent:
+          type: string
+        indicators:
+          type: array
+          items:
+            type: string
+        scope_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        approval_status:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        assigned_skills:
+          type: array
+          items:
+            type: string
+        plan:
+          type: [object, 'null']
+          additionalProperties: true
+        result:
+          type: [object, 'null']
+          additionalProperties: true
+        error:
+          type: [string, 'null']
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TaskEvent:
+      type: object
+      additionalProperties: false
+      required: [id, event_type, payload, created_at]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        event_type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time

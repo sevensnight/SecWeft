@@ -1,0 +1,181 @@
+version: "3"
+
+vars:
+  PYTHON: '{{default "python" .PYTHON}}'
+  PLATFORM_COMPOSE: infrastructure/docker-compose/platform.yml
+  PLATFORM_ENV: '{{default "infrastructure/docker-compose/.env.platform" .PLATFORM_ENV}}'
+  PLATFORM_CONFIG_ENV: '{{default "infrastructure/docker-compose/.env.platform.example" .PLATFORM_CONFIG_ENV}}'
+
+tasks:
+  default:
+    desc: List available engineering tasks
+    cmds:
+      - task --list
+
+  bootstrap:
+    desc: Install isolated Python, pnpm, generated-contract, and browser dependencies
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/bootstrap.ps1 -Python "{{.PYTHON}}"
+
+  bootstrap:unix:
+    desc: Install engineering dependencies on Linux or macOS
+    cmds:
+      - sh infrastructure/scripts/bootstrap.sh
+
+  python:compile:
+    desc: Compile Python sources without starting services
+    cmds:
+      - '{{.PYTHON}} -m compileall -q apps/control-plane/src solve_module2.py'
+
+  python:test:
+    desc: Run the Python regression suite
+    cmds:
+      - '{{.PYTHON}} -m pytest -q -p no:cacheprovider'
+
+  python:lint:
+    desc: Run the Python Ruff quality and import checks
+    cmds:
+      - '{{.PYTHON}} -m ruff check .'
+
+  python:mypy:
+    desc: Run static typing over the control-plane package
+    cmds:
+      - '{{.PYTHON}} -m mypy apps/control-plane/src'
+
+  workspace:lint:
+    desc: Lint all pnpm workspace packages
+    cmds:
+      - pnpm lint
+
+  workspace:typecheck:
+    desc: Type-check all pnpm workspace packages
+    cmds:
+      - pnpm typecheck
+
+  workspace:test:
+    desc: Run all pnpm workspace unit tests
+    cmds:
+      - pnpm test
+
+  workspace:build:
+    desc: Build all pnpm workspace packages
+    cmds:
+      - pnpm build
+
+  contracts:generate:
+    desc: Generate TypeScript API types from the checked-in OpenAPI contract
+    cmds:
+      - pnpm generate:api
+
+  contracts:check:
+    desc: Validate contracts and ensure generated API types are committed
+    cmds:
+      - pnpm --filter @vulnlab/api-contracts test
+      - pnpm generate:api
+      - git diff --exit-code -- packages/shared-types/src/api.generated.ts
+
+  platform:config:
+    desc: Statically validate the base and identity-profile Compose models
+    cmds:
+      - docker compose --env-file "{{.PLATFORM_CONFIG_ENV}}" -f "{{.PLATFORM_COMPOSE}}" config --quiet
+      - docker compose --env-file "{{.PLATFORM_CONFIG_ENV}}" -f "{{.PLATFORM_COMPOSE}}" --profile identity config --quiet
+
+  helm:lint:
+    desc: Lint and render the Kubernetes delivery chart
+    cmds:
+      - helm lint infrastructure/kubernetes/helm/vulnlab-platform --strict
+      - helm template p0 infrastructure/kubernetes/helm/vulnlab-platform --namespace vulnlab --output-dir work/helm-render
+
+  platform:up:
+    desc: Build and start the platform with validated non-placeholder secrets
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/start.ps1 -EnvFile "{{.PLATFORM_ENV}}"
+
+  platform:up:unix:
+    desc: Build and start the platform on Linux or macOS
+    cmds:
+      - sh infrastructure/scripts/start.sh "{{.PLATFORM_ENV}}"
+
+  platform:up:identity:
+    desc: Start the platform with the optional development OIDC provider
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/start.ps1 -EnvFile "{{.PLATFORM_ENV}}" -Identity
+
+  platform:up:identity:unix:
+    desc: Start the platform and development OIDC provider on Linux or macOS
+    cmds:
+      - sh infrastructure/scripts/start.sh "{{.PLATFORM_ENV}}" --identity
+
+  platform:down:
+    desc: Stop the platform without deleting persistent volumes
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/stop.ps1 -EnvFile "{{.PLATFORM_ENV}}"
+
+  platform:down:unix:
+    desc: Stop the platform on Linux or macOS without deleting persistent volumes
+    cmds:
+      - sh infrastructure/scripts/stop.sh "{{.PLATFORM_ENV}}"
+
+  platform:down:identity:
+    desc: Stop the platform including the optional development OIDC provider
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/stop.ps1 -EnvFile "{{.PLATFORM_ENV}}" -Identity
+
+  platform:down:identity:unix:
+    desc: Stop the platform and development OIDC provider on Linux or macOS
+    cmds:
+      - sh infrastructure/scripts/stop.sh "{{.PLATFORM_ENV}}" --identity
+
+  platform:logs:
+    desc: Follow platform service logs
+    cmds:
+      - docker compose --env-file "{{.PLATFORM_ENV}}" -f "{{.PLATFORM_COMPOSE}}" logs --follow --tail=200
+
+  platform:backup:
+    desc: Create a consistent Windows backup of platform state
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/backup.ps1 -EnvFile "{{.PLATFORM_ENV}}"
+
+  platform:backup:unix:
+    desc: Create a consistent Linux or macOS backup of platform state
+    cmds:
+      - sh infrastructure/scripts/backup.sh infrastructure/backups "{{.PLATFORM_ENV}}"
+
+  platform:restore:
+    desc: Restore Windows platform state; requires BACKUP=/absolute/path
+    requires:
+      vars: [BACKUP]
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/restore.ps1 -BackupDirectory "{{.BACKUP}}" -EnvFile "{{.PLATFORM_ENV}}" -ConfirmRestore
+
+  platform:restore:unix:
+    desc: Restore Linux or macOS platform state; requires BACKUP=/absolute/path
+    requires:
+      vars: [BACKUP]
+    cmds:
+      - sh infrastructure/scripts/restore.sh --yes "{{.BACKUP}}" "{{.PLATFORM_ENV}}"
+
+  check:
+    desc: Run the complete P0 static and automated validation suite
+    cmds:
+      - task: python:compile
+      - task: python:lint
+      - task: python:mypy
+      - task: python:test
+      - task: workspace:lint
+      - task: workspace:typecheck
+      - task: workspace:test
+      - task: workspace:build
+      - task: contracts:check
+      - task: platform:config
+      - task: helm:lint
+
+  check:script:
+    desc: Run the complete P0 validation through the Windows script
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/test.ps1 -Python "{{.PYTHON}}"
+
+  check:script:unix:
+    desc: Run the complete P0 validation through the POSIX script
+    cmds:
+      - sh infrastructure/scripts/test.sh

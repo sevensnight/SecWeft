@@ -1,0 +1,16 @@
+.git
+.venv
+__pycache__
+.pytest_cache
+.turbo
+*.db
+apps/web-console/dist
+apps/web-console/playwright-report
+apps/web-console/test-results
+node_modules
+playwright-report
+test-results
+work
+workspaces
+outputs
+*.log

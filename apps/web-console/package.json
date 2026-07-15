@@ -1,0 +1,50 @@
+{
+  "name": "@vulnlab/web-console",
+  "version": "0.1.0-p0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173",
+    "build": "vite build && pnpm check:bundle",
+    "lint": "eslint src e2e vite.config.ts playwright.config.ts",
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check:bundle": "node tools/check-bundle.mjs"
+  },
+  "dependencies": {
+    "@ant-design/icons": "6.3.2",
+    "@hookform/resolvers": "5.4.0",
+    "@monaco-editor/react": "4.7.0",
+    "@tanstack/react-query": "5.101.2",
+    "@tanstack/react-router": "1.170.17",
+    "@tanstack/react-virtual": "3.14.5",
+    "@vulnlab/api-client": "workspace:*",
+    "@vulnlab/shared-types": "workspace:*",
+    "@vulnlab/ui-components": "workspace:*",
+    "antd": "6.5.0",
+    "echarts": "6.1.0",
+    "monaco-editor": "0.55.1",
+    "openapi-fetch": "0.17.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-hook-form": "7.81.0",
+    "zod": "4.4.3",
+    "zustand": "5.0.14"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "@vulnlab/config": "workspace:*",
+    "eslint": "10.6.0",
+    "jsdom": "29.1.1",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

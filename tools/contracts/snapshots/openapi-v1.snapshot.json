@@ -1,0 +1,122 @@
+{
+  "contract": "packages/api-contracts/openapi/v1.yaml",
+  "document_sha256": "f2b11df7b85f05b2028dc9eb09374d3b8848852c55eeebfe676758058cf29065",
+  "openapi": "3.1.0",
+  "info_version": "1.0.0-p0",
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/system/requirements",
+      "operation_id": "getSystemRequirements",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/tasks",
+      "operation_id": "listTasks",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/{task_id}",
+      "operation_id": "getTask",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/{task_id}/events",
+      "operation_id": "listTaskEvents",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/{task_id}/events/stream",
+      "operation_id": "streamTaskEvents",
+      "parameters": [
+        {
+          "name": "Last-Event-ID",
+          "in": "header",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "404"
+      ],
+      "success_media_types": [
+        "text/event-stream"
+      ]
+    }
+  ],
+  "schemas": [
+    "Problem",
+    "SystemRequirements",
+    "Task",
+    "TaskEvent"
+  ]
+}

@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+from tools.contracts.check_migrations import MIGRATIONS, check, migration_pairs, validate_pair
+
+
+def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
+    result = check()
+    assert result["valid"], result["errors"]
+    assert result["pairs"] == ["0001_p0_enterprise_baseline"]
+
+
+def test_p0_migration_contains_no_execution_or_vulnerability_payloads() -> None:
+    pairs = migration_pairs()
+    sql = "\n".join(path.read_text(encoding="utf-8").lower() for pair in pairs for path in pair)
+    assert "docker socket" not in sql
+    assert "host network" not in sql
+    assert "exploit payload" not in sql
+    assert "credential theft" not in sql
+    assert "todo" not in sql
+    assert MIGRATIONS.is_dir()
+
+
+def test_migration_checker_rejects_tenant_unsafe_foreign_key(tmp_path) -> None:
+    up, down = migration_pairs()[0]
+    unsafe_up = tmp_path / up.name
+    copied_down = tmp_path / down.name
+    unsafe_up.write_text(
+        up.read_text(encoding="utf-8").replace(
+            "REFERENCES control.tasks (tenant_id, id)",
+            "REFERENCES control.tasks (id)",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    copied_down.write_text(down.read_text(encoding="utf-8"), encoding="utf-8")
+
+    errors = validate_pair(unsafe_up, copied_down)
+    assert any("foreign keys must include tenant_id" in error for error in errors)
+
+
+def test_migration_checker_rejects_non_reversed_rollback(tmp_path) -> None:
+    up, down = migration_pairs()[0]
+    copied_up = tmp_path / up.name
+    unordered_down = tmp_path / down.name
+    copied_up.write_text(up.read_text(encoding="utf-8"), encoding="utf-8")
+    unordered_down.write_text(
+        down.read_text(encoding="utf-8").replace(
+            "DROP TABLE IF EXISTS audit.chain_heads;\nDROP TABLE IF EXISTS audit.events;",
+            "DROP TABLE IF EXISTS audit.events;\nDROP TABLE IF EXISTS audit.chain_heads;",
+        ),
+        encoding="utf-8",
+    )
+
+    errors = validate_pair(copied_up, unordered_down)
+    assert "down migration must drop tables in exact reverse dependency order" in errors

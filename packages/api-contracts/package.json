@@ -1,0 +1,12 @@
+{
+  "name": "@vulnlab/api-contracts",
+  "version": "1.0.0-p0",
+  "private": true,
+  "files": ["openapi", "events", "protocol"],
+  "scripts": {
+    "build": "node -e \"JSON.parse(require('node:fs').readFileSync('events/task-event.v1.schema.json','utf8')); JSON.parse(require('node:fs').readFileSync('protocol/domain-protocol.v1.schema.json','utf8'))\"",
+    "lint": "pnpm run build",
+    "typecheck": "pnpm run build",
+    "test": "pnpm run build"
+  }
+}

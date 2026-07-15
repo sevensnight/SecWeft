@@ -1,0 +1,105 @@
+global:
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+gateway:
+  replicaCount: 2
+  image:
+    repository: vulnlab/api-gateway
+    tag: 2.0.0-p0
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+webConsole:
+  replicaCount: 2
+  image:
+    repository: vulnlab/web-console
+    tag: 2.0.0-p0
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+controlPlane:
+  replicaCount: 1
+  image:
+    repository: vulnlab/control-plane
+    tag: 2.0.0-p0
+  environment: production
+  executionMode: dry_run
+  legacyExecutionEnabled: false
+  allowedHosts: localhost,127.0.0.1,::1
+  allowedPorts: 80,443,8000,8080
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  persistence:
+    enabled: true
+    accessModes: [ReadWriteOnce]
+    size: 10Gi
+    storageClass: ""
+    existingClaim: ""
+
+secrets:
+  create: false
+  existingSecret: vulnlab-platform-secrets
+  adminKey: ""
+  masterKey: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: vulnlab.example.internal
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+networkPolicy:
+  enabled: true
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

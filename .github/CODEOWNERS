@@ -1,0 +1,15 @@
+# Default ownership. More specific rules below keep review routing explicit.
+*                                      @SevensNight
+
+# Product surfaces and shared contracts
+/apps/web-console/                     @SevensNight
+/apps/control-plane/                   @SevensNight
+/packages/api-contracts/               @SevensNight
+/packages/shared-types/                @SevensNight
+
+# Security-sensitive delivery and runtime boundaries
+/.github/                              @SevensNight
+/apps/api-gateway/                     @SevensNight
+/infrastructure/                       @SevensNight
+/Dockerfile                            @SevensNight
+/docker-compose.yml                    @SevensNight

@@ -1,0 +1,58 @@
+{
+  "realm": "vulnlab-development",
+  "displayName": "VulnLab Development",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "passwordPolicy": "length(12) and digits(1) and upperCase(1) and lowerCase(1) and specialChars(1) and notUsername(undefined)",
+  "roles": {
+    "realm": [
+      { "name": "tenant-admin", "description": "Development tenant administrator" },
+      { "name": "security-engineer", "description": "Development security engineer" },
+      { "name": "approval-manager", "description": "Development high-risk action approver" },
+      { "name": "auditor", "description": "Development read-only auditor" },
+      { "name": "viewer", "description": "Development read-only user" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "vulnlab-web-console",
+      "name": "VulnLab Web Console",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "http://127.0.0.1:8080/*",
+        "http://localhost:8080/*",
+        "http://127.0.0.1:5173/*",
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:8080",
+        "http://localhost:8080",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "roles", "profile", "email"]
+    }
+  ],
+  "users": []
+}

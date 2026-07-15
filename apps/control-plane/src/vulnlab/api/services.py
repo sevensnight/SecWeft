@@ -1,0 +1,69 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .. import __version__
+from ..audit import AuditService
+from ..config import Settings
+from ..context import ContextService
+from ..db import Database
+from ..model_gateway import ModelGateway, ProviderStore
+from ..orchestrator import Orchestrator
+from ..rag import RAGService
+from ..sandbox import SandboxService
+from ..scope import ScopeService
+from ..security import SecurityService
+from ..skills import SkillRegistry
+
+
+@dataclass(slots=True)
+class Services:
+    settings: Settings
+    db: Database
+    security: SecurityService
+    audit: AuditService
+    providers: ProviderStore
+    gateway: ModelGateway
+    scope: ScopeService
+    skills: SkillRegistry
+    context: ContextService
+    rag: RAGService
+    sandbox: SandboxService
+    orchestrator: Orchestrator
+
+
+def build_services(settings: Settings) -> Services:
+    """Compose the current modular-monolith adapters behind explicit service interfaces."""
+    settings.prepare()
+    db = Database(settings.db_path)
+    db.initialize()
+    security = SecurityService(db, settings.audit_key)
+    security.bootstrap_admin(settings.admin_key)
+    audit = AuditService(db, settings.audit_key)
+    if db.fetch_one("SELECT id FROM audit_logs LIMIT 1") is None:
+        audit.record(
+            "system", "system.initialize", "system", "vulnlab", details={"version": __version__}
+        )
+    providers = ProviderStore(db, settings.fernet, audit)
+    providers.ensure_mock()
+    scope_service = ScopeService(db, settings)
+    skills = SkillRegistry(db, audit)
+    skills.ensure_builtins()
+    context = ContextService(db, audit)
+    rag = RAGService(db, audit)
+    sandbox = SandboxService(db, settings, audit)
+    orchestrator = Orchestrator(db, scope_service, skills, audit, settings.max_concurrency)
+    return Services(
+        settings=settings,
+        db=db,
+        security=security,
+        audit=audit,
+        providers=providers,
+        gateway=ModelGateway(providers, audit),
+        scope=scope_service,
+        skills=skills,
+        context=context,
+        rag=rag,
+        sandbox=sandbox,
+        orchestrator=orchestrator,
+    )

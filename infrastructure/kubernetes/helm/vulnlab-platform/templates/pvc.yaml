@@ -1,0 +1,17 @@
+{{- if and .Values.controlPlane.persistence.enabled (not .Values.controlPlane.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-control-plane
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.controlPlane.persistence.accessModes | nindent 4 }}
+  {{- with .Values.controlPlane.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.controlPlane.persistence.size }}
+{{- end }}

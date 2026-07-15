@@ -1,0 +1,31 @@
+{{- if .Values.gateway.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-gateway
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.gateway.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "vulnlab.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: gateway
+{{- end }}
+{{- if and .Values.gateway.podDisruptionBudget.enabled .Values.webConsole.podDisruptionBudget.enabled }}
+---
+{{- end }}
+{{- if .Values.webConsole.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-web-console
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.webConsole.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "vulnlab.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web-console
+{{- end }}

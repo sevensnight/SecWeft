@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.vulnlab.local/events/task-event.v1.schema.json",
+  "title": "TaskEventV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specversion",
+    "id",
+    "source",
+    "type",
+    "subject",
+    "time",
+    "tenant_id",
+    "project_id",
+    "trace_id",
+    "data"
+  ],
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": { "type": "string", "format": "uuid" },
+    "source": { "type": "string", "pattern": "^vulnlab\\.[a-z0-9.-]+$" },
+    "type": { "type": "string", "pattern": "^vulnlab\\.task\\.[a-z0-9._-]+\\.v1$" },
+    "subject": { "type": "string", "pattern": "^tasks/[0-9a-f-]{36}$" },
+    "time": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "trace_id": { "type": "string", "minLength": 16, "maxLength": 64 },
+    "correlation_id": { "type": ["string", "null"], "format": "uuid" },
+    "causation_id": { "type": ["string", "null"], "format": "uuid" },
+    "partition_key": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "task_version", "from_state", "to_state", "occurred_by"],
+      "properties": {
+        "task_id": { "type": "string", "format": "uuid" },
+        "task_version": { "type": "integer", "minimum": 1 },
+        "from_state": { "type": ["string", "null"] },
+        "to_state": { "type": "string" },
+        "occurred_by": { "type": "string", "format": "uuid" },
+        "reason_code": { "type": ["string", "null"] },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

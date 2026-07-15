@@ -1,0 +1,76 @@
+name: vulnlab-module2
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      VULNLAB_ENV: ${VULNLAB_ENV:-development}
+      VULNLAB_ADMIN_KEY: ${VULNLAB_ADMIN_KEY:?set VULNLAB_ADMIN_KEY in .env}
+      VULNLAB_MASTER_KEY: ${VULNLAB_MASTER_KEY:?set VULNLAB_MASTER_KEY in .env}
+      VULNLAB_DB_PATH: /data/vulnlab.db
+      VULNLAB_WORKSPACE_ROOT: /data/workspaces
+      VULNLAB_EXECUTION_MODE: ${VULNLAB_EXECUTION_MODE:-dry_run}
+      VULNLAB_LEGACY_EXECUTION_ENABLED: ${VULNLAB_LEGACY_EXECUTION_ENABLED:-false}
+      VULNLAB_ALLOWED_HOSTS: ${VULNLAB_ALLOWED_HOSTS:-localhost,127.0.0.1,::1,target-vulnerable,target-patched}
+      VULNLAB_ALLOWED_PORTS: ${VULNLAB_ALLOWED_PORTS:-80,443,8000,8080}
+      VULNLAB_ALLOW_PRIVATE_NETWORKS: ${VULNLAB_ALLOW_PRIVATE_NETWORKS:-false}
+    volumes:
+      - vulnlab-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 1.0
+    restart: unless-stopped
+    networks:
+      - control
+      - lab
+
+  target-vulnerable:
+    profiles: ["lab"]
+    build: ./lab
+    environment:
+      LAB_MODE: vulnerable
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 32
+    mem_limit: 128m
+    cpus: 0.25
+    networks:
+      - lab
+
+  target-patched:
+    profiles: ["lab"]
+    build: ./lab
+    environment:
+      LAB_MODE: patched
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 32
+    mem_limit: 128m
+    cpus: 0.25
+    networks:
+      - lab
+
+volumes:
+  vulnlab-data:
+
+networks:
+  control:
+  lab:
+    internal: true

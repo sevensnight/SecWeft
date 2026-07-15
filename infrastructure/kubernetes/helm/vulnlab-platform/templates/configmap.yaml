@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-control-plane
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+data:
+  VULNLAB_ENV: {{ .Values.controlPlane.environment | quote }}
+  VULNLAB_DB_PATH: /data/vulnlab.db
+  VULNLAB_WORKSPACE_ROOT: /data/workspaces
+  VULNLAB_EXECUTION_MODE: {{ .Values.controlPlane.executionMode | quote }}
+  VULNLAB_LEGACY_EXECUTION_ENABLED: {{ .Values.controlPlane.legacyExecutionEnabled | quote }}
+  VULNLAB_ALLOWED_HOSTS: {{ .Values.controlPlane.allowedHosts | quote }}
+  VULNLAB_ALLOWED_PORTS: {{ .Values.controlPlane.allowedPorts | quote }}
+  VULNLAB_ALLOW_PRIVATE_NETWORKS: "false"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-gateway
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+data:
+  Caddyfile: |
+    {
+      admin off
+      auto_https off
+    }
+    :8080 {
+      encode zstd gzip
+      header {
+        -Server
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "no-referrer"
+        Permissions-Policy "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+        Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; worker-src 'self' blob:"
+        Cross-Origin-Opener-Policy "same-origin"
+        Cross-Origin-Resource-Policy "same-origin"
+      }
+      handle /gateway-healthz {
+        respond "ok" 200
+      }
+      @backend path /api/* /health /ready /docs* /redoc* /openapi.json
+      handle @backend {
+        reverse_proxy {{ include "vulnlab.fullname" . }}-control-plane:8000
+      }
+      handle {
+        reverse_proxy {{ include "vulnlab.fullname" . }}-web-console:8080
+      }
+      log {
+        output stdout
+        format filter {
+          wrap json
+          fields {
+            request>headers>X-Api-Key delete
+          }
+        }
+      }
+    }

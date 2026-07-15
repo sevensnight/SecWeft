@@ -1,0 +1,47 @@
+{{- if .Values.gateway.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-gateway
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "vulnlab.fullname" . }}-gateway
+  minReplicas: {{ .Values.gateway.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.gateway.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.gateway.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+{{- if and .Values.gateway.autoscaling.enabled .Values.webConsole.autoscaling.enabled }}
+---
+{{- end }}
+{{- if .Values.webConsole.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-web-console
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "vulnlab.fullname" . }}-web-console
+  minReplicas: {{ .Values.webConsole.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.webConsole.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.webConsole.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

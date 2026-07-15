@@ -1,0 +1,11 @@
+The P0 VulnLab platform was rendered for namespace {{ .Release.Namespace }}.
+
+Gateway service:
+  {{ include "vulnlab.fullname" . }}-gateway:{{ .Values.gateway.service.port }}
+
+The control plane is intentionally single-replica while legacy SQLite state is
+present. Keep controlPlane.replicaCount=1 until state has moved to PostgreSQL
+and distributed coordination has passed the enterprise acceptance gates.
+
+Runtime credentials are read from Secret {{ include "vulnlab.secretName" . }}.
+Create that Secret before deploying when secrets.create=false.

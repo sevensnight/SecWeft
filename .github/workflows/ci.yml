@@ -1,0 +1,182 @@
+name: P0 engineering baseline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  python:
+    name: Python 3.12 regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.lock
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: python -m pip install --no-deps -e .
+      - run: python -m compileall -q apps/control-plane/src solve_module2.py
+      - run: python -m ruff check .
+      - run: python -m mypy apps/control-plane/src
+      - run: mkdir -p work/test-results
+      - run: python -m pytest -q -p no:cacheprovider --junitxml=work/test-results/python.xml
+      - name: Upload Python test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-results
+          path: work/test-results/python.xml
+          if-no-files-found: error
+          retention-days: 7
+
+  workspace:
+    name: TypeScript workspace
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm generate:api
+      - name: Generated contract types are reproducible
+        run: git diff --exit-code -- packages/shared-types/src/api.generated.ts
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Upload console bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-console-dist
+          path: apps/web-console/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  delivery-static:
+    name: Delivery manifests and scripts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate POSIX scripts
+        run: |
+          for script in infrastructure/scripts/*.sh; do
+            sh -n "$script"
+          done
+      - name: Validate PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem infrastructure/scripts/*.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object { Write-Error "$($_.Extent.File): $($_.Message)" }
+            }
+          }
+          if ($failed) { exit 1 }
+      - name: Validate Compose model
+        run: |
+          docker compose \
+            --env-file infrastructure/docker-compose/.env.platform.example \
+            -f infrastructure/docker-compose/platform.yml \
+            config --quiet
+          docker compose \
+            --env-file infrastructure/docker-compose/.env.platform.example \
+            -f infrastructure/docker-compose/platform.yml \
+            --profile identity config --quiet
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Lint and render Helm chart
+        run: |
+          mkdir -p work
+          helm lint infrastructure/kubernetes/helm/vulnlab-platform --strict
+          helm template p0 infrastructure/kubernetes/helm/vulnlab-platform \
+            --namespace vulnlab --set global.imagePullPolicy=Never \
+            > work/rendered-vulnlab-platform.yaml
+          test -s work/rendered-vulnlab-platform.yaml
+      - name: Upload rendered Kubernetes manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-kubernetes-manifest
+          path: work/rendered-vulnlab-platform.yaml
+          if-no-files-found: error
+          retention-days: 7
+
+  dependency-audit:
+    name: Dependency and repository security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: python -m pip_audit -r requirements-dev.lock --strict
+      - run: mkdir -p work
+      # Trivy reads pnpm-lock.yaml directly. This avoids coupling the security
+      # gate to npm's retired quick/full audit endpoints while retaining a
+      # lockfile-based HIGH/CRITICAL vulnerability gate below.
+      - name: Filesystem vulnerability scan and CycloneDX SBOM
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: cyclonedx
+          output: work/sbom.cdx.json
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+      - name: Enforce lockfile, secret and IaC vulnerability gate
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Upload SBOM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-sbom
+          path: work/sbom.cdx.json
+          if-no-files-found: warn
+          retention-days: 30

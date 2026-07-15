@@ -1,0 +1,6 @@
+fastapi>=0.111,<1
+uvicorn[standard]>=0.29,<1
+pydantic>=2.7,<3
+httpx>=0.27,<1
+cryptography>=48.0.1,<49
+PyYAML>=6,<7

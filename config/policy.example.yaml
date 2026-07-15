@@ -1,0 +1,45 @@
+# Human-readable deployment baseline. Runtime enforcement is implemented in
+# src/vulnlab/scope.py, security.py, orchestrator.py, and sandbox.py.
+version: 1
+deployment_scope: single_tenant_authorized_lab
+
+intents:
+  allow:
+    - asset_inventory
+    - vulnerability_validation
+    - defensive_regression
+  deny:
+    - evasion
+    - stealth
+    - persistence
+    - credential_access
+
+network:
+  require_explicit_host_or_cidr: true
+  wildcard_scopes: false
+  revalidate_dns_before_each_connection: true
+  follow_redirects: false
+  default_probe_timeout_seconds: 1.5
+
+approval:
+  scope_creator_may_approve: false
+  task_creator_may_approve: false
+  bind_task_to_scope_hash: true
+
+sandbox:
+  default_mode: dry_run
+  network: none
+  read_only_rootfs: true
+  run_as_non_root: true
+  capabilities: []
+  no_new_privileges: true
+  memory_mb: 256
+  cpus: 0.5
+  pids: 64
+  max_seconds: 60
+  max_output_bytes: 65536
+
+audit:
+  recursive_secret_redaction: true
+  hmac_hash_chain: true
+  record_denials: true

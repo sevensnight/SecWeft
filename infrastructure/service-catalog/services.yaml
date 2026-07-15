@@ -1,0 +1,148 @@
+schema_version: 1
+system:
+  id: vulnlab-platform
+  name: 多模协同漏洞利用智能挖掘系统
+  lifecycle: p0-engineering-baseline
+  classification: internal-security-platform
+  default_owner: platform-engineering
+
+components:
+  - id: edge-gateway
+    display_name: Edge API Gateway
+    status: implemented
+    type: edge
+    owner: platform-engineering
+    source_path: apps/api-gateway
+    runtime: caddy
+    network_zone: edge
+    public_ports: [8080]
+    health_endpoint: /gateway-healthz
+    dependencies: [control-plane, web-console]
+    data_ownership: none
+    scale_unit: stateless-replica
+
+  - id: web-console
+    display_name: Enterprise Web Console
+    status: implemented
+    type: frontend
+    owner: product-engineering
+    source_path: apps/web-console
+    runtime: nginx-static
+    network_zone: backend
+    public_ports: []
+    health_endpoint: /healthz
+    dependencies: [control-plane]
+    data_ownership: browser-memory-only-session-state
+    scale_unit: stateless-replica
+
+  - id: control-plane
+    display_name: Control Plane API
+    status: implemented-modular-monolith
+    type: backend
+    owner: platform-engineering
+    source_path: apps/control-plane
+    runtime: python-fastapi
+    network_zone: backend
+    public_ports: []
+    health_endpoint: /health
+    dependencies: [postgresql, redis, nats-jetstream, object-storage, telemetry-collector]
+    data_ownership: control-plane-metadata-and-legacy-sqlite-state
+    scale_unit: single-replica-until-persistent-state-extraction
+
+  - id: postgresql
+    display_name: PostgreSQL Metadata Store
+    status: platform-ready
+    type: datastore
+    owner: data-platform
+    source_path: infrastructure/postgres
+    runtime: postgresql
+    network_zone: backend
+    public_ports: []
+    health_command: pg_isready
+    dependencies: []
+    data_ownership: tenant-project-task-policy-metadata
+    scale_unit: external-ha-service-in-production
+
+  - id: redis
+    display_name: Redis Coordination Store
+    status: platform-ready
+    type: datastore
+    owner: platform-engineering
+    source_path: infrastructure/docker-compose/platform.yml
+    runtime: redis
+    network_zone: backend
+    public_ports: []
+    health_command: redis-cli-ping
+    dependencies: []
+    data_ownership: ephemeral-cache-rate-limit-and-lock-state
+    scale_unit: external-ha-service-in-production
+
+  - id: nats-jetstream
+    display_name: NATS JetStream Event Backbone
+    status: platform-ready
+    type: event-bus
+    owner: platform-engineering
+    source_path: infrastructure/nats
+    runtime: nats-jetstream
+    network_zone: backend
+    public_ports: []
+    health_endpoint: /healthz?js-enabled-only=true
+    dependencies: []
+    data_ownership: durable-domain-event-streams
+    scale_unit: three-node-cluster-in-production
+
+  - id: object-storage
+    display_name: Artifact Object Storage
+    status: platform-ready
+    type: datastore
+    owner: data-platform
+    source_path: infrastructure/docker-compose/platform.yml
+    runtime: s3-compatible-minio
+    network_zone: backend
+    public_ports: []
+    health_endpoint: /minio/health/live
+    dependencies: []
+    data_ownership: artifacts-reports-and-audit-exports
+    scale_unit: external-versioned-object-storage-in-production
+
+  - id: telemetry-collector
+    display_name: OpenTelemetry Collector
+    status: platform-ready
+    type: observability
+    owner: sre
+    source_path: infrastructure/monitoring
+    runtime: opentelemetry-collector
+    network_zone: backend
+    public_ports: []
+    health_endpoint: /
+    dependencies: []
+    data_ownership: in-flight-telemetry-only
+    scale_unit: stateless-replica
+
+  - id: development-identity-provider
+    display_name: Development OIDC Provider
+    status: optional-compose-profile
+    type: identity
+    owner: platform-engineering
+    source_path: infrastructure/keycloak
+    runtime: keycloak
+    network_zone: backend
+    public_ports: [8081]
+    health_endpoint: /health/ready
+    dependencies: []
+    data_ownership: disposable-development-identities-only
+    scale_unit: single-development-instance
+
+planned_extractions:
+  - id: policy-decision-point
+    target_phase: p1
+    source_boundary: control-plane.authorization
+    extraction_gate: tenant-aware-rbac-and-approval-contracts-proven
+  - id: task-orchestrator
+    target_phase: p2
+    source_boundary: control-plane.orchestration
+    extraction_gate: outbox-inbox-and-idempotent-stage-execution-proven
+  - id: sandbox-runner
+    target_phase: p3
+    source_boundary: control-plane.sandbox
+    extraction_gate: dedicated-network-and-runtime-isolation-available

@@ -1,0 +1,22 @@
+{
+  "name": "@vulnlab/shared-types",
+  "version": "1.0.0-p0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../api-contracts/openapi/v1.yaml -o src/api.generated.ts",
+    "build": "tsc --project tsconfig.json",
+    "lint": "eslint src",
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "tsc --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@vulnlab/config": "workspace:*",
+    "eslint": "10.6.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "catalog:"
+  }
+}
