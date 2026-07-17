@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vulnlab-module2"
-version = "1.0.0"
+version = "1.1.0"
 description = "Authorized-lab multi-model vulnerability validation orchestration platform"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,7 +12,9 @@ dependencies = [
   "cryptography>=48.0.1,<49",
   "fastapi>=0.111,<1",
   "httpx>=0.27,<1",
+  "psycopg[binary,pool]>=3.3.4,<4",
   "pydantic>=2.7,<3",
+  "PyJWT[crypto]>=2.13,<3",
   "PyYAML>=6,<7",
   "uvicorn[standard]>=0.29,<1",
 ]

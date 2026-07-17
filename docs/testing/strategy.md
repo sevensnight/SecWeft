@@ -106,7 +106,7 @@ docker compose --env-file infrastructure/docker-compose/.env.platform -f infrast
 
 | 阶段 | 新增测试重点 | 阶段出口证据 |
 |---|---|---|
-| P1 | OIDC/JWT、八角色、RLS、租户/项目负向、Policy/Approval、审计链 | 跨租户矩阵和 SoD 全通过；secret canary 无泄漏 |
+| P1 | OIDC/JWT、八角色、RLS、租户/项目负向、配置、幂等、审计链 | 跨租户、角色范围、撤权、最小权限和审计不可变全部通过；secret canary 无泄漏 |
 | P2 | Provider 契约、流式/工具输出、限流、熔断、主备、Token/成本 | Mock + 一个受控兼容 Provider；凭据 write-only |
 | P3 | Task/Stage/Execution 状态机、租约/fencing、重复/乱序、重启恢复、SSE | 多副本故障注入和持久恢复通过 |
 | P4 | RAG ACL 前置、引用、污染、删除/重建、Context checkpoint | 跨租户检索全拒绝，引用可复核 |

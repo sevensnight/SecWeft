@@ -15,6 +15,8 @@ services:
     build:
       context: ../..
       dockerfile: apps/api-gateway/Dockerfile
+    environment:
+      VULNLAB_OIDC_BROWSER_ORIGIN: ${VULNLAB_OIDC_BROWSER_ORIGIN:-http://127.0.0.1:8081}
     ports:
       - "${PLATFORM_BIND_ADDRESS:-127.0.0.1}:${PLATFORM_GATEWAY_PORT:-8080}:8080"
     depends_on:
@@ -48,6 +50,12 @@ services:
     build:
       context: ../..
       dockerfile: apps/web-console/Dockerfile
+      args:
+        VITE_AUTH_MODE: ${VULNLAB_AUTH_MODE:-compatibility}
+        VITE_OIDC_AUTHORITY: ${VULNLAB_OIDC_ISSUER:-http://127.0.0.1:8081/realms/vulnlab-development}
+        VITE_OIDC_CLIENT_ID: vulnlab-web-console
+        VITE_OIDC_SCOPE: openid profile email
+        VITE_OIDC_ACR_VALUES: ${VULNLAB_OIDC_REQUIRED_ACR:-}
     read_only: true
     tmpfs:
       - /tmp:size=16m,noexec,nosuid,uid=101,gid=101,mode=0700
@@ -81,10 +89,20 @@ services:
       VULNLAB_WORKSPACE_ROOT: /data/workspaces
       VULNLAB_EXECUTION_MODE: ${VULNLAB_EXECUTION_MODE:-dry_run}
       VULNLAB_LEGACY_EXECUTION_ENABLED: ${VULNLAB_LEGACY_EXECUTION_ENABLED:-false}
+      VULNLAB_AUTH_MODE: ${VULNLAB_AUTH_MODE:-compatibility}
+      VULNLAB_OIDC_ISSUER: ${VULNLAB_OIDC_ISSUER:-http://127.0.0.1:8081/realms/vulnlab-development}
+      VULNLAB_OIDC_AUDIENCE: ${VULNLAB_OIDC_AUDIENCE:-vulnlab-control-plane}
+      VULNLAB_OIDC_JWKS_URL: ${VULNLAB_OIDC_JWKS_URL:-http://keycloak:8080/realms/vulnlab-development/protocol/openid-connect/certs}
+      VULNLAB_OIDC_TENANT_CLAIM: ${VULNLAB_OIDC_TENANT_CLAIM:-tenant_id}
+      VULNLAB_OIDC_REQUIRED_ACR: ${VULNLAB_OIDC_REQUIRED_ACR:-}
+      VULNLAB_OIDC_LEEWAY_SECONDS: ${VULNLAB_OIDC_LEEWAY_SECONDS:-30}
+      VULNLAB_DATABASE_POOL_MIN_SIZE: ${VULNLAB_DATABASE_POOL_MIN_SIZE:-1}
+      VULNLAB_DATABASE_POOL_MAX_SIZE: ${VULNLAB_DATABASE_POOL_MAX_SIZE:-8}
+      VULNLAB_DATABASE_POOL_TIMEOUT_SECONDS: ${VULNLAB_DATABASE_POOL_TIMEOUT_SECONDS:-10}
       VULNLAB_ALLOWED_HOSTS: ${VULNLAB_ALLOWED_HOSTS:-localhost,127.0.0.1,::1}
       VULNLAB_ALLOWED_PORTS: ${VULNLAB_ALLOWED_PORTS:-80,443,8000,8080}
       VULNLAB_ALLOW_PRIVATE_NETWORKS: "false"
-      DATABASE_URL: postgresql://${PLATFORM_POSTGRES_USER:?set PLATFORM_POSTGRES_USER}:${PLATFORM_POSTGRES_PASSWORD:?set PLATFORM_POSTGRES_PASSWORD}@postgres:5432/${PLATFORM_POSTGRES_DB:?set PLATFORM_POSTGRES_DB}
+      DATABASE_URL: postgresql://vulnlab_app:${PLATFORM_POSTGRES_APP_PASSWORD:?set PLATFORM_POSTGRES_APP_PASSWORD}@postgres:5432/${PLATFORM_POSTGRES_DB:?set PLATFORM_POSTGRES_DB}
       REDIS_URL: redis://:${PLATFORM_REDIS_PASSWORD:?set PLATFORM_REDIS_PASSWORD}@redis:6379/0
       NATS_URL: nats://${PLATFORM_NATS_USER:?set PLATFORM_NATS_USER}:${PLATFORM_NATS_PASSWORD:?set PLATFORM_NATS_PASSWORD}@nats:4222
       S3_ENDPOINT_URL: http://minio:9000
@@ -95,6 +113,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       nats:
@@ -146,6 +166,36 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    networks:
+      - backend
+    logging: *service-logging
+
+  postgres-migrate:
+    image: postgres:17.4-alpine
+    user: postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${PLATFORM_POSTGRES_USER:?set PLATFORM_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${PLATFORM_POSTGRES_PASSWORD:?set PLATFORM_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${PLATFORM_POSTGRES_DB:?set PLATFORM_POSTGRES_DB}
+      PLATFORM_POSTGRES_APP_PASSWORD: ${PLATFORM_POSTGRES_APP_PASSWORD:?set PLATFORM_POSTGRES_APP_PASSWORD}
+    entrypoint: ["/bin/sh", "/usr/local/bin/migrate.sh"]
+    command: []
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../migrations:/migrations:ro
+      - ../postgres/migrate.sh:/usr/local/bin/migrate.sh:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop: ["ALL"]
+    <<: *service-security
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.50
+    restart: "no"
     networks:
       - backend
     logging: *service-logging

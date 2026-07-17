@@ -92,14 +92,211 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve the authenticated user and effective permissions */
+        get: operations["getEnterpriseSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Return the active tenant from the verified identity context */
+        get: operations["getCurrentTenant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List organizations inside the effective tenant/project scope */
+        get: operations["listOrganizations"];
+        put?: never;
+        /** Create an organization with an idempotent tenant-scoped command */
+        post: operations["createOrganization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List projects visible through tenant or project assignments */
+        get: operations["listProjects"];
+        put?: never;
+        /** Create a project in the authenticated tenant */
+        post: operations["createProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List tenant identity bindings */
+        get: operations["listTenantUsers"];
+        put?: never;
+        /** Provision an issuer/subject binding for an existing OIDC user */
+        post: operations["provisionTenantUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List explicit roles and permission codes */
+        get: operations["listTenantRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/role-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant a tenant- or project-scoped role assignment */
+        post: operations["grantRoleAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/role-assignments/{assignment_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a role assignment immediately for subsequent requests */
+        post: operations["revokeRoleAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/effective": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve tenant, project, and user configuration precedence */
+        get: operations["getEffectiveConfiguration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/{config_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Create or version-update one managed configuration entry */
+        put: operations["putConfigurationEntry"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List append-only audit events in the authorized data scope */
+        get: operations["listEnterpriseAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         Problem: {
             detail: string;
-            code?: string | null;
-            request_id?: string | null;
+            code: string;
+            /** Format: uuid */
+            request_id: string | null;
+            trace_id: string | null;
+            errors?: {
+                location: string[];
+                message: string;
+                type: string;
+            }[];
         };
         SystemRequirements: {
             scope: string;
@@ -149,6 +346,260 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        PageMeta: {
+            next_cursor: string | null;
+            has_more: boolean;
+            page_size: number;
+        };
+        Tenant: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            display_name: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "SUSPENDED" | "DISABLED";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        OrganizationCreate: {
+            slug: string;
+            display_name: string;
+        };
+        Organization: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            slug: string;
+            display_name: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "ARCHIVED" | "DISABLED";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        OrganizationPage: {
+            items: components["schemas"]["Organization"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        ProjectCreate: {
+            /** Format: uuid */
+            organization_id?: string | null;
+            slug: string;
+            display_name: string;
+        };
+        Project: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            organization_id: string | null;
+            slug: string;
+            display_name: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "ARCHIVED" | "DISABLED";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        ProjectPage: {
+            items: components["schemas"]["Project"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        UserProvisionCreate: {
+            subject: string;
+            username: string;
+            /** Format: email */
+            email?: string | null;
+        };
+        User: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uri */
+            issuer: string;
+            subject: string;
+            username: string;
+            /** Format: email */
+            email: string | null;
+            active: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        UserPage: {
+            items: components["schemas"]["User"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        Role: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            code: string;
+            display_name: string;
+            description: string;
+            /** @enum {string} */
+            scope_type: "TENANT" | "PROJECT" | "BOTH";
+            system_managed: boolean;
+            permissions: string[];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        RolePage: {
+            items: components["schemas"]["Role"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        RoleAssignmentCreate: {
+            /** Format: uuid */
+            user_id: string;
+            role_code: string;
+            /** Format: uuid */
+            project_id?: string | null;
+            reason: string;
+            /** Format: date-time */
+            expires_at?: string | null;
+        };
+        RoleAssignmentRevoke: {
+            reason: string;
+        };
+        RoleAssignment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            project_id: string | null;
+            /** Format: uuid */
+            user_id: string;
+            /** Format: uuid */
+            role_id: string;
+            role_code: string;
+            /** Format: uuid */
+            granted_by: string;
+            reason: string;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            expires_at: string | null;
+            /** Format: date-time */
+            revoked_at: string | null;
+            /** Format: uuid */
+            revoked_by: string | null;
+            revocation_reason: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        ConfigEntryUpdate: {
+            /** @enum {string} */
+            scope_type: "TENANT" | "PROJECT" | "USER";
+            /** Format: uuid */
+            project_id?: string | null;
+            /** Format: uuid */
+            user_id?: string | null;
+            value: unknown;
+            expected_version?: number | null;
+        };
+        ConfigEntry: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            project_id: string | null;
+            /** Format: uuid */
+            user_id: string | null;
+            /** @enum {string} */
+            scope_type: "TENANT" | "PROJECT" | "USER";
+            config_key: string;
+            config_value: unknown;
+            /** Format: uuid */
+            created_by: string;
+            /** Format: uuid */
+            updated_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        EffectiveConfig: {
+            values: {
+                [key: string]: unknown;
+            };
+            sources: {
+                [key: string]: "TENANT" | "PROJECT" | "USER";
+            };
+        };
+        AuditEvent: {
+            id: number;
+            /** Format: uuid */
+            event_id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            project_id: string | null;
+            actor_type: string;
+            /** Format: uuid */
+            actor_user_id: string | null;
+            action: string;
+            resource_type: string;
+            resource_id: string;
+            /** @enum {string} */
+            outcome: "SUCCEEDED" | "FAILED" | "DENIED" | "CANCELLED";
+            /** @enum {string} */
+            risk_level: "R0" | "R1" | "R2" | "R3" | "R4";
+            trace_id: string;
+            /** Format: uuid */
+            request_id: string;
+            details: {
+                [key: string]: unknown;
+            };
+            previous_hash: string;
+            entry_hash: string;
+            /** Format: date-time */
+            occurred_at: string;
+        };
+        AuditEventPage: {
+            items: components["schemas"]["AuditEvent"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        SessionProjectAccess: {
+            /** Format: uuid */
+            project_id: string;
+            roles: string[];
+            permissions: string[];
+        };
+        Session: {
+            /** Format: uuid */
+            user_id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            username: string;
+            /** Format: email */
+            email: string | null;
+            tenant_status: string;
+            roles: string[];
+            permissions: string[];
+            projects: components["schemas"]["SessionProjectAccess"][];
+        };
     };
     responses: {
         /** @description Authentication is missing or invalid */
@@ -178,15 +629,41 @@ export interface components {
                 "application/json": components["schemas"]["Problem"];
             };
         };
+        /** @description Version, uniqueness, or idempotency conflict */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Input failed schema or managed-configuration validation */
+        ValidationFailed: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         XRequestId: string;
         TaskId: string;
+        /** @description Resource selection only; never accepted as authorization proof. */
+        XProjectId: string;
+        IdempotencyKey: string;
+        PageSize: number;
+        Cursor: string;
+        AssignmentId: string;
     };
     requestBodies: never;
     headers: {
         /** @description End-to-end request correlation identifier */
         XRequestId: string;
+        /** @description Whether the response was replayed from a prior identical command. */
+        IdempotencyReplayed: "true" | "false";
     };
     pathItems: never;
 }
@@ -322,6 +799,432 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getEnterpriseSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-resolved identity and authorization context */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getCurrentTenant: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current tenant */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tenant"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listOrganizations: {
+        parameters: {
+            query?: {
+                page_size?: components["parameters"]["PageSize"];
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organization page */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createOrganization: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationCreate"];
+            };
+        };
+        responses: {
+            /** @description Organization created or replayed */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listProjects: {
+        parameters: {
+            query?: {
+                page_size?: components["parameters"]["PageSize"];
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project page */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Project created or replayed */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listTenantUsers: {
+        parameters: {
+            query?: {
+                page_size?: components["parameters"]["PageSize"];
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User page */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    provisionTenantUser: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserProvisionCreate"];
+            };
+        };
+        responses: {
+            /** @description User binding provisioned or replayed */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listTenantRoles: {
+        parameters: {
+            query?: {
+                page_size?: components["parameters"]["PageSize"];
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Role page */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    grantRoleAssignment: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleAssignmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Assignment granted or replayed */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleAssignment"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    revokeRoleAssignment: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                assignment_id: components["parameters"]["AssignmentId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleAssignmentRevoke"];
+            };
+        };
+        responses: {
+            /** @description Assignment revoked or replayed */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleAssignment"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getEffectiveConfiguration: {
+        parameters: {
+            query?: {
+                project_id?: string;
+                user_id?: string;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Effective configuration and source layer for each key */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffectiveConfig"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    putConfigurationEntry: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                config_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigEntryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Configuration entry created, updated, or replayed */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigEntry"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listEnterpriseAuditEvents: {
+        parameters: {
+            query?: {
+                page_size?: components["parameters"]["PageSize"];
+                cursor?: components["parameters"]["Cursor"];
+                project_id?: string;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audit event page */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
 }

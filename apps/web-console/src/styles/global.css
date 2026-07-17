@@ -22,6 +22,17 @@ body { margin: 0; min-width: 320px; }
 .page-title-row h2 { margin-block: 0 4px; }
 .section-gap { margin-top: 16px; }
 .full-width { width: 100%; }
+.auth-screen {
+  align-items: center; display: flex; flex-direction: column; gap: 24px;
+  justify-content: center; min-height: 100vh; padding: 24px;
+}
+.auth-screen > .ant-alert { max-width: 680px; }
+.auth-mark {
+  align-items: center; background: #1677ff; border-radius: 18px; color: #fff;
+  display: inline-flex; font-size: 30px; font-weight: 800; height: 72px;
+  justify-content: center; letter-spacing: .08em; width: 72px;
+}
+.project-selector { min-width: min(320px, 100%); }
 .state-panel { min-height: 220px; padding: 32px; }
 .task-search { width: min(380px, 100%); }
 .virtual-list { height: min(65vh, 680px); overflow: auto; contain: strict; }

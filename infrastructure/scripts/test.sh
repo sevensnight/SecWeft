@@ -12,7 +12,8 @@ EXAMPLE_ENV="$REPOSITORY_ROOT/infrastructure/docker-compose/.env.platform.exampl
 CHART="$REPOSITORY_ROOT/infrastructure/kubernetes/helm/vulnlab-platform"
 
 cd "$REPOSITORY_ROOT"
-"$PYTHON" -m compileall -q apps/control-plane/src solve_module2.py
+"$PYTHON" -m compileall -q apps/control-plane/src solve_module2.py solve_p0_baseline.py solve_p1_baseline.py
+"$PYTHON" -m ruff format --check .
 "$PYTHON" -m ruff check .
 "$PYTHON" -m mypy apps/control-plane/src
 "$PYTHON" -m pytest -q -p no:cacheprovider
@@ -29,8 +30,8 @@ docker compose --env-file "$EXAMPLE_ENV" -f "$COMPOSE_FILE" --profile identity c
 if [ "${SKIP_HELM:-0}" != '1' ]; then
   helm lint "$CHART" --strict
   mkdir -p work
-  helm template p0 "$CHART" --namespace vulnlab >work/rendered-vulnlab-platform.yaml
+  helm template p1 "$CHART" --namespace vulnlab >work/rendered-vulnlab-platform.yaml
   test -s work/rendered-vulnlab-platform.yaml
 fi
 
-printf '%s\n' 'P0 validation completed successfully.'
+printf '%s\n' 'P0/P1 validation completed successfully.'

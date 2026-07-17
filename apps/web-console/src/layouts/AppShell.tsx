@@ -2,15 +2,20 @@ import {
   AppstoreOutlined,
   BulbOutlined,
   KeyOutlined,
+  LogoutOutlined,
   MoonOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { Badge, Button, Flex, Layout, Menu, Select, Space, Switch, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 
 import { queryClient } from '../app/query-client';
+import { useAuthActions } from '../auth/AuthContext';
+import { authMode } from '../auth/config';
 import { ApiKeyDialog } from '../components/ApiKeyDialog';
 import { AsyncBoundary } from '../components/AsyncBoundary';
 import { getMessages } from '../i18n/messages';
@@ -21,8 +26,10 @@ const { Header, Content, Sider } = Layout;
 
 export function AppShell() {
   const [apiKeyOpen, setApiKeyOpen] = useState(false);
+  const auth = useAuthActions();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const apiKey = useSessionStore((state) => state.apiKey);
+  const displayName = useSessionStore((state) => state.displayName);
   const setApiKey = useSessionStore((state) => state.setApiKey);
   const clearApiKey = useSessionStore((state) => state.clearApiKey);
   const colorMode = usePreferencesStore((state) => state.colorMode);
@@ -33,11 +40,16 @@ export function AppShell() {
 
   const selectedKey = pathname.startsWith('/tasks') ? '/tasks' : pathname;
   const menuItems = useMemo(
-    () => [
-      { key: '/', icon: <AppstoreOutlined />, label: <Link to="/">{messages.dashboard}</Link> },
-      { key: '/tasks', icon: <SafetyCertificateOutlined />, label: <Link to="/tasks">{messages.tasks}</Link> },
-      { key: '/system', icon: <SettingOutlined />, label: <Link to="/system">{messages.system}</Link> },
-    ],
+    () => authMode === 'oidc'
+      ? [
+          { key: '/', icon: <AppstoreOutlined />, label: <Link to="/">{messages.dashboard}</Link> },
+          { key: '/access', icon: <TeamOutlined />, label: <Link to="/access">身份与权限</Link> },
+        ]
+      : [
+          { key: '/', icon: <AppstoreOutlined />, label: <Link to="/">{messages.dashboard}</Link> },
+          { key: '/tasks', icon: <SafetyCertificateOutlined />, label: <Link to="/tasks">{messages.tasks}</Link> },
+          { key: '/system', icon: <SettingOutlined />, label: <Link to="/system">{messages.system}</Link> },
+        ],
     [messages],
   );
 
@@ -54,7 +66,7 @@ export function AppShell() {
           <Flex align="center" justify="space-between" gap="middle">
             <Space>
               <Typography.Text strong>模块二控制台</Typography.Text>
-              <Badge status="processing" text="P0 企业化迁移" />
+              <Badge status="processing" text={authMode === 'oidc' ? 'P1 企业身份与租户' : 'P0 兼容迁移'} />
             </Space>
             <Space wrap>
               <Select
@@ -70,13 +82,19 @@ export function AppShell() {
                 unCheckedChildren={<BulbOutlined />}
                 onChange={(checked) => setColorMode(checked ? 'dark' : 'light')}
               />
-              <Button
-                icon={<KeyOutlined />}
-                type={apiKey ? 'default' : 'primary'}
-                onClick={() => setApiKeyOpen(true)}
-              >
-                {apiKey ? '认证已配置' : '配置 API Key'}
-              </Button>
+              {authMode === 'oidc' ? (
+                <Button icon={<LogoutOutlined />} onClick={() => void auth.logout()}>
+                  <UserOutlined /> {displayName ?? '企业用户'} · 退出
+                </Button>
+              ) : (
+                <Button
+                  icon={<KeyOutlined />}
+                  type={apiKey ? 'default' : 'primary'}
+                  onClick={() => setApiKeyOpen(true)}
+                >
+                  {apiKey ? '认证已配置' : '配置 API Key'}
+                </Button>
+              )}
             </Space>
           </Flex>
         </Header>
@@ -84,7 +102,7 @@ export function AppShell() {
           <AsyncBoundary><Outlet /></AsyncBoundary>
         </Content>
       </Layout>
-      <ApiKeyDialog
+      {authMode === 'compatibility' ? <ApiKeyDialog
         open={apiKeyOpen}
         onCancel={() => setApiKeyOpen(false)}
         onClear={() => {
@@ -97,7 +115,7 @@ export function AppShell() {
           void refreshQueries();
           setApiKeyOpen(false);
         }}
-      />
+      /> : null}
     </Layout>
   );
 }

@@ -1,5 +1,51 @@
 # API 调用示例
 
+## P1 企业接口
+
+先通过组织 OIDC 的 Authorization Code + PKCE 登录。下面只从当前进程环境读取短期 access token，不把 token 写入 URL、脚本或持久存储：
+
+```powershell
+$base = 'http://127.0.0.1:8000/api/v1'
+$token = $env:VULNLAB_TEST_ACCESS_TOKEN
+$headers = @{
+  Authorization = "Bearer $token"
+  'X-Request-ID' = [guid]::NewGuid().ToString()
+}
+$session = Invoke-RestMethod -Uri "$base/session" -Headers $headers
+$session
+```
+
+创建 Organization 和 Project 的写请求必须使用独立幂等键：
+
+```powershell
+$organizationHeaders = $headers.Clone()
+$organizationHeaders['Idempotency-Key'] = "organization-$([guid]::NewGuid())"
+$organizationBody = @{ slug = 'security-research'; display_name = 'Security Research' } | ConvertTo-Json
+$organization = Invoke-RestMethod -Method Post -Uri "$base/organizations" -Headers $organizationHeaders -ContentType 'application/json' -Body $organizationBody
+
+$projectHeaders = $headers.Clone()
+$projectHeaders['Idempotency-Key'] = "project-$([guid]::NewGuid())"
+$projectBody = @{
+  organization_id = $organization.id
+  slug = 'synthetic-lab'
+  display_name = 'Synthetic Lab'
+} | ConvertTo-Json
+$project = Invoke-RestMethod -Method Post -Uri "$base/projects" -Headers $projectHeaders -ContentType 'application/json' -Body $projectBody
+```
+
+选择项目范围后读取有效配置和审计：
+
+```powershell
+$projectHeaders = $headers.Clone()
+$projectHeaders['X-Project-ID'] = $project.id
+Invoke-RestMethod -Uri "$base/config/effective?project_id=$($project.id)" -Headers $projectHeaders
+Invoke-RestMethod -Uri "$base/audit/events?project_id=$($project.id)" -Headers $projectHeaders
+```
+
+权限来自 `/session`，但客户端裁剪不是授权证据；后端仍会对每个调用重新解析角色并执行 RLS。
+
+## Legacy 兼容接口
+
 以下 PowerShell 示例展示正常职责分离流程。服务已在 `127.0.0.1:8000` 启动，管理员 Key 来自 `VULNLAB_ADMIN_KEY`。
 
 ## 1. 管理员创建 analyst

@@ -23,12 +23,13 @@ function parseSseFrame(frame: string): TaskEvent | null {
 
 export function useTaskEventStream(taskId: string) {
   const apiKey = useSessionStore((state) => state.apiKey);
+  const accessToken = useSessionStore((state) => state.accessToken);
   const [events, setEvents] = useState<TaskEvent[]>([]);
   const [state, setState] = useState<StreamState>('closed');
   const lastEventId = useRef(0);
 
   useEffect(() => {
-    if (!apiKey) return;
+    if (!apiKey && !accessToken) return;
 
     const controller = new AbortController();
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -40,7 +41,9 @@ export function useTaskEventStream(taskId: string) {
         const response = await fetch(`/api/v1/tasks/${encodeURIComponent(taskId)}/events/stream`, {
           headers: {
             Accept: 'text/event-stream',
-            'X-API-Key': apiKey,
+            ...(accessToken
+              ? { Authorization: `Bearer ${accessToken}` }
+              : { 'X-API-Key': apiKey ?? '' }),
             ...(lastEventId.current > 0 ? { 'Last-Event-ID': String(lastEventId.current) } : {}),
           },
           signal: controller.signal,
@@ -80,7 +83,7 @@ export function useTaskEventStream(taskId: string) {
       if (retryTimer) clearTimeout(retryTimer);
       setState('closed');
     };
-  }, [apiKey, taskId]);
+  }, [accessToken, apiKey, taskId]);
 
-  return { events, state: apiKey ? state : 'closed' };
+  return { events, state: apiKey || accessToken ? state : 'closed' };
 }

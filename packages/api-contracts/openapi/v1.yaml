@@ -1,15 +1,21 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.0.0-p0
+  version: 1.1.0-p1
   description: >-
-    P0 contract-first baseline for read-only system and task projections. Existing
-    write APIs remain compatibility endpoints until P1 introduces tenant/project identity.
+    P1 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
+    layered configuration, and append-only audit. P0 task projections remain an
+    explicitly separated API-key compatibility surface.
 servers:
   - url: /api/v1
 tags:
   - name: System
   - name: Tasks
+  - name: Identity
+  - name: Tenancy
+  - name: IAM
+  - name: Configuration
+  - name: Audit
 security:
   - ApiKeyAuth: []
 paths:
@@ -136,13 +142,450 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /session:
+    get:
+      operationId: getEnterpriseSession
+      tags: [Identity]
+      summary: Resolve the authenticated user and effective permissions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+      responses:
+        '200':
+          description: Server-resolved identity and authorization context
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /tenants/current:
+    get:
+      operationId: getCurrentTenant
+      tags: [Tenancy]
+      summary: Return the active tenant from the verified identity context
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Current tenant
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /organizations:
+    get:
+      operationId: listOrganizations
+      tags: [Tenancy]
+      summary: List organizations inside the effective tenant/project scope
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Organization page
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createOrganization
+      tags: [Tenancy]
+      summary: Create an organization with an idempotent tenant-scoped command
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationCreate'
+      responses:
+        '201':
+          description: Organization created or replayed
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [Tenancy]
+      summary: List projects visible through tenant or project assignments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Project page
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createProject
+      tags: [Tenancy]
+      summary: Create a project in the authenticated tenant
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          description: Project created or replayed
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /iam/users:
+    get:
+      operationId: listTenantUsers
+      tags: [IAM]
+      summary: List tenant identity bindings
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: User page
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: provisionTenantUser
+      tags: [IAM]
+      summary: Provision an issuer/subject binding for an existing OIDC user
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProvisionCreate'
+      responses:
+        '201':
+          description: User binding provisioned or replayed
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /iam/roles:
+    get:
+      operationId: listTenantRoles
+      tags: [IAM]
+      summary: List explicit roles and permission codes
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Role page
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /iam/role-assignments:
+    post:
+      operationId: grantRoleAssignment
+      tags: [IAM]
+      summary: Grant a tenant- or project-scoped role assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleAssignmentCreate'
+      responses:
+        '201':
+          description: Assignment granted or replayed
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleAssignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /iam/role-assignments/{assignment_id}/revoke:
+    post:
+      operationId: revokeRoleAssignment
+      tags: [IAM]
+      summary: Revoke a role assignment immediately for subsequent requests
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/AssignmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleAssignmentRevoke'
+      responses:
+        '200':
+          description: Assignment revoked or replayed
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleAssignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /config/effective:
+    get:
+      operationId: getEffectiveConfiguration
+      tags: [Configuration]
+      summary: Resolve tenant, project, and user configuration precedence
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: project_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Effective configuration and source layer for each key
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EffectiveConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /config/{config_key}:
+    put:
+      operationId: putConfigurationEntry
+      tags: [Configuration]
+      summary: Create or version-update one managed configuration entry
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: config_key
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-z][a-z0-9_.-]{2,159}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigEntryUpdate'
+      responses:
+        '200':
+          description: Configuration entry created, updated, or replayed
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /audit/events:
+    get:
+      operationId: listEnterpriseAuditEvents
+      tags: [Audit]
+      summary: List append-only audit events in the authorized data scope
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Cursor'
+        - name: project_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audit event page
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
       in: header
       name: X-API-Key
-      description: Compatibility authentication for P0 only; P1 replaces it with OIDC.
+      description: Compatibility authentication for P0-only migration endpoints.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        OIDC access token validated against fixed RS256, issuer, audience, expiry,
+        and JWKS trust anchors. Authorization comes from database role assignments.
   parameters:
     XRequestId:
       name: X-Request-ID
@@ -158,12 +601,58 @@ components:
       schema:
         type: string
         format: uuid
+    XProjectId:
+      name: X-Project-ID
+      in: header
+      required: false
+      description: Resource selection only; never accepted as authorization proof.
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 200
+        pattern: '^[ -~]+$'
+    PageSize:
+      name: page_size
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+    AssignmentId:
+      name: assignment_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   headers:
     XRequestId:
       description: End-to-end request correlation identifier
       schema:
         type: string
         format: uuid
+    IdempotencyReplayed:
+      description: Whether the response was replayed from a prior identical command.
+      schema:
+        type: string
+        enum: ['true', 'false']
   responses:
     Unauthorized:
       description: Authentication is missing or invalid
@@ -183,18 +672,49 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Version, uniqueness, or idempotency conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ValidationFailed:
+      description: Input failed schema or managed-configuration validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   schemas:
     Problem:
       type: object
       additionalProperties: false
-      required: [detail]
+      required: [detail, code, request_id, trace_id]
       properties:
         detail:
           type: string
         code:
-          type: [string, 'null']
+          type: string
         request_id:
           type: [string, 'null']
+          format: uuid
+        trace_id:
+          type: [string, 'null']
+          pattern: '^[a-f0-9]{16,64}$'
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [location, message, type]
+            properties:
+              location:
+                type: array
+                items:
+                  type: string
+              message:
+                type: string
+              type:
+                type: string
     SystemRequirements:
       type: object
       required: [scope, implemented, p0_migration, excluded]
@@ -294,3 +814,320 @@ components:
         created_at:
           type: string
           format: date-time
+    PageMeta:
+      type: object
+      additionalProperties: false
+      required: [next_cursor, has_more, page_size]
+      properties:
+        next_cursor:
+          type: [string, 'null']
+        has_more:
+          type: boolean
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    Tenant:
+      type: object
+      additionalProperties: false
+      required: [id, slug, display_name, status, created_at, updated_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        display_name: { type: string }
+        status: { type: string, enum: [ACTIVE, SUSPENDED, DISABLED] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    OrganizationCreate:
+      type: object
+      additionalProperties: false
+      required: [slug, display_name]
+      properties:
+        slug:
+          type: string
+          minLength: 3
+          maxLength: 63
+          pattern: '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'
+        display_name: { type: string, minLength: 1, maxLength: 200 }
+    Organization:
+      type: object
+      additionalProperties: false
+      required:
+        [id, tenant_id, slug, display_name, status, created_at, updated_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        slug: { type: string }
+        display_name: { type: string }
+        status: { type: string, enum: [ACTIVE, ARCHIVED, DISABLED] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    OrganizationPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    ProjectCreate:
+      type: object
+      additionalProperties: false
+      required: [slug, display_name]
+      properties:
+        organization_id: { type: [string, 'null'], format: uuid }
+        slug:
+          type: string
+          minLength: 3
+          maxLength: 63
+          pattern: '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'
+        display_name: { type: string, minLength: 1, maxLength: 200 }
+    Project:
+      type: object
+      additionalProperties: false
+      required:
+        [id, tenant_id, organization_id, slug, display_name, status,
+         created_at, updated_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        organization_id: { type: [string, 'null'], format: uuid }
+        slug: { type: string }
+        display_name: { type: string }
+        status: { type: string, enum: [ACTIVE, ARCHIVED, DISABLED] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    ProjectPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    UserProvisionCreate:
+      type: object
+      additionalProperties: false
+      required: [subject, username]
+      properties:
+        subject: { type: string, minLength: 1, maxLength: 255 }
+        username: { type: string, minLength: 1, maxLength: 128 }
+        email: { type: [string, 'null'], format: email, maxLength: 320 }
+    User:
+      type: object
+      additionalProperties: false
+      required:
+        [id, tenant_id, issuer, subject, username, email, active, created_at, updated_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        issuer: { type: string, format: uri }
+        subject: { type: string }
+        username: { type: string }
+        email: { type: [string, 'null'], format: email }
+        active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    UserPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    Role:
+      type: object
+      additionalProperties: false
+      required:
+        [id, tenant_id, code, display_name, description, scope_type, system_managed,
+         permissions, created_at, updated_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        code: { type: string }
+        display_name: { type: string }
+        description: { type: string }
+        scope_type: { type: string, enum: [TENANT, PROJECT, BOTH] }
+        system_managed: { type: boolean }
+        permissions:
+          type: array
+          items: { type: string, pattern: '^[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*$' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    RolePage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    RoleAssignmentCreate:
+      type: object
+      additionalProperties: false
+      required: [user_id, role_code, reason]
+      properties:
+        user_id: { type: string, format: uuid }
+        role_code: { type: string, minLength: 3, maxLength: 80 }
+        project_id: { type: [string, 'null'], format: uuid }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+        expires_at: { type: [string, 'null'], format: date-time }
+    RoleAssignmentRevoke:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    RoleAssignment:
+      type: object
+      additionalProperties: false
+      required:
+        [id, tenant_id, project_id, user_id, role_id, role_code, granted_by, reason,
+         starts_at, expires_at, revoked_at, revoked_by, revocation_reason,
+         created_at, updated_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        project_id: { type: [string, 'null'], format: uuid }
+        user_id: { type: string, format: uuid }
+        role_id: { type: string, format: uuid }
+        role_code: { type: string }
+        granted_by: { type: string, format: uuid }
+        reason: { type: string }
+        starts_at: { type: string, format: date-time }
+        expires_at: { type: [string, 'null'], format: date-time }
+        revoked_at: { type: [string, 'null'], format: date-time }
+        revoked_by: { type: [string, 'null'], format: uuid }
+        revocation_reason: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    ConfigEntryUpdate:
+      type: object
+      additionalProperties: false
+      required: [scope_type, value]
+      properties:
+        scope_type: { type: string, enum: [TENANT, PROJECT, USER] }
+        project_id: { type: [string, 'null'], format: uuid }
+        user_id: { type: [string, 'null'], format: uuid }
+        value: {}
+        expected_version: { type: [integer, 'null'], minimum: 1 }
+    ConfigEntry:
+      type: object
+      additionalProperties: false
+      required:
+        [id, tenant_id, project_id, user_id, scope_type, config_key, config_value,
+         created_by, updated_by, created_at, updated_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        project_id: { type: [string, 'null'], format: uuid }
+        user_id: { type: [string, 'null'], format: uuid }
+        scope_type: { type: string, enum: [TENANT, PROJECT, USER] }
+        config_key: { type: string }
+        config_value: {}
+        created_by: { type: string, format: uuid }
+        updated_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    EffectiveConfig:
+      type: object
+      additionalProperties: false
+      required: [values, sources]
+      properties:
+        values:
+          type: object
+          additionalProperties: true
+        sources:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [TENANT, PROJECT, USER]
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required:
+        [id, event_id, tenant_id, project_id, actor_type, actor_user_id, action,
+         resource_type, resource_id, outcome, risk_level, trace_id, request_id,
+         details, previous_hash, entry_hash, occurred_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        event_id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        project_id: { type: [string, 'null'], format: uuid }
+        actor_type: { type: string }
+        actor_user_id: { type: [string, 'null'], format: uuid }
+        action: { type: string }
+        resource_type: { type: string }
+        resource_id: { type: string }
+        outcome: { type: string, enum: [SUCCEEDED, FAILED, DENIED, CANCELLED] }
+        risk_level: { type: string, enum: [R0, R1, R2, R3, R4] }
+        trace_id: { type: string }
+        request_id: { type: string, format: uuid }
+        details: { type: object, additionalProperties: true }
+        previous_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        entry_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        occurred_at: { type: string, format: date-time }
+    AuditEventPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    SessionProjectAccess:
+      type: object
+      additionalProperties: false
+      required: [project_id, roles, permissions]
+      properties:
+        project_id: { type: string, format: uuid }
+        roles:
+          type: array
+          items: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+    Session:
+      type: object
+      additionalProperties: false
+      required:
+        [user_id, tenant_id, username, email, tenant_status, roles, permissions, projects]
+      properties:
+        user_id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        username: { type: string }
+        email: { type: [string, 'null'], format: email }
+        tenant_status: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionProjectAccess'

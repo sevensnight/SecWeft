@@ -25,12 +25,17 @@ tasks:
   python:compile:
     desc: Compile Python sources without starting services
     cmds:
-      - '{{.PYTHON}} -m compileall -q apps/control-plane/src solve_module2.py'
+      - '{{.PYTHON}} -m compileall -q apps/control-plane/src solve_module2.py solve_p0_baseline.py solve_p1_baseline.py'
 
   python:test:
     desc: Run the Python regression suite
     cmds:
       - '{{.PYTHON}} -m pytest -q -p no:cacheprovider'
+
+  python:format:
+    desc: Check Python formatting without modifying files
+    cmds:
+      - '{{.PYTHON}} -m ruff format --check .'
 
   python:lint:
     desc: Run the Python Ruff quality and import checks
@@ -73,6 +78,31 @@ tasks:
       - pnpm --filter @vulnlab/api-contracts test
       - pnpm generate:api
       - git diff --exit-code -- packages/shared-types/src/api.generated.ts
+
+  p1:check:
+    desc: Run the read-only P1 identity, tenancy, RBAC, configuration, and audit checks
+    cmds:
+      - '{{.PYTHON}} solve_p1_baseline.py'
+
+  p1:check:full:
+    desc: Run P1 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p1_baseline.py --full'
+
+  p1:postgres:
+    desc: Validate P1 against the explicitly configured disposable PostgreSQL test database
+    cmds:
+      - '{{.PYTHON}} tools/p1/validate_enterprise_postgres.py'
+
+  p1:keycloak:
+    desc: Validate P1 Code and PKCE against the explicitly configured Keycloak test instance
+    cmds:
+      - node tools/p1/validate_keycloak_oidc.mjs
+
+  p1:browser:
+    desc: Validate browser OIDC discovery, gateway CSP, and the PKCE authorization request
+    cmds:
+      - node tools/p1/validate_oidc_browser_entry.mjs
 
   platform:config:
     desc: Statically validate the base and identity-profile Compose models
@@ -156,9 +186,10 @@ tasks:
       - sh infrastructure/scripts/restore.sh --yes "{{.BACKUP}}" "{{.PLATFORM_ENV}}"
 
   check:
-    desc: Run the complete P0 static and automated validation suite
+    desc: Run the complete P0/P1 static and automated validation suite
     cmds:
       - task: python:compile
+      - task: python:format
       - task: python:lint
       - task: python:mypy
       - task: python:test
@@ -169,13 +200,14 @@ tasks:
       - task: contracts:check
       - task: platform:config
       - task: helm:lint
+      - task: p1:check
 
   check:script:
-    desc: Run the complete P0 validation through the Windows script
+    desc: Run the shared validation through the Windows script
     cmds:
       - powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/test.ps1 -Python "{{.PYTHON}}"
 
   check:script:unix:
-    desc: Run the complete P0 validation through the POSIX script
+    desc: Run the shared validation through the POSIX script
     cmds:
       - sh infrastructure/scripts/test.sh

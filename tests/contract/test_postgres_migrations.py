@@ -6,7 +6,12 @@ from tools.contracts.check_migrations import MIGRATIONS, check, migration_pairs,
 def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
     result = check()
     assert result["valid"], result["errors"]
-    assert result["pairs"] == ["0001_p0_enterprise_baseline"]
+    assert result["pairs"] == [
+        "0001_p0_enterprise_baseline",
+        "0002_p1_identity_tenancy_rbac",
+        "0003_p1_role_scope_enforcement",
+        "0004_p1_application_least_privilege",
+    ]
 
 
 def test_p0_migration_contains_no_execution_or_vulnerability_payloads() -> None:

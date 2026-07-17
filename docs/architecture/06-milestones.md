@@ -68,10 +68,10 @@
 
 交付：
 
-- OIDC/JWT、服务身份、Token 生命周期和 MFA 扩展点。
+- OIDC/JWT、Token 生命周期和 MFA 扩展点；服务身份在 P3 首个消息消费者前接入。
 - Tenant、Organization、Project、Membership、八角色 RBAC/ABAC。
 - PostgreSQL RLS、统一 repository scope。
-- Policy/Approval 基础框架、配置分层。
+- Approver/Auditor 权限边界与配置分层；完整 Policy/Approval 执行面在 P5。
 - Audit Service、结构化日志、trace 传播和脱敏。
 
 入口：P0 通过。

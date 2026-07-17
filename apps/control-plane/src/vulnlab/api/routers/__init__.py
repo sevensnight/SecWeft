@@ -1,5 +1,6 @@
 from .audit import router as audit_router
 from .authorization import router as authorization_router
+from .enterprise_iam import router as enterprise_iam_router
 from .execution import router as execution_router
 from .knowledge import router as knowledge_router
 from .models import router as models_router
@@ -16,4 +17,5 @@ ALL_ROUTERS = (
     knowledge_router,
     execution_router,
     audit_router,
+    enterprise_iam_router,
 )

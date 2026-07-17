@@ -12,8 +12,8 @@ const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: lazyRouteComponent(
-    () => import('../modules/dashboard/pages/DashboardPage'),
-    'DashboardPage',
+    () => import('../modules/dashboard/pages/HomePage'),
+    'HomePage',
   ),
 });
 const tasksRoute = createRoute({
@@ -40,7 +40,21 @@ const systemRoute = createRoute({
     'SystemPage',
   ),
 });
-const routeTree = rootRoute.addChildren([dashboardRoute, tasksRoute, taskDetailRoute, systemRoute]);
+const accessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/access',
+  component: lazyRouteComponent(
+    () => import('../modules/identity/pages/EnterpriseAccessPage'),
+    'EnterpriseAccessPage',
+  ),
+});
+const routeTree = rootRoute.addChildren([
+  dashboardRoute,
+  accessRoute,
+  tasksRoute,
+  taskDetailRoute,
+  systemRoute,
+]);
 
 export const router = createRouter({
   routeTree,

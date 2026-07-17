@@ -1,13 +1,13 @@
 # 本地开发指南
 
-## 1. P0 开发形态
+## 1. P1 开发形态
 
 仓库同时保留两种运行形态：
 
 - **快速开发形态**：本机运行 FastAPI 兼容控制面和 Vite Web Console，适合单元、契约和 UI 开发。
 - **平台 Compose 形态**：通过 `infrastructure/docker-compose/platform.yml` 启动 Gateway、Web、API 及 PostgreSQL、Redis、NATS JetStream、MinIO、OpenTelemetry Collector、Prometheus，适合基础设施和集成检查。
 
-根目录 `docker-compose.yml` 是旧授权靶场原型，不是企业平台 Compose。P0 日常开发不启动其中的 `lab` profile，也不启用旧执行能力。
+根目录 `docker-compose.yml` 是旧授权靶场原型，不是企业平台 Compose。P1 日常开发不启动其中的 `lab` profile，也不启用旧执行能力。
 
 ## 2. 前置条件
 
@@ -76,7 +76,7 @@ $env:VITE_API_PROXY_TARGET = 'http://127.0.0.1:8000'
 pnpm --filter @vulnlab/web-console dev
 ```
 
-访问 `http://127.0.0.1:5173`。API 健康端点是 `http://127.0.0.1:8000/health`。P0 Web Console 的 API Key 只保存在内存会话中；刷新后重新输入是预期安全行为。
+访问 `http://127.0.0.1:5173`。API 健康端点是 `http://127.0.0.1:8000/health`。以上命令是 compatibility 迁移模式；API Key 只保存在内存会话中。
 
 不得把 `VULNLAB_LEGACY_EXECUTION_ENABLED` 改成 `true` 作为普通开发捷径。旧执行只用于隔离合成靶场的 characterization test，不能访问互联网或未授权地址。
 
@@ -110,7 +110,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/start
 | `http://127.0.0.1:9090` | Prometheus | 默认仅回环 |
 | `http://127.0.0.1:8081` | 可选开发 Keycloak（`-Identity`） | 默认关闭、仅回环 |
 
-PostgreSQL、Redis、NATS、MinIO API 和 OTel Collector 只在内部 `backend` 网络可见。P0 Compose 提供默认关闭的 Keycloak `identity` profile，用于验证 Authorization Code + PKCE 的开发集成前置条件；兼容控制面尚未消费 OIDC token，真正的身份、租户上下文与八角色授权仍属于 P1，不能把 IdP 容器健康误报为 P1 登录完成。
+PostgreSQL、Redis、NATS、MinIO API 和 OTel Collector 只在内部 `backend` 网络可见。设置 `VULNLAB_AUTH_MODE=oidc` 并启用 `identity` profile 后，Control Plane 消费 Bearer token，以 PostgreSQL 为 P1 真相源并强制 RLS；Web Console 使用 Authorization Code + PKCE。仅容器健康仍不能替代 `validate_keycloak_oidc.mjs` 和真实数据库负向测试。
 
 可选 IdP 启动命令：
 
@@ -142,10 +142,11 @@ pnpm generate:api
 git diff --exit-code -- packages/shared-types/src/api.generated.ts
 ```
 
-完整 P0 聚合命令：
+完整 P1 聚合命令：
 
 ```powershell
 task check
+.\.venv\Scripts\python.exe solve_p1_baseline.py --full
 ```
 
 未安装 Task 时依次运行 `Taskfile.yml` 的子命令。任何因 Docker、浏览器或 Linux 隔离环境缺失而未执行的检查，都必须标为 `Blocked`，不能写成通过。
@@ -180,4 +181,4 @@ Python 临时数据库、workspace 和覆盖率输出位于 Git 忽略目录。�
 - 真实供应商 Key、客户资产、真实漏洞载荷和生产备份不得进入开发环境。
 - API、Gateway、浏览器和容器日志必须经过 secret 清洗。
 - Windows 本地容器不能代表 seccomp、MAC 或 gVisor 验收；Sandbox 隔离测试必须在 P5 的专用 Linux 环境执行。
-- P0 不执行漏洞验证；开发服务器成功启动只证明工程基线可运行。
+- P1 不执行漏洞验证；开发服务器成功启动只证明身份、租户和管理基线可运行。

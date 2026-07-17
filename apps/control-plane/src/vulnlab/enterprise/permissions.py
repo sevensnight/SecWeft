@@ -1,0 +1,311 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+def _expand(resource: str, actions: str) -> set[str]:
+    return {f"{resource}.{action}" for action in actions.split()}
+
+
+PERMISSION_CODES = frozenset().union(
+    _expand("tenant", "read create update suspend"),
+    _expand("membership", "read invite update revoke"),
+    _expand("role", "read assign revoke"),
+    _expand("project", "read create update archive"),
+    _expand("credential", "create rotate revoke metadata.read"),
+    _expand("model", "read manage invoke"),
+    _expand("agent", "read draft publish bind"),
+    _expand("skill", "read draft publish bind"),
+    _expand("workflow", "read draft publish bind"),
+    _expand("knowledge", "read ingest update delete reindex"),
+    _expand("asset", "read create update archive"),
+    _expand("scope", "read draft submit approve reject revoke"),
+    _expand("task", "read create update_draft submit execute pause resume cancel retry"),
+    _expand("candidate", "read create update"),
+    _expand("validation_plan", "read draft submit approve reject revoke"),
+    _expand("sandbox_template", "read publish bind"),
+    _expand("sandbox_run", "read execute cancel"),
+    _expand("policy", "read publish bind"),
+    _expand("approval", "read decide revoke"),
+    _expand("audit", "read export"),
+    _expand("report", "read generate export"),
+    _expand("system_config", "read update"),
+)
+
+COMMON_PROJECT_READ = frozenset(
+    {
+        "membership.read",
+        "role.read",
+        "project.read",
+        "model.read",
+        "agent.read",
+        "skill.read",
+        "workflow.read",
+        "knowledge.read",
+        "asset.read",
+        "scope.read",
+        "task.read",
+        "candidate.read",
+        "validation_plan.read",
+        "sandbox_template.read",
+        "sandbox_run.read",
+        "policy.read",
+        "approval.read",
+        "report.read",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class RoleDefinition:
+    code: str
+    display_name: str
+    description: str
+    scope_type: str
+    permissions: frozenset[str]
+
+
+ROLE_DEFINITIONS = (
+    RoleDefinition(
+        "platform_admin",
+        "Platform administrator",
+        "Platform lifecycle and operational metadata; no implicit tenant content access.",
+        "TENANT",
+        frozenset(
+            {
+                "tenant.read",
+                "tenant.create",
+                "tenant.update",
+                "tenant.suspend",
+                "system_config.read",
+                "system_config.update",
+                "model.read",
+                "model.manage",
+                "agent.read",
+                "agent.publish",
+                "skill.read",
+                "skill.publish",
+                "workflow.read",
+                "workflow.publish",
+                "sandbox_template.read",
+                "sandbox_template.publish",
+                "policy.read",
+                "policy.publish",
+                "audit.read",
+            }
+        ),
+    ),
+    RoleDefinition(
+        "tenant_admin",
+        "Tenant administrator",
+        "Tenant members, roles, projects, configuration, and tenant-scoped resources.",
+        "TENANT",
+        frozenset(
+            {
+                "tenant.read",
+                "tenant.update",
+                "membership.read",
+                "membership.invite",
+                "membership.update",
+                "membership.revoke",
+                "role.read",
+                "role.assign",
+                "role.revoke",
+                "project.read",
+                "project.create",
+                "project.update",
+                "project.archive",
+                "credential.create",
+                "credential.rotate",
+                "credential.revoke",
+                "credential.metadata.read",
+                "model.read",
+                "model.manage",
+                "agent.read",
+                "agent.publish",
+                "agent.bind",
+                "skill.read",
+                "skill.publish",
+                "skill.bind",
+                "workflow.read",
+                "workflow.publish",
+                "workflow.bind",
+                "knowledge.read",
+                "knowledge.ingest",
+                "knowledge.update",
+                "knowledge.delete",
+                "knowledge.reindex",
+                "asset.read",
+                "asset.create",
+                "asset.update",
+                "asset.archive",
+                "scope.read",
+                "scope.draft",
+                "scope.submit",
+                "task.read",
+                "candidate.read",
+                "validation_plan.read",
+                "sandbox_template.read",
+                "sandbox_template.bind",
+                "policy.read",
+                "policy.publish",
+                "policy.bind",
+                "approval.read",
+                "audit.read",
+                "report.read",
+                "report.generate",
+                "report.export",
+                "system_config.read",
+                "system_config.update",
+            }
+        ),
+    ),
+    RoleDefinition(
+        "project_admin",
+        "Project administrator",
+        "Project membership, configuration, resources, and workflow bindings.",
+        "PROJECT",
+        COMMON_PROJECT_READ
+        | frozenset(
+            {
+                "membership.invite",
+                "membership.update",
+                "membership.revoke",
+                "role.assign",
+                "role.revoke",
+                "project.update",
+                "project.archive",
+                "model.invoke",
+                "agent.draft",
+                "agent.bind",
+                "skill.draft",
+                "skill.bind",
+                "workflow.draft",
+                "workflow.bind",
+                "knowledge.ingest",
+                "knowledge.update",
+                "knowledge.delete",
+                "knowledge.reindex",
+                "asset.create",
+                "asset.update",
+                "asset.archive",
+                "scope.draft",
+                "scope.submit",
+                "task.create",
+                "task.update_draft",
+                "task.submit",
+                "candidate.create",
+                "candidate.update",
+                "validation_plan.draft",
+                "validation_plan.submit",
+                "sandbox_template.bind",
+                "policy.bind",
+                "report.generate",
+                "report.export",
+                "system_config.read",
+                "system_config.update",
+            }
+        ),
+    ),
+    RoleDefinition(
+        "security_researcher",
+        "Security researcher",
+        "Analysis, candidates, draft validation plans, and knowledge maintenance.",
+        "PROJECT",
+        COMMON_PROJECT_READ
+        | frozenset(
+            {
+                "model.invoke",
+                "agent.draft",
+                "skill.draft",
+                "workflow.draft",
+                "knowledge.ingest",
+                "knowledge.update",
+                "asset.create",
+                "asset.update",
+                "scope.draft",
+                "scope.submit",
+                "task.create",
+                "task.update_draft",
+                "task.submit",
+                "candidate.create",
+                "candidate.update",
+                "validation_plan.draft",
+                "validation_plan.submit",
+                "report.generate",
+                "report.export",
+            }
+        ),
+    ),
+    RoleDefinition(
+        "task_operator",
+        "Task operator",
+        "Execution control for approved tasks and sandbox runs.",
+        "PROJECT",
+        COMMON_PROJECT_READ
+        | frozenset(
+            {
+                "model.invoke",
+                "task.create",
+                "task.submit",
+                "task.execute",
+                "task.pause",
+                "task.resume",
+                "task.cancel",
+                "task.retry",
+                "sandbox_run.execute",
+                "sandbox_run.cancel",
+            }
+        ),
+    ),
+    RoleDefinition(
+        "approver",
+        "Approver",
+        "Approval decisions and revocation for assigned tenant or project scopes.",
+        "BOTH",
+        COMMON_PROJECT_READ
+        | frozenset(
+            {
+                "scope.approve",
+                "scope.reject",
+                "scope.revoke",
+                "validation_plan.approve",
+                "validation_plan.reject",
+                "validation_plan.revoke",
+                "approval.decide",
+                "approval.revoke",
+            }
+        ),
+    ),
+    RoleDefinition(
+        "auditor",
+        "Auditor",
+        "Read-only audit evidence, policy decisions, approvals, and controlled exports.",
+        "BOTH",
+        COMMON_PROJECT_READ
+        | frozenset(
+            {
+                "tenant.read",
+                "credential.metadata.read",
+                "audit.read",
+                "audit.export",
+                "report.export",
+                "system_config.read",
+            }
+        ),
+    ),
+    RoleDefinition(
+        "readonly_user",
+        "Read-only user",
+        "Read-only access to explicitly assigned projects, subject to classification policy.",
+        "PROJECT",
+        COMMON_PROJECT_READ,
+    ),
+)
+
+ROLE_BY_CODE = {role.code: role for role in ROLE_DEFINITIONS}
+
+if any("*" in permission for role in ROLE_DEFINITIONS for permission in role.permissions):
+    raise RuntimeError("wildcard permissions are forbidden")
+if any(not role.permissions <= PERMISSION_CODES for role in ROLE_DEFINITIONS):
+    raise RuntimeError("role definition references an unknown permission")

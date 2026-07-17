@@ -23,10 +23,10 @@
 | 2.11 | Sandbox 模板、实例、配额、网络、快照、销毁和回收 | sandbox-service | P5 | Legacy Verified（受限 runner） | Planned；P0 不执行载荷 | 隔离、默认无网、资源耗尽、异常回收和逃逸防护测试 |
 | 2.12 | 队列、优先级、租户配额、分布式锁、幂等、DLQ | control-plane + NATS/Redis/PostgreSQL | P3 | Legacy Implemented（进程内） | Planned | 重复/乱序消息、多副本、fencing、DLQ 和配额测试 |
 | 2.13 | Tool/Skill/Agent/Workflow/Policy/Result/Evidence 协议 | api-contracts | P0/P3 | Legacy Implemented（部分 Schema） | Implemented（P0 版本化 Schema 基线；P3 运行时待实现） | OpenAPI/JSON Schema lint、兼容性和生成代码检查 |
-| 2.14 | Policy Engine、多级审批、明确拒绝原因 | control-plane + policy-engine | P1/P5 | Legacy Verified（双人基础） | Designed（P0 流程与信任边界；P1/P5 执行面待实现） | deny-overrides、职责分离、撤销、过期和 TOCTOU 测试 |
-| 2.15 | 全量日志、追加审计、trace、脱敏和完整性 | audit-service + observability | P1 | Legacy Verified（单库 hash chain） | Planned | 必记事件覆盖、篡改检测、脱敏和外部锚定测试 |
+| 2.14 | Policy Engine、多级审批、明确拒绝原因 | control-plane + policy-engine | P5 | Legacy Verified（双人基础） | Designed（P0 流程与信任边界；P1 提供 approver 权限边界；P5 执行面待实现） | deny-overrides、职责分离、撤销、过期和 TOCTOU 测试 |
+| 2.15 | 全量日志、追加审计、trace、脱敏和完整性 | audit-service + observability | P1/P8 | Legacy Verified（单库 hash chain） | Verified（P1 每租户 hash chain、append-only trigger、结构化日志；外部锚定待 P8） | 必记事件覆盖、篡改检测、脱敏和外部锚定测试 |
 | 2.16 | Compose 一键开发、初始化、迁移、备份恢复、K8s/Helm | infrastructure | P0/P8 | Legacy Verified（单 API Compose） | Implemented（P0 本地平台基线；P8 生产化待实现） | Compose health、迁移、备份恢复、Helm lint/render |
-| 2.17 | 八类角色、菜单/API/数据/模型/技能/资产/审批/导出权限 | control-plane + api-gateway | P1 | Legacy Verified（四角色） | Designed（P0 权限矩阵；P1 后端执行待实现） | 后端权限矩阵、跨租户、对象越权和职责分离测试 |
+| 2.17 | 八类角色、菜单/API/数据/模型/技能/资产/审批/导出权限 | control-plane + api-gateway | P1 | Legacy Verified（四角色） | Verified（P1 固定八角色、无通配权限、租户/项目范围、后端与前端裁剪） | 后端权限矩阵、跨租户、对象越权和职责分离测试 |
 
 ## 3. 横切能力
 
@@ -35,8 +35,8 @@
 | 企业前端 | React/TS/Vite、领域模块、权限裁剪、i18n、深色模式 | `apps/web-console` | P7 | Implemented（P0 可运行壳层与性能基线；P7 全业务页面待实现） | Vitest、Storybook、Playwright、bundle budget |
 | API First | 静态 OpenAPI、错误/分页/幂等/追踪规范、生成 SDK | `packages/api-contracts` | P0 | Implemented | OpenAPI 语义快照、runtime 投影、生成无差异 |
 | 事件契约 | 版本化命令/事件、CloudEvents 信封 | `packages/api-contracts/events` | P0 | Implemented | Draft 2020-12 Schema 校验、正负契约测试 |
-| 多租户数据 | tenant/project、RLS、repository scope、缓存/对象命名空间 | control-plane + 各服务 | P1 | Planned | 数据库 RLS 与跨租户负向测试 |
-| 配置 | 默认/环境/部署/租户/项目/用户分层和 Schema | `packages/config` + control-plane | P1 | Planned | 配置优先级、非法配置和 secret 检查 |
+| 多租户数据 | tenant/project、RLS、repository scope、缓存/对象命名空间 | control-plane + 各服务 | P1/P3–P5 | Verified（P1 IAM/Control/Audit 表与 repository；后续服务命名空间随阶段接入） | 数据库 RLS 与跨租户负向测试 |
+| 配置 | 默认/环境/部署/租户/项目/用户分层和 Schema | `packages/config` + control-plane | P1 | Verified（环境/部署 + Tenant/Project/User 受管 Schema、乐观锁） | 配置优先级、非法配置和 secret 检查 |
 | 可观测性 | 日志、指标、trace、健康/就绪、成本与资源 | infrastructure/monitoring + 目标 `packages/observability` | P0/P8 | Implemented（P0 OTel/Prometheus 基线；P8 全链路待实现） | trace 贯通、指标存在性、敏感字段测试 |
 | DevSecOps | 格式、静态、类型、测试、扫描、SBOM、签名、发布审批 | CI/infrastructure | P0/P8 | Implemented（P0 工作流与本地门禁；远端发布证明待仓库接入） | 流水线实际执行记录和制品证明 |
 | 数据保留 | 在线保留、归档、法务保留、销毁和 WORM | 各数据所有者 | P0/P8 | Designed（P0 责任与策略；P8 归档执行待实现） | 保留策略测试、归档/恢复、不可变审计证明 |

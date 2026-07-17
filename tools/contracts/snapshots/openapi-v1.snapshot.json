@@ -1,9 +1,334 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "f2b11df7b85f05b2028dc9eb09374d3b8848852c55eeebfe676758058cf29065",
+  "document_sha256": "5b8012e75ac8ab62439edc51deb6ed3ddcb51c622fff5d6c2cbe54f6b0480076",
   "openapi": "3.1.0",
-  "info_version": "1.0.0-p0",
+  "info_version": "1.1.0-p1",
   "operations": [
+    {
+      "method": "GET",
+      "path": "/audit/events",
+      "operation_id": "listEnterpriseAuditEvents",
+      "parameters": [
+        {
+          "name": "project_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/Cursor"
+        },
+        {
+          "ref": "#/components/parameters/PageSize"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/config/effective",
+      "operation_id": "getEffectiveConfiguration",
+      "parameters": [
+        {
+          "name": "project_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "user_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/config/{config_key}",
+      "operation_id": "putConfigurationEntry",
+      "parameters": [
+        {
+          "name": "config_key",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/iam/role-assignments",
+      "operation_id": "grantRoleAssignment",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/iam/role-assignments/{assignment_id}/revoke",
+      "operation_id": "revokeRoleAssignment",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/AssignmentId"
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/iam/roles",
+      "operation_id": "listTenantRoles",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/Cursor"
+        },
+        {
+          "ref": "#/components/parameters/PageSize"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/iam/users",
+      "operation_id": "listTenantUsers",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/Cursor"
+        },
+        {
+          "ref": "#/components/parameters/PageSize"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/iam/users",
+      "operation_id": "provisionTenantUser",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/organizations",
+      "operation_id": "listOrganizations",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/Cursor"
+        },
+        {
+          "ref": "#/components/parameters/PageSize"
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/organizations",
+      "operation_id": "createOrganization",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "operation_id": "listProjects",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/Cursor"
+        },
+        {
+          "ref": "#/components/parameters/PageSize"
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/projects",
+      "operation_id": "createProject",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/session",
+      "operation_id": "getEnterpriseSession",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
     {
       "method": "GET",
       "path": "/system/requirements",
@@ -111,12 +436,53 @@
       "success_media_types": [
         "text/event-stream"
       ]
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/current",
+      "operation_id": "getCurrentTenant",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
     }
   ],
   "schemas": [
+    "AuditEvent",
+    "AuditEventPage",
+    "ConfigEntry",
+    "ConfigEntryUpdate",
+    "EffectiveConfig",
+    "Organization",
+    "OrganizationCreate",
+    "OrganizationPage",
+    "PageMeta",
     "Problem",
+    "Project",
+    "ProjectCreate",
+    "ProjectPage",
+    "Role",
+    "RoleAssignment",
+    "RoleAssignmentCreate",
+    "RoleAssignmentRevoke",
+    "RolePage",
+    "Session",
+    "SessionProjectAccess",
     "SystemRequirements",
     "Task",
-    "TaskEvent"
+    "TaskEvent",
+    "Tenant",
+    "User",
+    "UserPage",
+    "UserProvisionCreate"
   ]
 }

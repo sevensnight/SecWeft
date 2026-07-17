@@ -1,6 +1,23 @@
 from __future__ import annotations
 
 from conftest import make_user
+from fastapi.testclient import TestClient
+
+
+def test_unexpected_error_is_structured_and_does_not_leak_details(app):
+    @app.get("/_test/unexpected-error")
+    def unexpected_error() -> None:
+        raise RuntimeError("sensitive implementation detail")
+
+    with TestClient(app, raise_server_exceptions=False) as isolated_client:
+        response = isolated_client.get("/_test/unexpected-error")
+
+    assert response.status_code == 500
+    assert response.json()["code"] == "internal_error"
+    assert "sensitive" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-request-id"] == response.json()["request_id"]
+    assert response.headers["x-trace-id"] == response.json()["trace_id"]
 
 
 def test_health_and_authentication(client, admin_headers):

@@ -1,4 +1,4 @@
-name: P0 engineering baseline
+name: P0/P1 engineering baseline
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: p0-ci-${{ github.workflow }}-${{ github.ref }}
+  group: p1-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -22,6 +22,20 @@ jobs:
     name: Python 3.12 regression
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.4-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: p1-ci-postgres-owner-password
+          POSTGRES_DB: vulnlab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vulnlab"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,11 +46,20 @@ jobs:
             requirements-dev.lock
       - run: python -m pip install --require-hashes -r requirements-dev.lock
       - run: python -m pip install --no-deps -e .
-      - run: python -m compileall -q apps/control-plane/src solve_module2.py
+      - run: python -m compileall -q apps/control-plane/src solve_module2.py solve_p0_baseline.py solve_p1_baseline.py
+      - run: python -m ruff format --check .
       - run: python -m ruff check .
       - run: python -m mypy apps/control-plane/src
       - run: mkdir -p work/test-results
       - run: python -m pytest -q -p no:cacheprovider --junitxml=work/test-results/python.xml
+      - name: P1 PostgreSQL, RLS, repository, and API integration
+        env:
+          P1_POSTGRES_ADMIN_DSN: postgresql://postgres:p1-ci-postgres-owner-password@127.0.0.1:5432/vulnlab
+          P1_POSTGRES_APP_DSN: postgresql://vulnlab_app:p1-ci-postgres-app-password@127.0.0.1:5432/vulnlab
+          P1_POSTGRES_APP_PASSWORD: p1-ci-postgres-app-password
+        run: |
+          python tools/p1/validate_enterprise_postgres.py
+          python -m pytest -q -p no:cacheprovider tests/integration/test_p1_enterprise_api.py
       - name: Upload Python test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -75,6 +98,54 @@ jobs:
           path: apps/web-console/dist
           if-no-files-found: error
           retention-days: 7
+
+  identity-integration:
+    name: Keycloak Authorization Code and PKCE
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @vulnlab/web-console exec playwright install --with-deps chromium
+      - name: Start isolated Keycloak realm
+        run: |
+          docker run --detach --name vulnlab-p1-keycloak \
+            --publish 127.0.0.1:8081:8080 \
+            --env KC_BOOTSTRAP_ADMIN_USERNAME=vulnlab-ci-admin \
+            --env KC_BOOTSTRAP_ADMIN_PASSWORD=p1-ci-keycloak-admin-password-2026 \
+            --env KC_HEALTH_ENABLED=true \
+            --env KC_HTTP_ENABLED=true \
+            --env KC_HOSTNAME=http://127.0.0.1:8081 \
+            --volume "$PWD/infrastructure/keycloak/realm-vulnlab-development.json:/opt/keycloak/data/import/realm-vulnlab-development.json:ro" \
+            quay.io/keycloak/keycloak:26.1.4 start-dev --import-realm
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:8081/realms/vulnlab-development/.well-known/openid-configuration \
+              >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs vulnlab-p1-keycloak
+          exit 1
+      - name: Validate OIDC claims, rotation, JWKS, and browser code flow
+        env:
+          P1_KEYCLOAK_URL: http://127.0.0.1:8081
+          P1_KEYCLOAK_REALM: vulnlab-development
+          P1_KEYCLOAK_ADMIN_USER: vulnlab-ci-admin
+          P1_KEYCLOAK_ADMIN_PASSWORD: p1-ci-keycloak-admin-password-2026
+        run: node tools/p1/validate_keycloak_oidc.mjs
+      - name: Stop isolated Keycloak
+        if: always()
+        run: docker rm --force vulnlab-p1-keycloak || true
 
   delivery-static:
     name: Delivery manifests and scripts
@@ -122,7 +193,7 @@ jobs:
         run: |
           mkdir -p work
           helm lint infrastructure/kubernetes/helm/vulnlab-platform --strict
-          helm template p0 infrastructure/kubernetes/helm/vulnlab-platform \
+          helm template p1 infrastructure/kubernetes/helm/vulnlab-platform \
             --namespace vulnlab --set global.imagePullPolicy=Never \
             > work/rendered-vulnlab-platform.yaml
           test -s work/rendered-vulnlab-platform.yaml

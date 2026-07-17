@@ -5,6 +5,7 @@ import enUS from 'antd/locale/en_US';
 import zhCN from 'antd/locale/zh_CN';
 
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { AuthBoundary } from '../auth/AuthBoundary';
 import { usePreferencesStore } from '../stores/preferences';
 import { queryClient } from './query-client';
 import { router } from './router';
@@ -23,7 +24,9 @@ export function AppProviders() {
       >
         <AntApp>
           <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
+            <AuthBoundary>
+              <RouterProvider router={router} />
+            </AuthBoundary>
           </QueryClientProvider>
         </AntApp>
       </ConfigProvider>

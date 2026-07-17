@@ -1,8 +1,8 @@
-# P0 Docker Compose 运行手册
+# P0/P1 Docker Compose 运行手册
 
 ## 1. 权威文件与边界
 
-企业 P0 平台使用：
+企业 P0/P1 平台使用：
 
 ```text
 infrastructure/docker-compose/platform.yml
@@ -28,19 +28,20 @@ flowchart LR
     U -.->|"可选 127.0.0.1:8081"| K["Keycloak identity profile"]
 ```
 
-| 服务 | P0 责任 | 持久数据 | 健康检查 |
+| 服务 | P0/P1 责任 | 持久数据 | 健康检查 |
 |---|---|---|---|
 | `gateway` | 同源路由、安全响应头、唯一业务入口 | 无 | `/gateway-healthz` |
-| `web-console` | P0 只读企业壳和状态视图 | 无 | `/healthz` |
-| `api` | 兼容控制面、签名只读 API、安全失败关闭 | `api-data`（旧 SQLite） | `/health` |
-| `postgres` | 目标 IAM/control/audit schema 基线 | `postgres-data` | `pg_isready` |
+| `web-console` | P1 OIDC 边界、项目选择和权限裁剪；保留兼容视图 | 无 | `/healthz` |
+| `api` | P1 Bearer/RLS 企业 API；compatibility 模式保留旧 SQLite | `api-data`（仅兼容模式） | `/health` |
+| `postgres-migrate` | 按 checksum 顺序应用可逆 migration，成功后退出 | `postgres-data` | 退出码 0 |
+| `postgres` | P1 IAM/control/audit 真相源和强制 RLS | `postgres-data` | `pg_isready` |
 | `redis` | 缓存/限流/可重建状态基础设施 | `redis-data` | 认证 `PING` |
 | `nats` | JetStream 事件基础设施 | `nats-data` | JetStream health |
 | `minio` | artifacts/reports/audit 对象存储 | `minio-data` | MinIO live health |
 | `minio-init` | 幂等建桶、版本化和禁止匿名访问 | 无 | 成功退出 |
 | `otel-collector` | OTLP 接收、处理和 Prometheus 暴露 | 无 | Collector health |
 | `prometheus` | P0 指标采集和本地保留 | `prometheus-data` | `promtool check healthy` |
-| `keycloak` | 默认关闭的开发 OIDC/PKCE 前置环境，不代表 P1 登录已实现 | `keycloak-data` | `/health/ready` |
+| `keycloak` | 默认关闭的开发 OIDC/PKCE Provider；无内置业务用户 | `keycloak-data` | `/health/ready` |
 
 `volume-backup` 和 `volume-restore` 只在 `tools` profile 中由维护脚本按明确命令启动，不是常驻服务；二者无网络、根文件系统只读，仅具有读取或恢复不同服务 UID 所需的最小文件能力。
 
@@ -179,8 +180,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/scripts/stop.
 
 不得把 `docker compose down -v` 作为回滚。该命令删除 named volumes，只能用于确认可丢弃的全新开发环境。
 
-## 11. P0 实现与验证状态
+## 11. P0/P1 实现与验证状态
 
 截至 2026-07-12，Compose 文件、Windows/POSIX 启停脚本、备份/恢复脚本、健康检查、内部网络、资源/权限限制均已实现。已在 Docker Desktop 28.4 / Compose 2.39 上完成锁定依赖镜像构建、9 个长期服务健康等待、MinIO 初始化、HTTP/鉴权 smoke、PostgreSQL `up/down/up`、跨租户/追加审计负向约束，以及带 SHA-256 manifest 的备份恢复演练；详细证据见 `../P0_ACCEPTANCE_REPORT.md`。
 
-默认关闭的开发 Keycloak Provider 已进入 `identity` profile；它只提供 P1 集成前置环境，兼容 API 仍使用 API Key，因此 P1 OIDC 不得标记为已实现。镜像签名、生产密钥管理、跨节点高可用、生产灾备和 Sandbox Linux 隔离属于 P5/P8。
+P1 已把 checksum migration runner、独立 `vulnlab_app` 密码、OIDC 配置和企业 API 接入 Compose。开发 Keycloak Realm 使用受管 `tenant_id`、Code+PKCE、短期 token、Refresh Token 轮换、防暴力破解和事件审计；真实浏览器/JWKS 验证与 PostgreSQL RLS 证据见 `../P1_ACCEPTANCE_REPORT.md`。镜像签名、生产密钥管理、跨节点高可用、生产灾备和 Sandbox Linux 隔离属于 P5/P8。

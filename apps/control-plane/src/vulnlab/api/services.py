@@ -7,6 +7,7 @@ from ..audit import AuditService
 from ..config import Settings
 from ..context import ContextService
 from ..db import Database
+from ..enterprise import EnterpriseServices, build_enterprise_services
 from ..model_gateway import ModelGateway, ProviderStore
 from ..orchestrator import Orchestrator
 from ..rag import RAGService
@@ -30,6 +31,11 @@ class Services:
     rag: RAGService
     sandbox: SandboxService
     orchestrator: Orchestrator
+    enterprise: EnterpriseServices | None = None
+
+    def close(self) -> None:
+        if self.enterprise is not None:
+            self.enterprise.close()
 
 
 def build_services(settings: Settings) -> Services:
@@ -38,7 +44,8 @@ def build_services(settings: Settings) -> Services:
     db = Database(settings.db_path)
     db.initialize()
     security = SecurityService(db, settings.audit_key)
-    security.bootstrap_admin(settings.admin_key)
+    if settings.auth_mode == "compatibility":
+        security.bootstrap_admin(settings.admin_key)
     audit = AuditService(db, settings.audit_key)
     if db.fetch_one("SELECT id FROM audit_logs LIMIT 1") is None:
         audit.record(
@@ -53,6 +60,7 @@ def build_services(settings: Settings) -> Services:
     rag = RAGService(db, audit)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, audit, settings.max_concurrency)
+    enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
     return Services(
         settings=settings,
         db=db,
@@ -66,4 +74,5 @@ def build_services(settings: Settings) -> Services:
         rag=rag,
         sandbox=sandbox,
         orchestrator=orchestrator,
+        enterprise=enterprise,
     )

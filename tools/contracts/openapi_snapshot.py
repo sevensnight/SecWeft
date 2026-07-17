@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and snapshot the checked-in P0 OpenAPI contract.
+"""Validate and snapshot the checked-in P1 OpenAPI contract.
 
 The snapshot is semantic: comments and YAML formatting do not change its digest.
 Runtime comparison is intentionally one-way. Every contract operation must exist in
@@ -32,10 +32,30 @@ CRITICAL_PATHS = frozenset(
         "/tasks/{task_id}",
         "/tasks/{task_id}/events",
         "/tasks/{task_id}/events/stream",
+        "/session",
+        "/tenants/current",
+        "/organizations",
+        "/projects",
+        "/iam/users",
+        "/iam/roles",
+        "/iam/role-assignments",
+        "/iam/role-assignments/{assignment_id}/revoke",
+        "/config/effective",
+        "/config/{config_key}",
+        "/audit/events",
+    }
+)
+P0_COMPATIBILITY_PATHS = frozenset(
+    {
+        "/system/requirements",
+        "/tasks",
+        "/tasks/{task_id}",
+        "/tasks/{task_id}/events",
+        "/tasks/{task_id}/events/stream",
     }
 )
 SSE_PATH = "/tasks/{task_id}/events/stream"
-FORBIDDEN_P0_PATH_FRAGMENTS = ("/run", "/sandbox", "/assets/probe", "/validation", "/exploit")
+FORBIDDEN_PATH_FRAGMENTS = ("/run", "/sandbox", "/assets/probe", "/validation", "/exploit")
 
 
 class ContractError(RuntimeError):
@@ -76,10 +96,13 @@ def canonical_digest(document: dict[str, Any]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _response_media_types(operation: dict[str, Any], status: str = "200") -> list[str]:
+def _response_media_types(operation: dict[str, Any], status: str | None = None) -> list[str]:
     responses = operation.get("responses", {})
     if not isinstance(responses, dict):
         return []
+    if status is None:
+        success = sorted(str(code) for code in responses if str(code).startswith("2"))
+        status = success[0] if success else "200"
     response = responses.get(status, responses.get(int(status)) if status.isdigit() else None)
     if not isinstance(response, dict):
         return []
@@ -167,13 +190,19 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         components = {}
     schemes = components.get("securitySchemes", {})
     api_key = schemes.get("ApiKeyAuth", {}) if isinstance(schemes, dict) else {}
-    if api_key != {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-API-Key",
-        "description": "Compatibility authentication for P0 only; P1 replaces it with OIDC.",
-    }:
+    if not isinstance(api_key, dict) or {
+        "type": api_key.get("type"),
+        "in": api_key.get("in"),
+        "name": api_key.get("name"),
+    } != {"type": "apiKey", "in": "header", "name": "X-API-Key"}:
         errors.append("ApiKeyAuth must be the documented compatibility X-API-Key header scheme")
+    bearer = schemes.get("BearerAuth", {}) if isinstance(schemes, dict) else {}
+    if not isinstance(bearer, dict) or {
+        "type": bearer.get("type"),
+        "scheme": bearer.get("scheme"),
+        "bearerFormat": bearer.get("bearerFormat"),
+    } != {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}:
+        errors.append("BearerAuth must be the documented OIDC JWT bearer scheme")
     if {"ApiKeyAuth": []} not in document.get("security", []):
         errors.append("the P0 contract must default to authenticated operations")
 
@@ -189,15 +218,19 @@ def validate_document(document: dict[str, Any]) -> list[str]:
             errors.append(f"invalid path key: {path!r}")
         if isinstance(path, str) and path.startswith("/api/v1"):
             errors.append(f"path duplicates the server version prefix: {path}")
-        if any(fragment in str(path).lower() for fragment in FORBIDDEN_P0_PATH_FRAGMENTS):
-            errors.append(f"P0 contract exposes a deferred execution capability: {path}")
+        if any(fragment in str(path).lower() for fragment in FORBIDDEN_PATH_FRAGMENTS):
+            errors.append(f"P1 contract exposes a deferred execution capability: {path}")
 
     operation_ids: set[str] = set()
     operation_count = 0
     for path, method, operation in iter_operations(document):
         operation_count += 1
-        if method != "get":
-            errors.append(f"P0 contract must remain read-only, found {method.upper()} {path}")
+        if path in P0_COMPATIBILITY_PATHS and method != "get":
+            errors.append(
+                f"P0 compatibility contract must remain read-only: {method.upper()} {path}"
+            )
+        if path not in P0_COMPATIBILITY_PATHS and method not in {"get", "post", "put"}:
+            errors.append(f"P1 contract uses an unsupported method: {method.upper()} {path}")
         operation_id = operation.get("operationId")
         if not isinstance(operation_id, str) or not operation_id:
             errors.append(f"operationId is required for {method.upper()} {path}")
@@ -206,12 +239,21 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         else:
             operation_ids.add(operation_id)
         responses = operation.get("responses")
-        if not isinstance(responses, dict) or "200" not in {str(key) for key in responses}:
-            errors.append(f"200 response is missing for {method.upper()} {path}")
+        response_codes = {str(key) for key in responses} if isinstance(responses, dict) else set()
+        if not any(code.startswith("2") for code in response_codes):
+            errors.append(f"successful response is missing for {method.upper()} {path}")
         if not isinstance(responses, dict) or "401" not in {str(key) for key in responses}:
             errors.append(f"401 response is missing for {method.upper()} {path}")
         if "#/components/parameters/XRequestId" not in _parameter_refs(operation):
             errors.append(f"X-Request-ID parameter is missing for {method.upper()} {path}")
+        if path not in P0_COMPATIBILITY_PATHS and {"BearerAuth": []} not in operation.get(
+            "security", []
+        ):
+            errors.append(f"OIDC BearerAuth is missing for {method.upper()} {path}")
+        if method in {"post", "put"} and (
+            "#/components/parameters/IdempotencyKey" not in _parameter_refs(operation)
+        ):
+            errors.append(f"Idempotency-Key is missing for {method.upper()} {path}")
     if operation_count == 0:
         errors.append("the contract has no operations")
 
@@ -240,12 +282,29 @@ def validate_document(document: dict[str, Any]) -> list[str]:
                 errors.append("Last-Event-ID must be a non-negative integer")
 
     schemas = components.get("schemas", {}) if isinstance(components, dict) else {}
-    for required_schema in ("Problem", "SystemRequirements", "Task", "TaskEvent"):
+    for required_schema in (
+        "Problem",
+        "SystemRequirements",
+        "Task",
+        "TaskEvent",
+        "Session",
+        "Tenant",
+        "Organization",
+        "Project",
+        "User",
+        "Role",
+        "RoleAssignment",
+        "ConfigEntry",
+        "AuditEvent",
+    ):
         if not isinstance(schemas, dict) or required_schema not in schemas:
             errors.append(f"components.schemas.{required_schema} is required")
     problem = schemas.get("Problem", {}) if isinstance(schemas, dict) else {}
     if problem.get("additionalProperties") is not False:
         errors.append("Problem must reject unknown fields")
+    required_problem_fields = {"detail", "code", "request_id", "trace_id"}
+    if not required_problem_fields <= set(problem.get("required", [])):
+        errors.append("Problem must require detail, code, request_id, and trace_id")
     return errors
 
 
@@ -342,7 +401,7 @@ def check(*, runtime: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="OpenAPI P0 semantic snapshot and compatibility checker"
+        description="OpenAPI P1 semantic snapshot and compatibility checker"
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
     check_parser = subcommands.add_parser(

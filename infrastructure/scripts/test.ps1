@@ -28,7 +28,8 @@ function Invoke-Checked {
 
 Push-Location $repositoryRoot
 try {
-    Invoke-Checked $Python @('-m', 'compileall', '-q', 'apps/control-plane/src', 'solve_module2.py')
+    Invoke-Checked $Python @('-m', 'compileall', '-q', 'apps/control-plane/src', 'solve_module2.py', 'solve_p0_baseline.py', 'solve_p1_baseline.py')
+    Invoke-Checked $Python @('-m', 'ruff', 'format', '--check', '.')
     Invoke-Checked $Python @('-m', 'ruff', 'check', '.')
     Invoke-Checked $Python @('-m', 'mypy', 'apps/control-plane/src')
     Invoke-Checked $Python @('-m', 'pytest', '-q', '-p', 'no:cacheprovider')
@@ -46,7 +47,7 @@ try {
         Invoke-Checked 'helm' @('lint', $chart, '--strict')
         $rendered = Join-Path $repositoryRoot 'work\rendered-vulnlab-platform.yaml'
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $rendered) | Out-Null
-        & helm template p0 $chart --namespace vulnlab | Set-Content -LiteralPath $rendered -Encoding UTF8
+        & helm template p1 $chart --namespace vulnlab | Set-Content -LiteralPath $rendered -Encoding UTF8
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $rendered -PathType Leaf)) {
             throw 'Helm chart rendering failed'
         }
@@ -56,4 +57,4 @@ finally {
     Pop-Location
 }
 
-Write-Output 'P0 validation completed successfully.'
+Write-Output 'P0/P1 validation completed successfully.'

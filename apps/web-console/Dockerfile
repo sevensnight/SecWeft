@@ -8,6 +8,16 @@ WORKDIR /workspace
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 COPY packages ./packages
 COPY apps/web-console ./apps/web-console
+ARG VITE_AUTH_MODE=compatibility
+ARG VITE_OIDC_AUTHORITY=
+ARG VITE_OIDC_CLIENT_ID=vulnlab-web-console
+ARG VITE_OIDC_SCOPE="openid profile email"
+ARG VITE_OIDC_ACR_VALUES=
+ENV VITE_AUTH_MODE=$VITE_AUTH_MODE
+ENV VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY
+ENV VITE_OIDC_CLIENT_ID=$VITE_OIDC_CLIENT_ID
+ENV VITE_OIDC_SCOPE=$VITE_OIDC_SCOPE
+ENV VITE_OIDC_ACR_VALUES=$VITE_OIDC_ACR_VALUES
 RUN pnpm install --frozen-lockfile \
     && pnpm generate:api \
     && pnpm --filter @vulnlab/web-console build \

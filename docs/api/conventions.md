@@ -2,9 +2,9 @@
 
 ## 1. 适用范围与当前状态
 
-本文约束外部 REST API、内部同步 API、Server-Sent Events（SSE）和由 OpenAPI 生成的客户端。P0 的权威外部契约是 `packages/api-contracts/openapi/v1.yaml`；事件和领域协议分别以 `packages/api-contracts/events/*.schema.json`、`packages/api-contracts/protocol/*.schema.json` 为准。
+本文约束外部 REST API、内部同步 API、Server-Sent Events（SSE）和由 OpenAPI 生成的客户端。P1 的权威外部契约是 `packages/api-contracts/openapi/v1.yaml`；事件和领域协议分别以 `packages/api-contracts/events/*.schema.json`、`packages/api-contracts/protocol/*.schema.json` 为准。
 
-P0 当前只把系统状态、任务只读投影和任务事件流纳入签名契约。旧 SQLite/FastAPI 运行时仍保留若干写接口作为迁移兼容层，但这些接口不属于企业 API 完成态；`VULNLAB_LEGACY_EXECUTION_ENABLED=false` 时，旧执行、探测和 Sandbox 路径失败关闭。P1 才落地 OIDC、多租户数据范围和标准错误体，P3 才落地持久化任务命令、NATS 扇出和完整幂等语义。
+P1 契约在 P0 只读投影上新增 OIDC 会话、Tenant/Organization/Project、成员、固定角色、配置和审计，共 19 个运行时 operation。旧 SQLite/FastAPI 写接口仅是迁移兼容层；`VULNLAB_LEGACY_EXECUTION_ENABLED=false` 时，旧执行、探测和 Sandbox 路径失败关闭。P3 才落地持久化任务命令、NATS 扇出和任务级幂等语义。
 
 ## 2. API First 工作流
 
@@ -17,7 +17,7 @@ P0 当前只把系统状态、任务只读投影和任务事件流纳入签名�
 5. 补充正常、鉴权失败、数据范围失败、非法状态、重复请求和边界值测试。
 6. 在同一变更中提交契约、生成物、实现、测试和兼容说明。
 
-P0 可执行检查：
+P1 可执行检查：
 
 ```powershell
 pnpm --filter @vulnlab/api-contracts test
@@ -39,11 +39,11 @@ git diff --exit-code -- packages/shared-types/src/api.generated.ts
 - `GET`、`HEAD` 无副作用；创建使用 `POST`，整体替换使用 `PUT`，部分更新使用 `PATCH`，删除语义优先使用归档/撤销命令。
 - 业务命令可使用 `POST /tasks/{id}:cancel` 一类显式命令，但同一领域必须统一；现有 `/tasks/{id}/cancel` 是 P0 兼容形态。
 
-P0 OpenAPI 版本 `1.0.0-p0` 是预发布契约，不对外承诺 GA 稳定性。发布 `v1` GA 后必须遵守 [兼容策略](compatibility.md)。
+P1 OpenAPI 版本 `1.1.0-p1` 是预发布契约，不对外承诺 GA 稳定性。发布 `v1` GA 后必须遵守 [兼容策略](compatibility.md)。
 
 ## 4. 身份、数据范围与权限
 
-P0 的 `X-API-Key` 仅用于旧原型兼容，Key 不得出现在 URL、SSE 查询参数、日志或前端持久化存储。P1 外部接口统一采用 OIDC Authorization Code + PKCE 或受信服务的 Client Credentials，HTTP 头为 `Authorization: Bearer <token>`。
+`X-API-Key` 仅用于旧原型兼容，Key 不得出现在 URL、SSE 查询参数、日志或前端持久化存储。P1 企业接口统一采用 OIDC Authorization Code + PKCE，HTTP 头为 `Authorization: Bearer <token>`；服务身份在 P3 首个消息消费者接入前另行定义，不复用用户 token。
 
 租户和项目范围从已验证的身份、成员关系与目标资源推导。客户端传入的 `tenant_id`、`project_id` 只是资源选择条件，不是授权证明。后端和异步消费者都必须执行：
 
@@ -73,7 +73,7 @@ P0 的 `X-API-Key` 仅用于旧原型兼容，Key 不得出现在 URL、SSE 查�
 6. 处理中重复请求返回原资源状态；不能安全复用时返回 `409 request_in_progress` 和有限的 `Retry-After`。
 7. 幂等记录至少覆盖客户端最大重试窗口；高风险执行 nonce 在审计保留期内不可复用。
 
-P0 PostgreSQL 迁移已定义 `control.idempotency_records`、按租户/项目的唯一索引以及过期字段；旧兼容写 API 尚未全面接入，因此不能把数据库表存在表述为幂等能力已验证。接入在 P1/P3 完成。
+P1 Organization、Project、User、RoleAssignment 和 Config 写接口已接入 `control.idempotency_records`，并验证相同请求回放、不同 hash 冲突、处理中租约和过期记录回收。旧兼容写 API 与 P3 Task 命令仍不属于该完成范围。
 
 可变聚合使用 `version` 乐观锁。命令体携带 `expected_version`，条件更新失败返回 `409 version_conflict`；不得用最后写入覆盖审批、Task 状态、Evidence 或审计历史。状态迁移、领域事件和 Outbox 必须在一个本地事务中提交。
 
@@ -131,7 +131,7 @@ P0 `/tasks` 仍返回原始数组并使用 `limit`（1–500，默认 100），�
 | 429 | 限流/配额 | `rate_limited`、`quota_exceeded` |
 | 503 | 依赖不可用或安全失败关闭 | `dependency_unavailable`、`audit_unavailable` |
 
-P0 兼容运行时当前返回 `{detail, code?, request_id?}` 的 `application/json`，且部分框架校验错误仍使用 FastAPI 默认结构。该差异必须留在兼容说明中，P1 统一错误中间件和 OpenAPI schema 后才标记 `Verified`。
+P1 企业接口由统一异常处理返回 `detail/code/request_id/trace_id/errors`，并使用正确 HTTP 状态；兼容路径保留历史响应形态，差异记录在兼容说明中。
 
 ## 9. SSE 事件流
 
@@ -162,4 +162,4 @@ data: {"id":184,"event_type":"task.state_changed","payload":{},"created_at":"…
 
 ## 11. 契约完成定义
 
-一次 API 变更只有同时满足以下条件才是完成态：契约可解析、生成物无漂移、服务实现存在、正常和负向测试通过、权限和数据范围明确、日志脱敏、幂等/并发语义明确、兼容性分类完成、文档示例可执行。P0 只对签名只读路径满足这一定义；其余旧路由保持 `Legacy Implemented/Legacy Verified` 标签。
+一次 API 变更只有同时满足以下条件才是完成态：契约可解析、生成物无漂移、服务实现存在、正常和负向测试通过、权限和数据范围明确、日志脱敏、幂等/并发语义明确、兼容性分类完成、文档示例可执行。P1 对签名的身份/租户/权限/配置/审计路径满足这一定义；其余旧路由保持 `Legacy Implemented/Legacy Verified` 标签。

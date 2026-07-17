@@ -20,6 +20,12 @@ def principal(
     services: ServicesDep,
     x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
 ) -> Principal:
+    if services.settings.auth_mode != "compatibility":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API-key compatibility authentication is disabled",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
         return services.security.authenticate(x_api_key)
     except AuthenticationError as exc:

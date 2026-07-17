@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from . import __version__
@@ -10,15 +13,24 @@ from .config import Settings
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """Create the control-plane compatibility API through explicit composition."""
+    """Create the P1 control plane with an explicit compatibility boundary."""
     services = build_services(settings or Settings.from_env())
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            services.close()
+
     app = FastAPI(
         title="VulnLab Module 2 Control Plane",
         version=__version__,
         description=(
-            "P0 compatibility API for the authorized-lab reference runtime. "
-            "Enterprise service extraction is governed by the checked-in architecture contracts."
+            "P1 enterprise identity, tenancy, RBAC, configuration, and audit API. "
+            "The P0 API-key surface remains an explicitly disabled-by-default compatibility layer."
         ),
+        lifespan=lifespan,
     )
     app.state.services = services
     install_runtime(app, services)
