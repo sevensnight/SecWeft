@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and snapshot the checked-in P5 OpenAPI contract.
+"""Validate and snapshot the checked-in P6 OpenAPI contract.
 
 The snapshot is semantic: comments and YAML formatting do not change its digest.
 Runtime comparison is intentionally one-way. Every contract operation must exist in
@@ -70,6 +70,10 @@ CRITICAL_PATHS = frozenset(
         "/iam/role-assignments/{assignment_id}/revoke",
         "/config/effective",
         "/config/{config_key}",
+        "/tasks/{task_id}/validation-plans",
+        "/validation-plans/{plan_id}",
+        "/validation-plans/{plan_id}/submit",
+        "/validation-plans/{plan_id}/review",
         "/policies/evaluate",
         "/audit/events",
     }
@@ -85,7 +89,7 @@ API_KEY_COMPATIBILITY_OPERATIONS = frozenset(
 )
 SSE_PATH = "/tasks/{task_id}/events/stream"
 MODEL_SSE_PATH = "/models/stream"
-FORBIDDEN_PATH_FRAGMENTS = ("/run", "/sandbox", "/assets/probe", "/validation", "/exploit")
+FORBIDDEN_PATH_FRAGMENTS = ("/run", "/sandbox", "/assets/probe", "/exploit")
 
 
 class ContractError(RuntimeError):
@@ -256,7 +260,7 @@ def validate_document(document: dict[str, Any]) -> list[str]:
     for path, method, operation in iter_operations(document):
         operation_count += 1
         if method not in {"get", "post", "put"}:
-            errors.append(f"P5 contract uses an unsupported method: {method.upper()} {path}")
+            errors.append(f"P6 contract uses an unsupported method: {method.upper()} {path}")
         operation_id = operation.get("operationId")
         if not isinstance(operation_id, str) or not operation_id:
             errors.append(f"operationId is required for {method.upper()} {path}")
@@ -353,6 +357,10 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         "Role",
         "RoleAssignment",
         "ConfigEntry",
+        "ValidationProbeStep",
+        "ValidationPlanCreate",
+        "ValidationPlanReview",
+        "ValidationPlan",
         "PolicyEvaluationRequest",
         "PolicyDecision",
         "AuditEvent",
@@ -470,7 +478,7 @@ def check(*, runtime: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="OpenAPI P5 semantic snapshot and compatibility checker"
+        description="OpenAPI P6 semantic snapshot and compatibility checker"
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
     check_parser = subcommands.add_parser(

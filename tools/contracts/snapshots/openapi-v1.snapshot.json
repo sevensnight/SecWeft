@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "0ec22702c5a7670c426336841b13468ade32640d1b03480625a9e5bc27e4b0af",
+  "document_sha256": "a8e7bf73c2877cc6ffdc38f8837589ed50126dda8e383128ec20a2b038b73c38",
   "openapi": "3.1.0",
-  "info_version": "1.5.0-p5",
+  "info_version": "1.6.0-p6",
   "operations": [
     {
       "method": "GET",
@@ -1324,6 +1324,59 @@
     },
     {
       "method": "GET",
+      "path": "/tasks/{task_id}/validation-plans",
+      "operation_id": "listTaskValidationPlans",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/validation-plans",
+      "operation_id": "createTaskValidationPlan",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/tenants/current",
       "operation_id": "getCurrentTenant",
       "parameters": [
@@ -1335,6 +1388,87 @@
         "200",
         "401",
         "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/validation-plans/{plan_id}",
+      "operation_id": "getValidationPlan",
+      "parameters": [
+        {
+          "name": "plan_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/validation-plans/{plan_id}/review",
+      "operation_id": "reviewValidationPlan",
+      "parameters": [
+        {
+          "name": "plan_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/validation-plans/{plan_id}/submit",
+      "operation_id": "submitValidationPlan",
+      "parameters": [
+        {
+          "name": "plan_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409"
       ],
       "success_media_types": [
         "application/json"
@@ -1449,6 +1583,10 @@
     "User",
     "UserPage",
     "UserProvisionCreate",
+    "ValidationPlan",
+    "ValidationPlanCreate",
+    "ValidationPlanReview",
+    "ValidationProbeStep",
     "WorkflowDefinition",
     "WorkflowDefinitionCreate",
     "WorkflowStageDefinition"

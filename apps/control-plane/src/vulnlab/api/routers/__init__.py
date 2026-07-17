@@ -8,6 +8,7 @@ from .policies import router as policies_router
 from .system import router as system_router
 from .tasks import router as tasks_router
 from .users import router as users_router
+from .validation_plans import router as validation_plans_router
 
 ALL_ROUTERS = (
     system_router,
@@ -17,6 +18,7 @@ ALL_ROUTERS = (
     tasks_router,
     knowledge_router,
     policies_router,
+    validation_plans_router,
     execution_router,
     audit_router,
     enterprise_iam_router,

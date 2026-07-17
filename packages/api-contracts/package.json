@@ -1,6 +1,6 @@
 {
   "name": "@vulnlab/api-contracts",
-  "version": "1.5.0-p5",
+  "version": "1.6.0-p6",
   "private": true,
   "files": ["openapi", "events", "protocol"],
   "scripts": {

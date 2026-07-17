@@ -22,6 +22,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "context:read",
             "profile:read",
             "policy:read",
+            "validation:read",
         }
     ),
     Role.ANALYST: frozenset(
@@ -42,6 +43,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "scope:create",
             "policy:read",
             "policy:evaluate",
+            "validation:read",
+            "validation:create",
+            "validation:submit",
         }
     ),
     Role.OPERATOR: frozenset(
@@ -65,6 +69,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "scope:create",
             "policy:read",
             "policy:evaluate",
+            "validation:read",
+            "validation:create",
+            "validation:submit",
         }
     ),
     Role.ADMIN: frozenset({"*"}),

@@ -363,6 +363,22 @@ CREATE TABLE IF NOT EXISTS policy_decisions (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS validation_plans (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK(status IN ('draft','submitted','approved','rejected','revoked')),
+    plan_json TEXT NOT NULL,
+    plan_hash TEXT NOT NULL,
+    policy_decision_ids_json TEXT NOT NULL DEFAULT '[]',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    submitted_at TEXT,
+    reviewed_by TEXT REFERENCES users(id),
+    reviewed_at TEXT,
+    review_reason TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sandbox_runs (
     id TEXT PRIMARY KEY,
     task_id TEXT REFERENCES tasks(id),
@@ -416,6 +432,8 @@ CREATE INDEX IF NOT EXISTS idx_policy_decisions_actor_time
     ON policy_decisions(actor_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_policy_decisions_resource
     ON policy_decisions(resource_type, resource_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_validation_plans_task
+    ON validation_plans(task_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
@@ -644,6 +662,10 @@ class Database:
                 """CREATE INDEX IF NOT EXISTS idx_policy_decisions_resource
                    ON policy_decisions(resource_type, resource_id, created_at DESC)"""
             )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_validation_plans_task
+                   ON validation_plans(task_id, created_at DESC)"""
+            )
 
             # Only backfill records that truly came from a legacy schema. Recomputing every
             # hash on startup would silently bless an offline modification to an approved scope.
@@ -687,7 +709,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=6")
+            connection.execute("PRAGMA user_version=7")
             connection.commit()
         except Exception:
             connection.rollback()

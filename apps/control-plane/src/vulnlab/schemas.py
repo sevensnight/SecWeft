@@ -433,6 +433,33 @@ class ValidationPlan(APIModel):
     rollback: list[str]
 
 
+class ValidationPlanCreate(APIModel):
+    objectives: list[str] = Field(min_length=1, max_length=32)
+    steps: list[ProbeStep] = Field(min_length=1, max_length=32)
+    rollback: list[str] = Field(min_length=1, max_length=32)
+
+
+class ValidationPlanReview(APIModel):
+    approved: bool
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class ValidationPlanResponse(APIModel):
+    id: str
+    task_id: str
+    status: Literal["draft", "submitted", "approved", "rejected", "revoked"]
+    plan: dict[str, Any]
+    plan_hash: str
+    policy_decision_ids: list[str]
+    created_by: str
+    submitted_at: datetime | None
+    reviewed_by: str | None
+    reviewed_at: datetime | None
+    review_reason: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
 class SandboxRequest(APIModel):
     task_id: str | None = None
     argv: list[str] = Field(min_length=1, max_length=32)

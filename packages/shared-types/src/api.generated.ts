@@ -750,6 +750,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks/{task_id}/validation-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List validation plans for a task */
+        get: operations["listTaskValidationPlans"];
+        put?: never;
+        /** Create a non-executing validation plan draft after policy preflight */
+        post: operations["createTaskValidationPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/validation-plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one validation plan */
+        get: operations["getValidationPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/validation-plans/{plan_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a validation plan for separate review */
+        post: operations["submitValidationPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/validation-plans/{plan_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject a submitted validation plan without executing it */
+        post: operations["reviewValidationPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/policies/evaluate": {
         parameters: {
             query?: never;
@@ -1640,6 +1709,52 @@ export interface components {
             sources: {
                 [key: string]: "TENANT" | "PROJECT" | "USER";
             };
+        };
+        ValidationProbeStep: {
+            /** @enum {string} */
+            kind: "tcp_connect" | "http_request" | "assertion";
+            host: string;
+            port: number;
+            /** @enum {string|null} */
+            method?: "HEAD" | "GET" | null;
+            path?: string | null;
+            expected_status?: number[];
+            body_pattern?: string | null;
+        };
+        ValidationPlanCreate: {
+            objectives: string[];
+            steps: components["schemas"]["ValidationProbeStep"][];
+            rollback: string[];
+        };
+        ValidationPlanReview: {
+            approved: boolean;
+            reason: string;
+        };
+        ValidationPlan: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            task_id: string;
+            /** @enum {string} */
+            status: "draft" | "submitted" | "approved" | "rejected" | "revoked";
+            plan: {
+                [key: string]: unknown;
+            };
+            plan_hash: string;
+            policy_decision_ids: string[];
+            /** Format: uuid */
+            created_by: string;
+            /** Format: date-time */
+            submitted_at: string | null;
+            /** Format: uuid */
+            reviewed_by: string | null;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            review_reason: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
         };
         PolicyEvaluationRequest: {
             /** @enum {string} */
@@ -3436,6 +3551,158 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listTaskValidationPlans: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Validation plan collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationPlan"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createTaskValidationPlan: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidationPlanCreate"];
+            };
+        };
+        responses: {
+            /** @description Validation plan draft created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationPlan"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getValidationPlan: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Validation plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationPlan"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    submitValidationPlan: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Submitted validation plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationPlan"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    reviewValidationPlan: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidationPlanReview"];
+            };
+        };
+        responses: {
+            /** @description Reviewed validation plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationPlan"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
         };
