@@ -1,18 +1,16 @@
 import {
-  AppstoreOutlined,
   BulbOutlined,
   KeyOutlined,
   LogoutOutlined,
   MoonOutlined,
   SafetyCertificateOutlined,
-  SettingOutlined,
-  TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { Outlet, useRouterState } from '@tanstack/react-router';
 import { Badge, Button, Flex, Layout, Menu, Select, Space, Switch, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 
+import { getNavigationItems, selectNavigationKey } from '../app/navigation';
 import { queryClient } from '../app/query-client';
 import { useAuthActions } from '../auth/AuthContext';
 import { authMode } from '../auth/config';
@@ -37,19 +35,9 @@ export function AppShell() {
   const setColorMode = usePreferencesStore((state) => state.setColorMode);
   const setLocale = usePreferencesStore((state) => state.setLocale);
   const messages = getMessages(locale);
-
-  const selectedKey = pathname.startsWith('/tasks') ? '/tasks' : pathname;
+  const selectedKey = selectNavigationKey(pathname);
   const menuItems = useMemo(
-    () => authMode === 'oidc'
-      ? [
-          { key: '/', icon: <AppstoreOutlined />, label: <Link to="/">{messages.dashboard}</Link> },
-          { key: '/access', icon: <TeamOutlined />, label: <Link to="/access">身份与权限</Link> },
-        ]
-      : [
-          { key: '/', icon: <AppstoreOutlined />, label: <Link to="/">{messages.dashboard}</Link> },
-          { key: '/tasks', icon: <SafetyCertificateOutlined />, label: <Link to="/tasks">{messages.tasks}</Link> },
-          { key: '/system', icon: <SettingOutlined />, label: <Link to="/system">{messages.system}</Link> },
-        ],
+    () => getNavigationItems(messages, authMode === 'oidc'),
     [messages],
   );
 
@@ -58,15 +46,21 @@ export function AppShell() {
   return (
     <Layout className="app-layout">
       <Sider breakpoint="lg" collapsedWidth="0" className="app-sider">
-        <div className="brand"><SafetyCertificateOutlined /><span>VulnLab</span></div>
+        <div className="brand">
+          <SafetyCertificateOutlined />
+          <span>VulnLab</span>
+        </div>
         <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems} />
       </Sider>
       <Layout>
         <Header className="app-header">
           <Flex align="center" justify="space-between" gap="middle">
             <Space>
-              <Typography.Text strong>模块二控制台</Typography.Text>
-              <Badge status="processing" text={authMode === 'oidc' ? 'P1 企业身份与租户' : 'P0 兼容迁移'} />
+              <Typography.Text strong>模块二企业控制台</Typography.Text>
+              <Badge
+                status="processing"
+                text={authMode === 'oidc' ? 'P7 企业前端 / OIDC' : 'P7 企业前端 / API Key'}
+              />
             </Space>
             <Space wrap>
               <Select
@@ -99,23 +93,27 @@ export function AppShell() {
           </Flex>
         </Header>
         <Content className="app-content">
-          <AsyncBoundary><Outlet /></AsyncBoundary>
+          <AsyncBoundary>
+            <Outlet />
+          </AsyncBoundary>
         </Content>
       </Layout>
-      {authMode === 'compatibility' ? <ApiKeyDialog
-        open={apiKeyOpen}
-        onCancel={() => setApiKeyOpen(false)}
-        onClear={() => {
-          clearApiKey();
-          void refreshQueries();
-          setApiKeyOpen(false);
-        }}
-        onSubmit={(value) => {
-          setApiKey(value);
-          void refreshQueries();
-          setApiKeyOpen(false);
-        }}
-      /> : null}
+      {authMode === 'compatibility' ? (
+        <ApiKeyDialog
+          open={apiKeyOpen}
+          onCancel={() => setApiKeyOpen(false)}
+          onClear={() => {
+            clearApiKey();
+            void refreshQueries();
+            setApiKeyOpen(false);
+          }}
+          onSubmit={(value) => {
+            setApiKey(value);
+            void refreshQueries();
+            setApiKeyOpen(false);
+          }}
+        />
+      ) : null}
     </Layout>
   );
 }

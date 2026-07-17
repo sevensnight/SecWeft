@@ -33,6 +33,8 @@ body { margin: 0; min-width: 320px; }
   justify-content: center; letter-spacing: .08em; width: 72px;
 }
 .project-selector { min-width: min(320px, 100%); }
+.wide-input { min-width: min(360px, 72vw); }
+.wide-select { min-width: min(320px, 72vw); }
 .state-panel { min-height: 220px; padding: 32px; }
 .task-search { width: min(380px, 100%); }
 .virtual-list { height: min(65vh, 680px); overflow: auto; contain: strict; }

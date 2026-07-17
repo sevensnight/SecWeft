@@ -16,7 +16,7 @@ export function SystemPage() {
     <section>
       <div className="page-title-row">
         <Typography.Title level={2}>系统状态</Typography.Title>
-        <Typography.Text type="secondary">运行能力、迁移状态和明确排除项</Typography.Text>
+        <Typography.Text type="secondary">运行能力、迁移状态和明确排除项。</Typography.Text>
       </div>
       {query.isPending ? <LoadingState /> : null}
       {query.isError ? <QueryErrorState error={query.error} onRetry={() => void query.refetch()} /> : null}
@@ -28,7 +28,7 @@ export function SystemPage() {
             message={`迁移状态：${query.data.p0_migration.status}`}
             description={query.data.p0_migration.compatibility}
           />
-          <Card title="P0 迁移">
+          <Card title="迁移边界">
             <Descriptions column={{ xs: 1, md: 2 }}>
               <Descriptions.Item label="目标">{query.data.p0_migration.target}</Descriptions.Item>
               <Descriptions.Item label="旧执行能力">

@@ -20,13 +20,15 @@ export function DashboardPage() {
     <section>
       <div className="page-title-row">
         <Typography.Title level={2}>综合态势</Typography.Title>
-        <Typography.Text type="secondary">面向 P0 工程基线的只读运行视图</Typography.Text>
+        <Typography.Text type="secondary">
+          汇总任务、模型、策略和验证工作流的企业控制台入口。
+        </Typography.Text>
       </div>
       <Alert
         showIcon
         type="info"
-        message="P0 安全模式已启用"
-        description="资产探测、沙箱运行和旧任务执行默认关闭；本页只展示兼容投影。"
+        message="安全边界已启用"
+        description="资产探测、沙箱运行和验证执行不会从前端直接触发；所有高风险动作必须走后端策略、审批和审计。"
         className="section-gap"
       />
       {query.isPending ? <LoadingState /> : null}

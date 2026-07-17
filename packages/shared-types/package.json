@@ -1,6 +1,6 @@
 {
   "name": "@vulnlab/shared-types",
-  "version": "1.6.0-p6",
+  "version": "1.7.0-p7",
   "private": true,
   "type": "module",
   "exports": {

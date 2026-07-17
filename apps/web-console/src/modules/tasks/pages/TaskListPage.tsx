@@ -19,7 +19,9 @@ export function TaskListPage() {
       <Flex align="end" justify="space-between" wrap gap="middle" className="page-title-row">
         <div>
           <Typography.Title level={2}>任务中心</Typography.Title>
-          <Typography.Text type="secondary">P0 只读任务投影；执行能力默认关闭。</Typography.Text>
+          <Typography.Text type="secondary">
+            持久任务状态机、审批状态、实时事件和断点续跑记录。
+          </Typography.Text>
         </div>
         <Input.Search
           allowClear

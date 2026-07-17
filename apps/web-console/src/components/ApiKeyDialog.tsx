@@ -29,12 +29,12 @@ export function ApiKeyDialog({ open, onCancel, onClear, onSubmit }: ApiKeyDialog
   });
 
   return (
-    <Modal open={open} title="配置 P0 兼容认证" onCancel={onCancel} footer={null} destroyOnHidden>
+    <Modal open={open} title="配置兼容 API Key" onCancel={onCancel} footer={null} destroyOnHidden>
       <Flex component="form" vertical gap="middle" onSubmit={(event) => void submit(event)}>
         <Alert
           showIcon
           type="warning"
-          message="密钥仅保存在当前页面内存，刷新即清空，不会写入浏览器持久存储。"
+          message="密钥只保存在当前页面内存中；刷新即清空，不写入浏览器持久存储。"
         />
         <Controller
           name="apiKey"

@@ -5,7 +5,6 @@ import {
   Col,
   Descriptions,
   Empty,
-  Flex,
   List,
   Row,
   Select,
@@ -74,33 +73,32 @@ export function EnterpriseAccessPage() {
 
   return (
     <section>
-      <Flex className="page-title-row" justify="space-between" align="start" gap="middle" wrap>
-        <div>
-          <Typography.Title level={2}>身份、租户与权限</Typography.Title>
-          <Typography.Text type="secondary">
-            所有权限和数据范围均由服务端会话返回，前端只据此裁剪界面。
-          </Typography.Text>
-        </div>
-        <Select
-          aria-label="当前项目"
-          allowClear
-          placeholder="选择项目上下文"
-          value={selectedProjectId ?? undefined}
-          loading={projects.isPending}
-          options={(projects.data ?? []).map((project) => ({
-            value: project.id,
-            label: project.display_name,
-          }))}
-          onChange={(value) => refreshScope(value ?? null)}
-          className="project-selector"
-        />
-      </Flex>
+      <div className="page-title-row">
+        <Typography.Title level={2}>身份、租户与权限</Typography.Title>
+        <Typography.Text type="secondary">
+          权限和数据范围由服务端会话返回；前端只做界面裁剪，后端仍会再次校验。
+        </Typography.Text>
+      </div>
+
+      <Select
+        aria-label="当前项目"
+        allowClear
+        placeholder="选择项目上下文"
+        value={selectedProjectId ?? undefined}
+        loading={projects.isPending}
+        options={(projects.data ?? []).map((project) => ({
+          value: project.id,
+          label: project.display_name,
+        }))}
+        onChange={(value) => refreshScope(value ?? null)}
+        className="project-selector"
+      />
 
       <Alert
         showIcon
         type="success"
-        message="OIDC + 数据库 RBAC 已生效"
-        description="浏览器令牌只保存在内存；租户隔离由 PostgreSQL RLS 再次强制执行。"
+        message="OIDC + 数据范围 RBAC 已生效"
+        description="浏览器令牌只保存在内存；租户和项目权限由 API 端继续强制执行。"
         className="section-gap"
       />
 

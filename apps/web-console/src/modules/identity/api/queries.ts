@@ -50,6 +50,6 @@ export const enterpriseRolesQuery = () => queryOptions({
 
 export const enterpriseAuditQuery = () => queryOptions({
   queryKey: enterpriseKeys.audit,
-  queryFn: listAuditEvents,
+  queryFn: () => listAuditEvents(),
   staleTime: 10_000,
 });

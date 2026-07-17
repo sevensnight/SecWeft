@@ -1,8 +1,36 @@
 import type { AppLocale } from '../stores/preferences';
 
 const MESSAGES = {
-  'zh-CN': { dashboard: '综合态势', tasks: '任务中心', system: '系统状态' },
-  'en-US': { dashboard: 'Overview', tasks: 'Tasks', system: 'System' },
+  'zh-CN': {
+    access: '身份与权限',
+    agents: 'Agent / Skill',
+    assets: '授权资产',
+    audit: '审计中心',
+    dashboard: '综合态势',
+    knowledge: '知识库',
+    models: '模型管理',
+    policies: '策略审批',
+    reports: '报表中心',
+    sandboxes: '沙箱中心',
+    system: '系统状态',
+    tasks: '任务中心',
+    validation: '验证中心',
+  },
+  'en-US': {
+    access: 'Access',
+    agents: 'Agents / Skills',
+    assets: 'Assets',
+    audit: 'Audit',
+    dashboard: 'Overview',
+    knowledge: 'Knowledge',
+    models: 'Models',
+    policies: 'Policies',
+    reports: 'Reports',
+    sandboxes: 'Sandboxes',
+    system: 'System',
+    tasks: 'Tasks',
+    validation: 'Validation',
+  },
 } as const;
 
 export function getMessages(locale: AppLocale) {

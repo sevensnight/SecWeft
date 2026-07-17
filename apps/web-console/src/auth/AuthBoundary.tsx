@@ -26,7 +26,7 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
   );
   const [error, setError] = useState<string | null>(
     authMode === 'oidc' && !oidcConfigured
-      ? 'OIDC authority is missing from the deployment configuration.'
+      ? '部署配置缺少 OIDC authority。'
       : null,
   );
 
@@ -66,7 +66,7 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
         if (cancelled) return;
         clearOidcSession();
         await userManager.clearStaleState();
-        setError('The identity provider response could not be verified. Start a new login.');
+        setError('身份提供方响应无法验证，请重新登录。');
         setStatus('error');
       }
     };
@@ -122,14 +122,14 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
         <Result
           icon={<div className="auth-mark">VL</div>}
           title="VulnLab 企业控制台"
-          subTitle="使用组织的 OpenID Connect 身份登录。控制台不会持久化访问令牌。"
+          subTitle="使用组织的 OpenID Connect 身份登录；控制台不会持久化访问令牌。"
           extra={<Button type="primary" size="large" onClick={() => void login()}>使用企业身份登录</Button>}
         />
         <Alert
           type="info"
           showIcon
           message="Authorization Code + PKCE"
-          description="访问令牌只保存在当前页面内存；刷新或关闭页面后需要重新建立会话。"
+          description="访问令牌只保存在当前页面内存中；刷新或关闭页面后需要重新建立会话。"
         />
       </main>
     );
