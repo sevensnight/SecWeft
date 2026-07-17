@@ -12,6 +12,7 @@ from ..enterprise import EnterpriseServices, build_enterprise_services
 from ..evidence import EvidenceService
 from ..model_gateway import ModelGateway, ProviderStore
 from ..orchestrator import Orchestrator
+from ..policy import PolicyService
 from ..rag import RAGService
 from ..sandbox import SandboxService
 from ..scope import ScopeService
@@ -33,6 +34,7 @@ class Services:
     context: ContextService
     rag: RAGService
     evidence: EvidenceService
+    policy: PolicyService
     sandbox: SandboxService
     orchestrator: Orchestrator
     enterprise: EnterpriseServices | None = None
@@ -65,6 +67,7 @@ def build_services(settings: Settings) -> Services:
     context = ContextService(db, audit)
     rag = RAGService(db, audit)
     evidence = EvidenceService(db, audit)
+    policy = PolicyService(db, scope_service, settings, audit)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
     enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
@@ -81,6 +84,7 @@ def build_services(settings: Settings) -> Services:
         context=context,
         rag=rag,
         evidence=evidence,
+        policy=policy,
         sandbox=sandbox,
         orchestrator=orchestrator,
         enterprise=enterprise,

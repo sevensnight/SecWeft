@@ -510,6 +510,38 @@ class KnowledgePackRequest(APIModel):
     classifications: list[Literal["public", "internal", "restricted"]] | None = None
 
 
+class PolicyEvaluationRequest(APIModel):
+    action: Literal[
+        "asset.probe",
+        "sandbox.run",
+        "task.execute",
+        "context.restore",
+        "rag.search",
+    ]
+    resource_type: str = Field(default="task", min_length=1, max_length=80)
+    resource_id: str = Field(default="ad-hoc", min_length=1, max_length=200)
+    task_id: str | None = None
+    scope_id: str | None = None
+    target: str | None = Field(default=None, max_length=2048)
+    ports: list[int] = Field(default_factory=list, max_length=32)
+    argv: list[str] = Field(default_factory=list, max_length=32)
+    destructive: bool = False
+    reason: str | None = Field(default=None, max_length=500)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class PolicyDecisionResponse(APIModel):
+    id: str
+    action: str
+    resource_type: str
+    resource_id: str
+    decision: Literal["allow", "deny", "requires_approval"]
+    reason: str
+    details: dict[str, Any]
+    policy_hash: str
+    created_at: datetime
+
+
 class AssetProbeRequest(APIModel):
     target: str = Field(min_length=1, max_length=2048)
     scope_id: str

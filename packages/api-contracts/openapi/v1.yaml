@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.4.0-p4
+  version: 1.5.0-p5
   description: >-
-    P4 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
+    P5 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
     layered configuration, append-only audit, the model gateway, and durable
     task/Agent orchestration with resumable Server-Sent Events plus tenant-safe
-    context, checkpoint, evidence, and retrieval-augmented knowledge services.
+    context, checkpoint, evidence, retrieval-augmented knowledge services, and
+    explicit policy decision logging.
 servers:
   - url: /api/v1
 tags:
@@ -20,6 +21,7 @@ tags:
   - name: Tenancy
   - name: IAM
   - name: Configuration
+  - name: Policies
   - name: Audit
 security:
   - ApiKeyAuth: []
@@ -1640,6 +1642,35 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+  /policies/evaluate:
+    post:
+      operationId: evaluatePolicy
+      tags: [Policies]
+      summary: Evaluate a policy decision without granting capabilities
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEvaluationRequest'
+      responses:
+        '200':
+          description: Persisted policy decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDecision'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
   /audit/events:
     get:
       operationId: listEnterpriseAuditEvents
@@ -2922,6 +2953,50 @@ components:
           additionalProperties:
             type: string
             enum: [TENANT, PROJECT, USER]
+    PolicyEvaluationRequest:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [asset.probe, sandbox.run, task.execute, context.restore, rag.search]
+        resource_type: { type: string, minLength: 1, maxLength: 80, default: task }
+        resource_id: { type: string, minLength: 1, maxLength: 200, default: ad-hoc }
+        task_id: { type: [string, 'null'], format: uuid }
+        scope_id: { type: [string, 'null'], format: uuid }
+        target: { type: [string, 'null'], maxLength: 2048 }
+        ports:
+          type: array
+          maxItems: 32
+          items: { type: integer, minimum: 1, maximum: 65535 }
+        argv:
+          type: array
+          maxItems: 32
+          items: { type: string }
+        destructive: { type: boolean, default: false }
+        reason: { type: [string, 'null'], maxLength: 500 }
+        metadata:
+          type: object
+          additionalProperties: true
+    PolicyDecision:
+      type: object
+      additionalProperties: false
+      required:
+        [id, action, resource_type, resource_id, decision, reason, details,
+         policy_hash, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string }
+        resource_type: { type: string }
+        resource_id: { type: string }
+        decision: { type: string, enum: [allow, deny, requires_approval] }
+        reason: { type: string }
+        details:
+          type: object
+          additionalProperties: true
+        policy_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        created_at: { type: string, format: date-time }
     AuditEvent:
       type: object
       additionalProperties: false

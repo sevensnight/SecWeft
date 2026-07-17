@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "038102d10c13091c1b33098ef7d2903f4724d604ac2e1535461c12e19949f1d3",
+  "document_sha256": "0ec22702c5a7670c426336841b13468ade32640d1b03480625a9e5bc27e4b0af",
   "openapi": "3.1.0",
-  "info_version": "1.4.0-p4",
+  "info_version": "1.5.0-p5",
   "operations": [
     {
       "method": "GET",
@@ -395,6 +395,28 @@
         "401",
         "403",
         "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/policies/evaluate",
+      "operation_id": "evaluatePolicy",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
         "422"
       ],
       "success_media_types": [
@@ -1392,6 +1414,8 @@
     "OrganizationCreate",
     "OrganizationPage",
     "PageMeta",
+    "PolicyDecision",
+    "PolicyEvaluationRequest",
     "Problem",
     "Project",
     "ProjectCreate",

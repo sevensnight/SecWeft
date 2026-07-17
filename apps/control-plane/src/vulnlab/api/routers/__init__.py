@@ -4,6 +4,7 @@ from .enterprise_iam import router as enterprise_iam_router
 from .execution import router as execution_router
 from .knowledge import router as knowledge_router
 from .models import router as models_router
+from .policies import router as policies_router
 from .system import router as system_router
 from .tasks import router as tasks_router
 from .users import router as users_router
@@ -15,6 +16,7 @@ ALL_ROUTERS = (
     authorization_router,
     tasks_router,
     knowledge_router,
+    policies_router,
     execution_router,
     audit_router,
     enterprise_iam_router,

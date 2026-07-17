@@ -350,6 +350,19 @@ CREATE TABLE IF NOT EXISTS evidence_items (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS policy_decisions (
+    id TEXT PRIMARY KEY,
+    actor_id TEXT NOT NULL REFERENCES users(id),
+    action TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    decision TEXT NOT NULL CHECK(decision IN ('allow','deny','requires_approval')),
+    reason TEXT NOT NULL,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    policy_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sandbox_runs (
     id TEXT PRIMARY KEY,
     task_id TEXT REFERENCES tasks(id),
@@ -399,6 +412,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_rag_classification ON rag_documents(classification);
 CREATE INDEX IF NOT EXISTS idx_rag_chunks_document ON rag_chunks(document_id, chunk_index);
 CREATE INDEX IF NOT EXISTS idx_evidence_task ON evidence_items(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_policy_decisions_actor_time
+    ON policy_decisions(actor_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_policy_decisions_resource
+    ON policy_decisions(resource_type, resource_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
@@ -619,6 +636,14 @@ class Database:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_evidence_task ON evidence_items(task_id, created_at DESC)"
             )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_policy_decisions_actor_time
+                   ON policy_decisions(actor_id, created_at DESC)"""
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_policy_decisions_resource
+                   ON policy_decisions(resource_type, resource_id, created_at DESC)"""
+            )
 
             # Only backfill records that truly came from a legacy schema. Recomputing every
             # hash on startup would silently bless an offline modification to an approved scope.
@@ -662,7 +687,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=5")
+            connection.execute("PRAGMA user_version=6")
             connection.commit()
         except Exception:
             connection.rollback()

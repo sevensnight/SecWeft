@@ -750,6 +750,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/policies/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate a policy decision without granting capabilities */
+        post: operations["evaluatePolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/audit/events": {
         parameters: {
             query?: never;
@@ -1623,6 +1640,43 @@ export interface components {
             sources: {
                 [key: string]: "TENANT" | "PROJECT" | "USER";
             };
+        };
+        PolicyEvaluationRequest: {
+            /** @enum {string} */
+            action: "asset.probe" | "sandbox.run" | "task.execute" | "context.restore" | "rag.search";
+            /** @default task */
+            resource_type: string;
+            /** @default ad-hoc */
+            resource_id: string;
+            /** Format: uuid */
+            task_id?: string | null;
+            /** Format: uuid */
+            scope_id?: string | null;
+            target?: string | null;
+            ports?: number[];
+            argv?: string[];
+            /** @default false */
+            destructive: boolean;
+            reason?: string | null;
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        PolicyDecision: {
+            /** Format: uuid */
+            id: string;
+            action: string;
+            resource_type: string;
+            resource_id: string;
+            /** @enum {string} */
+            decision: "allow" | "deny" | "requires_approval";
+            reason: string;
+            details: {
+                [key: string]: unknown;
+            };
+            policy_hash: string;
+            /** Format: date-time */
+            created_at: string;
         };
         AuditEvent: {
             id: number;
@@ -3383,6 +3437,36 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    evaluatePolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyEvaluationRequest"];
+            };
+        };
+        responses: {
+            /** @description Persisted policy decision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyDecision"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
         };
     };
