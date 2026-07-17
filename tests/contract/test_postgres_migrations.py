@@ -12,6 +12,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0003_p1_role_scope_enforcement",
         "0004_p1_application_least_privilege",
         "0005_p2_model_gateway",
+        "0006_p3_agent_orchestration",
     ]
 
 
@@ -43,6 +44,28 @@ def test_p2_model_gateway_migration_keeps_secrets_and_payloads_out_of_read_model
     assert "alter table %s force row level security" in sql
     assert "grant select, insert, update on all tables in schema model to vulnlab_app" in sql
     assert "grant select, insert, update, delete on all tables in schema model" not in sql
+
+
+def test_p3_agent_orchestration_migration_has_leases_dlq_and_rls() -> None:
+    up = MIGRATIONS / "0006_p3_agent_orchestration.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists agent" in sql
+    assert "agent.agent_definitions" in sql
+    assert "agent.skill_definitions" in sql
+    assert "agent.workflow_definitions" in sql
+    assert "agent.workflow_stages" in sql
+    assert "agent.task_executions" in sql
+    assert "agent.queue_messages" in sql
+    assert "agent.dead_letters" in sql
+    assert "lease_token uuid not null" in sql
+    assert "fencing_token bigint not null" in sql
+    assert "locked_until timestamptz" in sql
+    assert "references control.tasks (tenant_id, project_id, id)" in sql
+    assert "alter table %s force row level security" in sql
+    assert "grant select, insert, update on all tables in schema agent to vulnlab_app" in sql
+    assert "grant select, insert, update, delete on all tables in schema agent" not in sql
+    assert "exploit payload" not in sql
 
 
 def test_migration_checker_rejects_tenant_unsafe_foreign_key(tmp_path) -> None:

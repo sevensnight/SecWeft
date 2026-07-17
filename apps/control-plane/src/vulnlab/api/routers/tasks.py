@@ -8,7 +8,14 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
-from ...schemas import ApprovalRequest, SkillCreate, TaskCreate
+from ...schemas import (
+    AgentCreate,
+    ApprovalRequest,
+    SkillCreate,
+    TaskActionRequest,
+    TaskCreate,
+    WorkflowCreate,
+)
 from ...security import Principal
 from ..dependencies import ServicesDep, owned_scope, owned_task, require
 
@@ -55,6 +62,37 @@ def task_events(
 ) -> list[dict[str, Any]]:
     owned_task(services, task_id, current)
     return services.orchestrator.events(task_id)
+
+
+@router.get("/api/v1/tasks/{task_id}/stages")
+def task_stages(
+    task_id: str,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:read"))],
+) -> list[dict[str, Any]]:
+    owned_task(services, task_id, current)
+    return services.orchestrator.stages(task_id)
+
+
+@router.get("/api/v1/tasks/{task_id}/executions")
+def task_executions(
+    task_id: str,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:read"))],
+) -> list[dict[str, Any]]:
+    owned_task(services, task_id, current)
+    return services.orchestrator.executions(task_id)
+
+
+@router.get("/api/v1/task-dead-letters")
+def task_dead_letters(
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:read"))],
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> list[dict[str, Any]]:
+    if current.role.value != "admin":
+        raise HTTPException(status_code=403, detail="only administrators can inspect dead letters")
+    return services.orchestrator.dead_letters(limit)
 
 
 @router.get(
@@ -142,6 +180,62 @@ async def run_task(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.post("/api/v1/tasks/{task_id}/executions", status_code=202)
+def dispatch_task(
+    task_id: str,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:execute"))],
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+) -> dict[str, Any]:
+    owned_task(services, task_id, current)
+    try:
+        return services.orchestrator.enqueue(current, task_id, idempotency_key)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/api/v1/tasks/{task_id}/pause")
+def pause_task(
+    task_id: str,
+    value: TaskActionRequest,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:cancel"))],
+) -> dict[str, Any]:
+    owned_task(services, task_id, current)
+    try:
+        return services.orchestrator.pause(current, task_id, value.reason)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/api/v1/tasks/{task_id}/resume")
+def resume_task(
+    task_id: str,
+    value: TaskActionRequest,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:execute"))],
+) -> dict[str, Any]:
+    owned_task(services, task_id, current)
+    try:
+        return services.orchestrator.resume(current, task_id, value.reason)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/api/v1/tasks/{task_id}/retry")
+def retry_task(
+    task_id: str,
+    value: TaskActionRequest,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:execute"))],
+) -> dict[str, Any]:
+    owned_task(services, task_id, current)
+    try:
+        return services.orchestrator.retry(current, task_id, value.reason)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.post("/api/v1/tasks/{task_id}/cancel")
 def cancel_task(
     task_id: str,
@@ -161,6 +255,40 @@ def list_skills(
     _: Annotated[Principal, Depends(require("skill:read"))],
 ) -> list[dict[str, Any]]:
     return services.skills.list()
+
+
+@router.get("/api/v1/agents")
+def list_agents(
+    services: ServicesDep,
+    _: Annotated[Principal, Depends(require("skill:read"))],
+) -> list[dict[str, Any]]:
+    return services.agents.list_agents()
+
+
+@router.post("/api/v1/agents", status_code=201)
+def create_agent(
+    value: AgentCreate,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("skill:create"))],
+) -> dict[str, Any]:
+    return services.agents.create_agent(current, value)
+
+
+@router.get("/api/v1/workflows")
+def list_workflows(
+    services: ServicesDep,
+    _: Annotated[Principal, Depends(require("skill:read"))],
+) -> list[dict[str, Any]]:
+    return services.agents.list_workflows()
+
+
+@router.post("/api/v1/workflows", status_code=201)
+def create_workflow(
+    value: WorkflowCreate,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("skill:create"))],
+) -> dict[str, Any]:
+    return services.agents.create_workflow(current, value)
 
 
 @router.post("/api/v1/skills", status_code=201)

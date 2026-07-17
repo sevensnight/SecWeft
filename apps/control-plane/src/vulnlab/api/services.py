@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .. import __version__
+from ..agent_registry import AgentRegistry
 from ..audit import AuditService
 from ..config import Settings
 from ..context import ContextService
@@ -27,6 +28,7 @@ class Services:
     gateway: ModelGateway
     scope: ScopeService
     skills: SkillRegistry
+    agents: AgentRegistry
     context: ContextService
     rag: RAGService
     sandbox: SandboxService
@@ -56,10 +58,12 @@ def build_services(settings: Settings) -> Services:
     scope_service = ScopeService(db, settings)
     skills = SkillRegistry(db, audit)
     skills.ensure_builtins()
+    agents = AgentRegistry(db, audit)
+    agents.ensure_builtins()
     context = ContextService(db, audit)
     rag = RAGService(db, audit)
     sandbox = SandboxService(db, settings, audit)
-    orchestrator = Orchestrator(db, scope_service, skills, audit, settings.max_concurrency)
+    orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
     enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
     return Services(
         settings=settings,
@@ -70,6 +74,7 @@ def build_services(settings: Settings) -> Services:
         gateway=ModelGateway(providers, audit),
         scope=scope_service,
         skills=skills,
+        agents=agents,
         context=context,
         rag=rag,
         sandbox=sandbox,

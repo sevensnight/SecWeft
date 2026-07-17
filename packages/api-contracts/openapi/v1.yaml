@@ -1,16 +1,18 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.2.0-p2
+  version: 1.3.0-p3
   description: >-
-    P2 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
-    layered configuration, append-only audit, and the model gateway. P0 task
-    projections remain an explicitly separated API-key compatibility surface.
+    P3 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
+    layered configuration, append-only audit, the model gateway, and durable
+    task/Agent orchestration with resumable Server-Sent Events.
 servers:
   - url: /api/v1
 tags:
   - name: System
   - name: Tasks
+  - name: Agents
+  - name: Skills
   - name: Identity
   - name: Models
   - name: Tenancy
@@ -69,6 +71,36 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createTask
+      tags: [Tasks]
+      summary: Create a task draft and persisted P3 workflow stages
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Created task with persisted stage plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
   /tasks/{task_id}:
     get:
       operationId: getTask
@@ -116,8 +148,7 @@ paths:
       summary: Stream persisted task events incrementally
       description: >-
         Server-Sent Events stream. Consumers resume with Last-Event-ID; each data field
-        contains one TaskEvent JSON object. The P0 implementation tails the durable
-        compatibility store and will move to NATS fan-out in P3.
+        contains one TaskEvent JSON object sourced from the durable P3 event ledger.
       parameters:
         - $ref: '#/components/parameters/XRequestId'
         - $ref: '#/components/parameters/TaskId'
@@ -143,6 +174,416 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /tasks/{task_id}/stages:
+    get:
+      operationId: listTaskStages
+      tags: [Tasks]
+      summary: List persisted task stage state for monitoring and resume
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Ordered stage collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskStage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{task_id}/executions:
+    get:
+      operationId: listTaskExecutions
+      tags: [Tasks]
+      summary: List worker execution leases and outcomes for one task
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Worker execution collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskExecution'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: dispatchTaskExecution
+      tags: [Tasks]
+      summary: Idempotently enqueue an approved task for asynchronous worker execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '202':
+          description: Task accepted into the durable queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /tasks/{task_id}/pause:
+    post:
+      operationId: pauseTask
+      tags: [Tasks]
+      summary: Persist a pause request for a queued or running task
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskActionRequest'
+      responses:
+        '200':
+          description: Pause request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /tasks/{task_id}/resume:
+    post:
+      operationId: resumeTask
+      tags: [Tasks]
+      summary: Resume a paused task by returning it to the durable queue
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskActionRequest'
+      responses:
+        '200':
+          description: Task queued for resumed execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /tasks/{task_id}/retry:
+    post:
+      operationId: retryTask
+      tags: [Tasks]
+      summary: Retry a failed task within its persisted retry budget
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskActionRequest'
+      responses:
+        '200':
+          description: Failed task requeued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /task-dead-letters:
+    get:
+      operationId: listTaskDeadLetters
+      tags: [Tasks]
+      summary: List failed queue messages moved to the dead-letter ledger
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Dead-letter collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskDeadLetter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /agents:
+    get:
+      operationId: listAgents
+      tags: [Agents]
+      summary: List versioned Agent definitions and runtime budgets
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Agent definition collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgentDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createAgent
+      tags: [Agents]
+      summary: Register a versioned Agent definition without executable upload
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentDefinitionCreate'
+      responses:
+        '201':
+          description: Agent definition created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /workflows:
+    get:
+      operationId: listWorkflows
+      tags: [Agents]
+      summary: List versioned workflow definitions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Workflow definition collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkflowDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createWorkflow
+      tags: [Agents]
+      summary: Register a DAG workflow definition
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowDefinitionCreate'
+      responses:
+        '201':
+          description: Workflow definition created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /skills:
+    get:
+      operationId: listSkills
+      tags: [Skills]
+      summary: List versioned Skill definitions, limits, and statistics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Skill definition collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SkillDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createSkill
+      tags: [Skills]
+      summary: Register a declarative Skill manifest without executable upload
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillDefinitionCreate'
+      responses:
+        '201':
+          description: Skill definition created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /skills/{skill_id}/enabled:
+    post:
+      operationId: setSkillEnabled
+      tags: [Skills]
+      summary: Enable or disable a Skill definition
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: skill_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: enabled
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Updated Skill definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /protocols/tools:
+    get:
+      operationId: getToolProtocolManifest
+      tags: [Skills]
+      summary: Return the declarative tool protocol manifest
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Tool protocol manifest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolProtocolManifest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /providers:
     get:
       operationId: listModelProviders
@@ -1070,6 +1511,14 @@ components:
         - approval_status
         - created_by
         - assigned_skills
+        - workflow_name
+        - workflow_version
+        - current_stage
+        - pause_requested
+        - cancel_requested
+        - retry_count
+        - max_retries
+        - fencing_token
         - created_at
         - updated_at
       properties:
@@ -1100,6 +1549,10 @@ components:
           type: array
           items:
             type: string
+        workflow_name:
+          type: string
+        workflow_version:
+          type: string
         plan:
           type: [object, 'null']
           additionalProperties: true
@@ -1108,12 +1561,271 @@ components:
           additionalProperties: true
         error:
           type: [string, 'null']
+        current_stage:
+          type: [string, 'null']
+        pause_requested:
+          type: boolean
+        cancel_requested:
+          type: boolean
+        retry_count:
+          type: integer
+          minimum: 0
+        max_retries:
+          type: integer
+          minimum: 0
+        fencing_token:
+          type: integer
+          minimum: 0
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskStage'
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
+    TaskCreate:
+      type: object
+      additionalProperties: false
+      required: [title, target, intent, scope_id]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 200 }
+        target: { type: string, minLength: 1, maxLength: 2048 }
+        intent:
+          type: string
+          enum: [asset_inventory, vulnerability_validation, defensive_regression]
+        indicators:
+          type: array
+          maxItems: 64
+          items:
+            type: string
+        scope_id:
+          type: string
+          format: uuid
+    TaskActionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: [string, 'null']
+          maxLength: 500
+    TaskStage:
+      type: object
+      additionalProperties: false
+      required:
+        [id, task_id, stage_code, display_name, sequence_no, agent_name, agent_version,
+         skill_name, skill_version, depends_on, status, attempt, max_attempts,
+         created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        stage_code: { type: string }
+        display_name: { type: string }
+        sequence_no: { type: integer, minimum: 0 }
+        agent_name: { type: string }
+        agent_version: { type: string }
+        skill_name: { type: string }
+        skill_version: { type: string }
+        depends_on:
+          type: array
+          items: { type: string }
+        status:
+          type: string
+          enum: [pending, ready, running, paused, succeeded, failed, skipped, cancelled, timed_out]
+        attempt: { type: integer, minimum: 0 }
+        max_attempts: { type: integer, minimum: 1 }
+        checkpoint:
+          type: [object, 'null']
+          additionalProperties: true
+        output:
+          type: [object, 'null']
+          additionalProperties: true
+        error: { type: [string, 'null'] }
+        started_at: { type: [string, 'null'], format: date-time }
+        finished_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TaskExecution:
+      type: object
+      additionalProperties: false
+      required:
+        [id, task_id, worker_id, fencing_token, status, started_at, heartbeat_at,
+         created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        worker_id: { type: string }
+        fencing_token: { type: integer, minimum: 1 }
+        status:
+          type: string
+          enum: [leased, running, paused, succeeded, failed, cancelled, timed_out]
+        started_at: { type: string, format: date-time }
+        heartbeat_at: { type: string, format: date-time }
+        finished_at: { type: [string, 'null'], format: date-time }
+        error: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TaskDeadLetter:
+      type: object
+      additionalProperties: false
+      required: [id, task_id, queue_message_id, reason, payload, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: [string, 'null'], format: uuid }
+        queue_message_id: { type: [string, 'null'] }
+        reason: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+        created_at: { type: string, format: date-time }
+    AgentDefinitionCreate:
+      type: object
+      additionalProperties: false
+      required: [name, description, responsibilities]
+      properties:
+        name: { type: string, minLength: 3, maxLength: 80 }
+        version: { type: string, default: '1.0', minLength: 1, maxLength: 40 }
+        description: { type: string, minLength: 3, maxLength: 500 }
+        responsibilities:
+          type: array
+          minItems: 1
+          maxItems: 16
+          items: { type: string }
+        input_schema:
+          type: object
+          additionalProperties: true
+        output_schema:
+          type: object
+          additionalProperties: true
+        allowed_tools:
+          type: array
+          maxItems: 32
+          uniqueItems: true
+          items: { type: string }
+        data_scope: { type: string, enum: [task, project, tenant], default: task }
+        token_budget: { type: integer, minimum: 0, maximum: 1000000, default: 2048 }
+        timeout_seconds: { type: number, minimum: 1, maximum: 3600, default: 60 }
+        risk_level: { type: string, enum: [low, medium, high], default: low }
+        retry_policy:
+          type: object
+          additionalProperties: true
+    AgentDefinition:
+      allOf:
+        - $ref: '#/components/schemas/AgentDefinitionCreate'
+        - type: object
+          additionalProperties: false
+          required: [id, enabled, builtin, created_by, created_at, updated_at]
+          properties:
+            id: { type: string, format: uuid }
+            enabled: { type: boolean }
+            builtin: { type: boolean }
+            created_by: { type: [string, 'null'], format: uuid }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    WorkflowStageDefinition:
+      type: object
+      additionalProperties: false
+      required: [code, display_name, agent_name, skill_name]
+      properties:
+        code: { type: string, minLength: 1, maxLength: 80 }
+        display_name: { type: string, minLength: 1, maxLength: 120 }
+        agent_name: { type: string, minLength: 3, maxLength: 80 }
+        agent_version: { type: string, default: '1.0' }
+        skill_name: { type: string, minLength: 3, maxLength: 80 }
+        skill_version: { type: string, default: '1.0' }
+        depends_on:
+          type: array
+          maxItems: 16
+          items: { type: string }
+        max_attempts: { type: integer, minimum: 1, maximum: 10, default: 1 }
+    WorkflowDefinitionCreate:
+      type: object
+      additionalProperties: false
+      required: [name, description, stages]
+      properties:
+        name: { type: string, minLength: 3, maxLength: 120 }
+        version: { type: string, default: '1.0', minLength: 1, maxLength: 40 }
+        description: { type: string, minLength: 3, maxLength: 800 }
+        stages:
+          type: array
+          minItems: 1
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/WorkflowStageDefinition'
+    WorkflowDefinition:
+      allOf:
+        - $ref: '#/components/schemas/WorkflowDefinitionCreate'
+        - type: object
+          additionalProperties: false
+          required: [id, enabled, builtin, created_by, created_at, updated_at]
+          properties:
+            id: { type: string, format: uuid }
+            enabled: { type: boolean }
+            builtin: { type: boolean }
+            created_by: { type: [string, 'null'], format: uuid }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    SkillDefinitionCreate:
+      type: object
+      additionalProperties: false
+      required: [name, description, risk_level, required_role, input_schema]
+      properties:
+        name: { type: string, minLength: 3, maxLength: 80 }
+        version: { type: string, default: '1.0', minLength: 1, maxLength: 40 }
+        description: { type: string, minLength: 3, maxLength: 500 }
+        risk_level: { type: string, enum: [low, medium, high] }
+        required_role: { type: string, enum: [viewer, analyst, operator, admin] }
+        input_schema:
+          type: object
+          additionalProperties: true
+        output_schema:
+          type: object
+          additionalProperties: true
+        permissions:
+          type: array
+          maxItems: 32
+          items: { type: string }
+        resource_limits:
+          type: object
+          additionalProperties: true
+        timeout_seconds: { type: number, minimum: 1, maximum: 600, default: 30 }
+        execution_type:
+          type: string
+          enum: [internal, webhook, sandbox_deferred]
+          default: internal
+        tool_dependencies:
+          type: array
+          maxItems: 32
+          items: { type: string }
+        approval_required: { type: boolean, default: false }
+    SkillDefinition:
+      allOf:
+        - $ref: '#/components/schemas/SkillDefinitionCreate'
+        - type: object
+          additionalProperties: false
+          required:
+            [id, enabled, builtin, invocation_count, success_count, failure_count]
+          properties:
+            id: { type: string, format: uuid }
+            enabled: { type: boolean }
+            builtin: { type: boolean }
+            invocation_count: { type: integer, minimum: 0 }
+            success_count: { type: integer, minimum: 0 }
+            failure_count: { type: integer, minimum: 0 }
+    ToolProtocolManifest:
+      type: object
+      additionalProperties: true
+      required: [protocol, version, policy, tools]
+      properties:
+        protocol: { type: string }
+        version: { type: string }
+        policy: { type: string }
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillDefinition'
     TaskEvent:
       type: object
       additionalProperties: false

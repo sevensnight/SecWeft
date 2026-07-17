@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and snapshot the checked-in P2 OpenAPI contract.
+"""Validate and snapshot the checked-in P3 OpenAPI contract.
 
 The snapshot is semantic: comments and YAML formatting do not change its digest.
 Runtime comparison is intentionally one-way. Every contract operation must exist in
@@ -32,6 +32,17 @@ CRITICAL_PATHS = frozenset(
         "/tasks/{task_id}",
         "/tasks/{task_id}/events",
         "/tasks/{task_id}/events/stream",
+        "/tasks/{task_id}/stages",
+        "/tasks/{task_id}/executions",
+        "/tasks/{task_id}/pause",
+        "/tasks/{task_id}/resume",
+        "/tasks/{task_id}/retry",
+        "/task-dead-letters",
+        "/agents",
+        "/workflows",
+        "/skills",
+        "/skills/{skill_id}/enabled",
+        "/protocols/tools",
         "/providers",
         "/providers/health",
         "/providers/{provider_id}/secret",
@@ -53,13 +64,13 @@ CRITICAL_PATHS = frozenset(
         "/audit/events",
     }
 )
-P0_COMPATIBILITY_PATHS = frozenset(
+API_KEY_COMPATIBILITY_OPERATIONS = frozenset(
     {
-        "/system/requirements",
-        "/tasks",
-        "/tasks/{task_id}",
-        "/tasks/{task_id}/events",
-        "/tasks/{task_id}/events/stream",
+        ("/system/requirements", "get"),
+        ("/tasks", "get"),
+        ("/tasks/{task_id}", "get"),
+        ("/tasks/{task_id}/events", "get"),
+        ("/tasks/{task_id}/events/stream", "get"),
     }
 )
 SSE_PATH = "/tasks/{task_id}/events/stream"
@@ -234,12 +245,8 @@ def validate_document(document: dict[str, Any]) -> list[str]:
     operation_count = 0
     for path, method, operation in iter_operations(document):
         operation_count += 1
-        if path in P0_COMPATIBILITY_PATHS and method != "get":
-            errors.append(
-                f"P0 compatibility contract must remain read-only: {method.upper()} {path}"
-            )
-        if path not in P0_COMPATIBILITY_PATHS and method not in {"get", "post", "put"}:
-            errors.append(f"P1 contract uses an unsupported method: {method.upper()} {path}")
+        if method not in {"get", "post", "put"}:
+            errors.append(f"P3 contract uses an unsupported method: {method.upper()} {path}")
         operation_id = operation.get("operationId")
         if not isinstance(operation_id, str) or not operation_id:
             errors.append(f"operationId is required for {method.upper()} {path}")
@@ -255,9 +262,9 @@ def validate_document(document: dict[str, Any]) -> list[str]:
             errors.append(f"401 response is missing for {method.upper()} {path}")
         if "#/components/parameters/XRequestId" not in _parameter_refs(operation):
             errors.append(f"X-Request-ID parameter is missing for {method.upper()} {path}")
-        if path not in P0_COMPATIBILITY_PATHS and {"BearerAuth": []} not in operation.get(
-            "security", []
-        ):
+        if (path, method) not in API_KEY_COMPATIBILITY_OPERATIONS and {
+            "BearerAuth": []
+        } not in operation.get("security", []):
             errors.append(f"OIDC BearerAuth is missing for {method.upper()} {path}")
         if method in {"post", "put"} and (
             "#/components/parameters/IdempotencyKey" not in _parameter_refs(operation)
@@ -301,7 +308,18 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         "Problem",
         "SystemRequirements",
         "Task",
+        "TaskCreate",
         "TaskEvent",
+        "TaskStage",
+        "TaskExecution",
+        "TaskDeadLetter",
+        "AgentDefinition",
+        "AgentDefinitionCreate",
+        "WorkflowDefinition",
+        "WorkflowDefinitionCreate",
+        "SkillDefinition",
+        "SkillDefinitionCreate",
+        "ToolProtocolManifest",
         "Session",
         "Tenant",
         "Organization",
@@ -425,7 +443,7 @@ def check(*, runtime: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="OpenAPI P2 semantic snapshot and compatibility checker"
+        description="OpenAPI P3 semantic snapshot and compatibility checker"
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
     check_parser = subcommands.add_parser(

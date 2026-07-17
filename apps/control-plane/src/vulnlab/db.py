@@ -93,13 +93,61 @@ CREATE TABLE IF NOT EXISTS target_profiles (
 CREATE TABLE IF NOT EXISTS skills (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
+    version TEXT NOT NULL DEFAULT '1.0',
     description TEXT NOT NULL,
     risk_level TEXT NOT NULL CHECK(risk_level IN ('low','medium','high')),
     required_role TEXT NOT NULL,
     input_schema_json TEXT NOT NULL,
+    output_schema_json TEXT NOT NULL DEFAULT '{"type":"object"}',
+    permissions_json TEXT NOT NULL DEFAULT '[]',
+    resource_limits_json TEXT NOT NULL DEFAULT '{}',
+    timeout_seconds REAL NOT NULL DEFAULT 30,
+    execution_type TEXT NOT NULL DEFAULT 'internal',
+    tool_dependencies_json TEXT NOT NULL DEFAULT '[]',
+    approval_required INTEGER NOT NULL DEFAULT 0,
     enabled INTEGER NOT NULL DEFAULT 1,
     builtin INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
+    invocation_count INTEGER NOT NULL DEFAULT 0,
+    success_count INTEGER NOT NULL DEFAULT 0,
+    failure_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agents (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    version TEXT NOT NULL DEFAULT '1.0',
+    description TEXT NOT NULL,
+    responsibilities_json TEXT NOT NULL DEFAULT '[]',
+    input_schema_json TEXT NOT NULL DEFAULT '{"type":"object"}',
+    output_schema_json TEXT NOT NULL DEFAULT '{"type":"object"}',
+    allowed_tools_json TEXT NOT NULL DEFAULT '[]',
+    data_scope TEXT NOT NULL DEFAULT 'task',
+    token_budget INTEGER NOT NULL DEFAULT 0,
+    timeout_seconds REAL NOT NULL DEFAULT 60,
+    risk_level TEXT NOT NULL CHECK(risk_level IN ('low','medium','high')),
+    retry_policy_json TEXT NOT NULL DEFAULT '{}',
+    enabled INTEGER NOT NULL DEFAULT 1,
+    builtin INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(name, version)
+);
+
+CREATE TABLE IF NOT EXISTS workflows (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    version TEXT NOT NULL DEFAULT '1.0',
+    description TEXT NOT NULL,
+    stages_json TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    builtin INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(name, version)
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
@@ -117,9 +165,23 @@ CREATE TABLE IF NOT EXISTS tasks (
     scope_hash TEXT NOT NULL,
     created_by TEXT NOT NULL REFERENCES users(id),
     assigned_skills_json TEXT NOT NULL DEFAULT '[]',
+    workflow_name TEXT NOT NULL DEFAULT 'p3.synthetic.defensive',
+    workflow_version TEXT NOT NULL DEFAULT '1.0',
     plan_json TEXT,
     result_json TEXT,
     error TEXT,
+    current_stage TEXT,
+    pause_requested INTEGER NOT NULL DEFAULT 0,
+    cancel_requested INTEGER NOT NULL DEFAULT 0,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    max_retries INTEGER NOT NULL DEFAULT 2,
+    lease_owner TEXT,
+    lease_token TEXT,
+    lease_expires_at TEXT,
+    fencing_token INTEGER NOT NULL DEFAULT 0,
+    deadline_at TEXT,
+    started_at TEXT,
+    finished_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -130,6 +192,91 @@ CREATE TABLE IF NOT EXISTS task_events (
     event_type TEXT NOT NULL,
     payload_json TEXT NOT NULL,
     created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS task_stages (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    stage_code TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    sequence_no INTEGER NOT NULL,
+    agent_name TEXT NOT NULL,
+    agent_version TEXT NOT NULL DEFAULT '1.0',
+    skill_name TEXT NOT NULL,
+    skill_version TEXT NOT NULL DEFAULT '1.0',
+    depends_on_json TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL CHECK(status IN ('pending','ready','running','paused','succeeded','failed','skipped','cancelled','timed_out')),
+    attempt INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 1,
+    lease_owner TEXT,
+    lease_token TEXT,
+    lease_expires_at TEXT,
+    checkpoint_json TEXT,
+    output_json TEXT,
+    error TEXT,
+    started_at TEXT,
+    finished_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(task_id, stage_code),
+    UNIQUE(task_id, sequence_no)
+);
+
+CREATE TABLE IF NOT EXISTS task_executions (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    worker_id TEXT NOT NULL,
+    lease_token TEXT NOT NULL,
+    fencing_token INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('leased','running','paused','succeeded','failed','cancelled','timed_out')),
+    started_at TEXT NOT NULL,
+    heartbeat_at TEXT NOT NULL,
+    finished_at TEXT,
+    error TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS task_queue_messages (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    message_id TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL CHECK(status IN ('ready','leased','done','cancelled','dead')),
+    attempt INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
+    available_at TEXT NOT NULL,
+    locked_by TEXT,
+    lock_token TEXT,
+    locked_until TEXT,
+    last_error TEXT,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS task_dead_letters (
+    id TEXT PRIMARY KEY,
+    task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
+    queue_message_id TEXT,
+    reason TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS task_idempotency_records (
+    id TEXT PRIMARY KEY,
+    principal_id TEXT NOT NULL REFERENCES users(id),
+    operation TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    request_hash TEXT NOT NULL,
+    response_json TEXT,
+    resource_type TEXT,
+    resource_id TEXT,
+    status TEXT NOT NULL CHECK(status IN ('processing','completed','failed')),
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(principal_id, operation, idempotency_key)
 );
 
 CREATE TABLE IF NOT EXISTS memory_messages (
@@ -203,6 +350,13 @@ CREATE TABLE IF NOT EXISTS audit_head (
 
 CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);
 CREATE INDEX IF NOT EXISTS idx_task_events_task ON task_events(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_stages_task ON task_stages(task_id, sequence_no);
+CREATE INDEX IF NOT EXISTS idx_task_stages_lease ON task_stages(status, lease_expires_at);
+CREATE INDEX IF NOT EXISTS idx_task_executions_task ON task_executions(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_task_queue_ready ON task_queue_messages(status, available_at);
+CREATE INDEX IF NOT EXISTS idx_task_dead_letters_task ON task_dead_letters(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agents_name ON agents(name, version);
+CREATE INDEX IF NOT EXISTS idx_workflows_name ON workflows(name, version);
 CREATE INDEX IF NOT EXISTS idx_memory_task ON memory_messages(task_id);
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_rag_classification ON rag_documents(classification);
@@ -277,10 +431,46 @@ class Database:
                 "approved_at": "TEXT",
                 "approval_reason": "TEXT",
                 "scope_hash": "TEXT NOT NULL DEFAULT ''",
+                "workflow_name": "TEXT NOT NULL DEFAULT 'p3.synthetic.defensive'",
+                "workflow_version": "TEXT NOT NULL DEFAULT '1.0'",
+                "current_stage": "TEXT",
+                "pause_requested": "INTEGER NOT NULL DEFAULT 0",
+                "cancel_requested": "INTEGER NOT NULL DEFAULT 0",
+                "retry_count": "INTEGER NOT NULL DEFAULT 0",
+                "max_retries": "INTEGER NOT NULL DEFAULT 2",
+                "lease_owner": "TEXT",
+                "lease_token": "TEXT",
+                "lease_expires_at": "TEXT",
+                "fencing_token": "INTEGER NOT NULL DEFAULT 0",
+                "deadline_at": "TEXT",
+                "started_at": "TEXT",
+                "finished_at": "TEXT",
             }
             for name, definition in task_additions.items():
                 if name not in task_columns:
                     connection.execute(f"ALTER TABLE tasks ADD COLUMN {name} {definition}")
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_tasks_lease ON tasks(status, lease_expires_at)"
+            )
+
+            skill_columns = self._columns(connection, "skills")
+            skill_additions = {
+                "version": "TEXT NOT NULL DEFAULT '1.0'",
+                "output_schema_json": 'TEXT NOT NULL DEFAULT \'{"type":"object"}\'',
+                "permissions_json": "TEXT NOT NULL DEFAULT '[]'",
+                "resource_limits_json": "TEXT NOT NULL DEFAULT '{}'",
+                "timeout_seconds": "REAL NOT NULL DEFAULT 30",
+                "execution_type": "TEXT NOT NULL DEFAULT 'internal'",
+                "tool_dependencies_json": "TEXT NOT NULL DEFAULT '[]'",
+                "approval_required": "INTEGER NOT NULL DEFAULT 0",
+                "invocation_count": "INTEGER NOT NULL DEFAULT 0",
+                "success_count": "INTEGER NOT NULL DEFAULT 0",
+                "failure_count": "INTEGER NOT NULL DEFAULT 0",
+                "updated_at": "TEXT NOT NULL DEFAULT ''",
+            }
+            for name, definition in skill_additions.items():
+                if name not in skill_columns:
+                    connection.execute(f"ALTER TABLE skills ADD COLUMN {name} {definition}")
 
             profile_columns = self._columns(connection, "target_profiles")
             if "proxy_scope_id" not in profile_columns:
@@ -340,7 +530,8 @@ class Database:
                         "INSERT INTO audit_head(id,entry_count,last_hash,updated_at) VALUES(1,?,?,?)",
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
-            connection.execute("PRAGMA user_version=3")
+            connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
+            connection.execute("PRAGMA user_version=4")
             connection.commit()
         except Exception:
             connection.rollback()

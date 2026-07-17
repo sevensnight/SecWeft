@@ -96,6 +96,8 @@
 
 出口：多副本竞态、重复消息、worker 丢失和重启恢复测试通过；仅执行无副作用合成 Workflow。
 
+当前状态：Implemented。已完成 SQLite 兼容运行时的持久 Task/Stage/Execution、queue message、lease/fencing、idempotency、DLQ、pause/resume/cancel/retry、SSE 事件流、Agent/Skill/Workflow 版本化注册，以及 PostgreSQL `agent` schema/RLS 迁移。当前执行边界仍限定为 P3 合成工作流和已授权的非破坏性本地/白名单探测；NATS/Redis 多副本真实部署、远程 worker 和生产级调度指标需在 P8 复验。
+
 ## 6. P4：上下文与知识库
 
 交付：ContextSnapshot、Memory、污染检测、KnowledgeBase/DocumentVersion/Chunk、扫描、ACL 前置混合检索、重排、引用。

@@ -26,7 +26,7 @@ def test_checked_in_openapi_matches_reviewed_semantic_snapshot() -> None:
 def test_checked_in_p1_operations_exist_in_runtime() -> None:
     result = check(runtime=True)
     assert result["valid"], result["errors"]
-    assert result["operation_count"] == 28
+    assert result["operation_count"] == 44
 
 
 def test_sse_contract_is_resumable_and_uses_event_stream_media_type() -> None:
@@ -87,7 +87,7 @@ def test_p0_runtime_critical_read_paths_and_request_correlation(settings) -> Non
     assert tasks.json() == []
 
 
-def test_p1_signed_contract_does_not_publish_deferred_execution_operations() -> None:
+def test_p3_signed_contract_dispatches_tasks_without_sync_run_operation() -> None:
     document = load_document()
     paths = set(document["paths"])
     assert all("/run" not in path for path in paths)
@@ -100,9 +100,10 @@ def test_p1_signed_contract_does_not_publish_deferred_execution_operations() -> 
         for method in path_item
         if method.lower() in {"get", "post", "put", "patch", "delete"}
     } == {"get", "post", "put"}
+    assert "post" in document["paths"]["/tasks"]
+    assert "post" in document["paths"]["/tasks/{task_id}/executions"]
     for path in {
         "/system/requirements",
-        "/tasks",
         "/tasks/{task_id}",
         "/tasks/{task_id}/events",
         "/tasks/{task_id}/events/stream",

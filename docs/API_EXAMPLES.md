@@ -97,7 +97,7 @@ $task = Invoke-RestMethod -Method Post -Uri "$base/tasks" -Headers $analyst -Con
 $task.plan | ConvertTo-Json -Depth 8
 ```
 
-## 5. 管理员审批并执行
+## 5. 管理员审批并异步派发
 
 ```powershell
 $task = Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/approve" -Headers $admin -ContentType "application/json" -Body (@{
@@ -105,13 +105,45 @@ $task = Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/approve" -H
   reason = "GET-only non-destructive plan reviewed"
 } | ConvertTo-Json)
 
-$result = Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/run" -Headers $admin
-$result.result | ConvertTo-Json -Depth 10
+$dispatchHeaders = $admin.Clone()
+$dispatchHeaders["Idempotency-Key"] = [guid]::NewGuid().ToString()
+$task = Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/executions" -Headers $dispatchHeaders
+
+Invoke-RestMethod -Uri "$base/tasks/$($task.id)/stages" -Headers $admin
+Invoke-RestMethod -Uri "$base/tasks/$($task.id)/executions" -Headers $admin
+```
+
+P3 企业契约不发布同步 `/run`；长任务通过 durable queue 派发，再用查询或 SSE 观察状态。开发兼容层仍可在本地测试中调用 `/run` 驱动一个内置 worker。
+
+实时事件：
+
+```powershell
+Invoke-WebRequest -Uri "$base/tasks/$($task.id)/events/stream" -Headers $admin
+```
+
+暂停、恢复和失败重试：
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/pause" -Headers $admin -ContentType "application/json" -Body (@{ reason = "operator hold" } | ConvertTo-Json)
+Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/resume" -Headers $admin -ContentType "application/json" -Body (@{ reason = "resume approved" } | ConvertTo-Json)
+Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/retry" -Headers $admin -ContentType "application/json" -Body (@{ reason = "transient worker failure recovered" } | ConvertTo-Json)
 ```
 
 对 `target-patched` 重复创建一个 scope/task，指标应不命中。系统仍会把执行标记为 `succeeded`，因为这表示验证流程正常完成；漏洞信号看 `result.validation_signal` 和每步证据。
 
-## 6. 模型网关
+## 6. Agent、Workflow 和 Skill 注册表
+
+```powershell
+Invoke-RestMethod -Uri "$base/agents" -Headers $admin
+Invoke-RestMethod -Uri "$base/workflows" -Headers $admin
+Invoke-RestMethod -Uri "$base/skills" -Headers $admin
+Invoke-RestMethod -Uri "$base/protocols/tools" -Headers $admin
+Invoke-RestMethod -Uri "$base/task-dead-letters?limit=20" -Headers $admin
+```
+
+这些接口只注册声明式定义，不上传可执行代码；工具权限、资源限制、超时、审批要求和调用统计都会进入响应和审计。
+
+## 7. 模型网关
 
 默认离线 mock 可直接验证。响应包含 usage、cost、failover_count 和 tool_protocol；不会回显任何 Provider secret：
 
@@ -148,7 +180,7 @@ Invoke-WebRequest -Method Post -Uri "$base/models/stream" -Headers $analyst -Con
 
 注册外部 Provider 仅限管理员；`api_key` 会在写入前加密且不会在响应中返回。轮换也可以通过 `PUT /providers/{id}/secret` 的 `X-Provider-API-Key` 请求头完成。调用账本只保存 hash、usage、cost、状态和延迟，不保存 prompt/response 正文。
 
-## 7. RAG 与 checkpoint
+## 8. RAG 与 checkpoint
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri "$base/rag/documents" -Headers $analyst -ContentType "application/json" -Body (@{
@@ -168,7 +200,7 @@ Invoke-RestMethod -Method Post -Uri "$base/rag/search" -Headers $analyst -Conten
 Invoke-RestMethod -Method Post -Uri "$base/tasks/$($task.id)/checkpoints" -Headers $analyst
 ```
 
-## 8. 审计校验
+## 9. 审计校验
 
 ```powershell
 Invoke-RestMethod -Uri "$base/audit/verify" -Headers $admin

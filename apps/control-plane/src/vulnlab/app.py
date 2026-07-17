@@ -13,7 +13,7 @@ from .config import Settings
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """Create the P1 control plane with an explicit compatibility boundary."""
+    """Create the P3 control plane with an explicit compatibility boundary."""
     services = build_services(settings or Settings.from_env())
 
     @asynccontextmanager
@@ -27,8 +27,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title="VulnLab Module 2 Control Plane",
         version=__version__,
         description=(
-            "P1 enterprise identity, tenancy, RBAC, configuration, and audit API. "
-            "The P0 API-key surface remains an explicitly disabled-by-default compatibility layer."
+            "P3 enterprise identity, tenancy, RBAC, configuration, audit, model gateway, "
+            "and durable task/Agent orchestration API. The API-key surface remains an "
+            "explicit compatibility layer."
         ),
         lifespan=lifespan,
     )

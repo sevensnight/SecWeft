@@ -31,7 +31,8 @@ export interface paths {
         /** List tasks visible to the authenticated principal */
         get: operations["listTasks"];
         put?: never;
-        post?: never;
+        /** Create a task draft and persisted P3 workflow stages */
+        post: operations["createTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -81,9 +82,200 @@ export interface paths {
         };
         /**
          * Stream persisted task events incrementally
-         * @description Server-Sent Events stream. Consumers resume with Last-Event-ID; each data field contains one TaskEvent JSON object. The P0 implementation tails the durable compatibility store and will move to NATS fan-out in P3.
+         * @description Server-Sent Events stream. Consumers resume with Last-Event-ID; each data field contains one TaskEvent JSON object sourced from the durable P3 event ledger.
          */
         get: operations["streamTaskEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List persisted task stage state for monitoring and resume */
+        get: operations["listTaskStages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List worker execution leases and outcomes for one task */
+        get: operations["listTaskExecutions"];
+        put?: never;
+        /** Idempotently enqueue an approved task for asynchronous worker execution */
+        post: operations["dispatchTaskExecution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Persist a pause request for a queued or running task */
+        post: operations["pauseTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused task by returning it to the durable queue */
+        post: operations["resumeTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a failed task within its persisted retry budget */
+        post: operations["retryTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/task-dead-letters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List failed queue messages moved to the dead-letter ledger */
+        get: operations["listTaskDeadLetters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List versioned Agent definitions and runtime budgets */
+        get: operations["listAgents"];
+        put?: never;
+        /** Register a versioned Agent definition without executable upload */
+        post: operations["createAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List versioned workflow definitions */
+        get: operations["listWorkflows"];
+        put?: never;
+        /** Register a DAG workflow definition */
+        post: operations["createWorkflow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List versioned Skill definitions, limits, and statistics */
+        get: operations["listSkills"];
+        put?: never;
+        /** Register a declarative Skill manifest without executable upload */
+        post: operations["createSkill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/{skill_id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enable or disable a Skill definition */
+        post: operations["setSkillEnabled"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/protocols/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Return the declarative tool protocol manifest */
+        get: operations["getToolProtocolManifest"];
         put?: never;
         post?: never;
         delete?: never;
@@ -462,6 +654,8 @@ export interface components {
             /** Format: uuid */
             created_by: string;
             assigned_skills: string[];
+            workflow_name: string;
+            workflow_version: string;
             plan?: {
                 [key: string]: unknown;
             } | null;
@@ -469,10 +663,218 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             error?: string | null;
+            current_stage: string | null;
+            pause_requested: boolean;
+            cancel_requested: boolean;
+            retry_count: number;
+            max_retries: number;
+            fencing_token: number;
+            stages?: components["schemas"]["TaskStage"][];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        TaskCreate: {
+            title: string;
+            target: string;
+            /** @enum {string} */
+            intent: "asset_inventory" | "vulnerability_validation" | "defensive_regression";
+            indicators?: string[];
+            /** Format: uuid */
+            scope_id: string;
+        };
+        TaskActionRequest: {
+            reason?: string | null;
+        };
+        TaskStage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            task_id: string;
+            stage_code: string;
+            display_name: string;
+            sequence_no: number;
+            agent_name: string;
+            agent_version: string;
+            skill_name: string;
+            skill_version: string;
+            depends_on: string[];
+            /** @enum {string} */
+            status: "pending" | "ready" | "running" | "paused" | "succeeded" | "failed" | "skipped" | "cancelled" | "timed_out";
+            attempt: number;
+            max_attempts: number;
+            checkpoint?: {
+                [key: string]: unknown;
+            } | null;
+            output?: {
+                [key: string]: unknown;
+            } | null;
+            error?: string | null;
+            /** Format: date-time */
+            started_at?: string | null;
+            /** Format: date-time */
+            finished_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        TaskExecution: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            task_id: string;
+            worker_id: string;
+            fencing_token: number;
+            /** @enum {string} */
+            status: "leased" | "running" | "paused" | "succeeded" | "failed" | "cancelled" | "timed_out";
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            heartbeat_at: string;
+            /** Format: date-time */
+            finished_at?: string | null;
+            error?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        TaskDeadLetter: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            task_id: string | null;
+            queue_message_id: string | null;
+            reason: string;
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            created_at: string;
+        };
+        AgentDefinitionCreate: {
+            name: string;
+            /** @default 1.0 */
+            version: string;
+            description: string;
+            responsibilities: string[];
+            input_schema?: {
+                [key: string]: unknown;
+            };
+            output_schema?: {
+                [key: string]: unknown;
+            };
+            allowed_tools?: string[];
+            /**
+             * @default task
+             * @enum {string}
+             */
+            data_scope: "task" | "project" | "tenant";
+            /** @default 2048 */
+            token_budget: number;
+            /** @default 60 */
+            timeout_seconds: number;
+            /**
+             * @default low
+             * @enum {string}
+             */
+            risk_level: "low" | "medium" | "high";
+            retry_policy?: {
+                [key: string]: unknown;
+            };
+        };
+        AgentDefinition: components["schemas"]["AgentDefinitionCreate"] & {
+            /** Format: uuid */
+            id: string;
+            enabled: boolean;
+            builtin: boolean;
+            /** Format: uuid */
+            created_by: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        WorkflowStageDefinition: {
+            code: string;
+            display_name: string;
+            agent_name: string;
+            /** @default 1.0 */
+            agent_version: string;
+            skill_name: string;
+            /** @default 1.0 */
+            skill_version: string;
+            depends_on?: string[];
+            /** @default 1 */
+            max_attempts: number;
+        };
+        WorkflowDefinitionCreate: {
+            name: string;
+            /** @default 1.0 */
+            version: string;
+            description: string;
+            stages: components["schemas"]["WorkflowStageDefinition"][];
+        };
+        WorkflowDefinition: components["schemas"]["WorkflowDefinitionCreate"] & {
+            /** Format: uuid */
+            id: string;
+            enabled: boolean;
+            builtin: boolean;
+            /** Format: uuid */
+            created_by: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SkillDefinitionCreate: {
+            name: string;
+            /** @default 1.0 */
+            version: string;
+            description: string;
+            /** @enum {string} */
+            risk_level: "low" | "medium" | "high";
+            /** @enum {string} */
+            required_role: "viewer" | "analyst" | "operator" | "admin";
+            input_schema: {
+                [key: string]: unknown;
+            };
+            output_schema?: {
+                [key: string]: unknown;
+            };
+            permissions?: string[];
+            resource_limits?: {
+                [key: string]: unknown;
+            };
+            /** @default 30 */
+            timeout_seconds: number;
+            /**
+             * @default internal
+             * @enum {string}
+             */
+            execution_type: "internal" | "webhook" | "sandbox_deferred";
+            tool_dependencies?: string[];
+            /** @default false */
+            approval_required: boolean;
+        };
+        SkillDefinition: components["schemas"]["SkillDefinitionCreate"] & {
+            /** Format: uuid */
+            id: string;
+            enabled: boolean;
+            builtin: boolean;
+            invocation_count: number;
+            success_count: number;
+            failure_count: number;
+        };
+        ToolProtocolManifest: {
+            protocol: string;
+            version: string;
+            policy: string;
+            tools: components["schemas"]["SkillDefinition"][];
+        } & {
+            [key: string]: unknown;
         };
         TaskEvent: {
             id: number;
@@ -1028,6 +1430,37 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    createTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskCreate"];
+            };
+        };
+        responses: {
+            /** @description Created task with persisted stage plan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     getTask: {
         parameters: {
             query?: never;
@@ -1107,6 +1540,433 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listTaskStages: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ordered stage collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStage"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listTaskExecutions: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Worker execution collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskExecution"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    dispatchTaskExecution: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Task accepted into the durable queue */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    pauseTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Pause request accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    resumeTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Task queued for resumed execution */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    retryTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Failed task requeued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listTaskDeadLetters: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dead-letter collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDeadLetter"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listAgents: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agent definition collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentDefinition"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createAgent: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentDefinitionCreate"];
+            };
+        };
+        responses: {
+            /** @description Agent definition created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentDefinition"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listWorkflows: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workflow definition collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDefinition"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createWorkflow: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowDefinitionCreate"];
+            };
+        };
+        responses: {
+            /** @description Workflow definition created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDefinition"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listSkills: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Skill definition collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillDefinition"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createSkill: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillDefinitionCreate"];
+            };
+        };
+        responses: {
+            /** @description Skill definition created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillDefinition"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    setSkillEnabled: {
+        parameters: {
+            query: {
+                enabled: boolean;
+            };
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated Skill definition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillDefinition"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getToolProtocolManifest: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tool protocol manifest */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolProtocolManifest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listModelProviders: {

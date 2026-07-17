@@ -101,7 +101,23 @@ def test_scope_rejects_wildcard_and_outside_port(client, analyst, approved_scope
 def test_task_plan_approval_execution_and_events(client, admin_headers, pending_task):
     plan = pending_task["plan"]
     assert plan["destructive"] is False
-    assert [node["id"] for node in plan["dag"]] == ["scope", "probe", "evaluate", "report"]
+    assert [node["id"] for node in plan["dag"]] == [
+        "scope",
+        "plan",
+        "knowledge",
+        "evidence",
+        "evaluate",
+        "report",
+    ]
+    assert pending_task["workflow_name"] == "p3.synthetic.defensive"
+    assert [stage["stage_code"] for stage in pending_task["stages"]] == [
+        "scope",
+        "plan",
+        "knowledge",
+        "evidence",
+        "evaluate",
+        "report",
+    ]
     assert pending_task["status"] == "pending_approval"
     approved = client.post(
         f"/api/v1/tasks/{pending_task['id']}/approve",

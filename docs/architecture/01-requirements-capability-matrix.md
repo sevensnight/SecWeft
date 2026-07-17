@@ -13,16 +13,16 @@
 | 2.1 | 统一模型接入、流式输出、路由、限流、熔断、成本 | model-gateway | P2 | Legacy Verified（窄范围） | Implemented（P2 mock/openai-compatible/ollama adapter、SSE、限流、熔断、failover、usage/cost；真实外部 Provider 需显式测试端点复验） | Provider 契约测试、故障切换、流式、限流和成本测试 |
 | 2.2 | API Key/凭据加密、隔离、轮换、吊销、Vault/KMS 接口 | model-gateway + secret manager | P2 | Legacy Verified（Fernet 单实例） | Implemented（P2 write-only secret、CredentialRef、密文字段、最小权限；外部 Vault/KMS 适配待生产部署阶段） | write-only API、轮换、撤销、跨租户和明文泄漏负向测试 |
 | 2.3 | 开源模型注册、版本、端点、算力、健康、路由权重 | model-gateway | P2 | Legacy Implemented（有限适配） | Implemented（P2 Provider/Instance schema、能力标签、health、priority routing；GPU/NPU 运行资源联动待 P8） | 注册/健康/启停/权重和资源元数据集成测试 |
-| 2.4 | 主任务规划、持久状态、暂停恢复、取消重试、补偿 | control-plane | P3 | Legacy Verified（单进程） | Planned | PostgreSQL 状态机、多副本竞态、重启恢复和幂等测试 |
-| 2.5 | 多 Agent 编排、职责、Schema、工具、预算和审计 | agent-orchestrator | P3 | Legacy Implemented | Planned | Agent/Skill/Workflow 契约、预算、超时、循环上限测试 |
-| 2.6 | Skill 注册、版本、灰度、权限、统计和失败分析 | agent-orchestrator | P3 | Legacy Verified（基础注册） | Planned | 版本兼容、启停、灰度、权限、统计测试 |
+| 2.4 | 主任务规划、持久状态、暂停恢复、取消重试、补偿 | control-plane | P3 | Legacy Verified（单进程） | Implemented（P3 持久 Task/Stage/Execution、queue、lease/fencing、pause/resume/cancel/retry、idempotency、DLQ；远程 worker/NATS 需 P8 复验） | PostgreSQL 状态机、多副本竞态、重启恢复和幂等测试 |
+| 2.5 | 多 Agent 编排、职责、Schema、工具、预算和审计 | agent-orchestrator | P3 | Legacy Implemented | Implemented（P3 AgentDefinition/WorkflowDefinition、职责、Schema、工具 allow-list、token/timeout/retry/risk 元数据、事件审计） | Agent/Skill/Workflow 契约、预算、超时、循环上限测试 |
+| 2.6 | Skill 注册、版本、灰度、权限、统计和失败分析 | agent-orchestrator | P3 | Legacy Verified（基础注册） | Implemented（P3 SkillDefinition 版本、输入/输出 Schema、权限/资源限制、启停、调用统计、失败计数；灰度发布策略待 P8 集成） | 版本兼容、启停、灰度、权限、统计测试 |
 | 2.7 | 上下文压缩、快照、恢复、记忆和污染检测 | context-service | P4 | Legacy Verified（单任务） | Planned | 租户/项目隔离、压缩、快照恢复、secret/污染测试 |
 | 2.8 | 多知识库、文档版本、混合检索、重排、引用 | knowledge-service | P4 | Legacy Verified（轻量检索） | Planned | ACL 前置过滤、版本、增量索引、引用溯源测试 |
 | 2.9 | 授权资产、白名单、CIDR、仓库目录、时间窗、工具和速率 | asset-service | P5 | Legacy Verified（目标/端口） | Planned | 授权文档、范围 digest、DNS、时间窗、跨租户负向测试 |
 | 2.10 | 候选、验证计划、风险预检、审批、证据和人工复核 | validation-service | P6 | Legacy Verified（合成信号） | Planned；P0 禁止实现 | 仅授权合成靶场 E2E、patched 对照、证据复核测试 |
 | 2.11 | Sandbox 模板、实例、配额、网络、快照、销毁和回收 | sandbox-service | P5 | Legacy Verified（受限 runner） | Planned；P0 不执行载荷 | 隔离、默认无网、资源耗尽、异常回收和逃逸防护测试 |
-| 2.12 | 队列、优先级、租户配额、分布式锁、幂等、DLQ | control-plane + NATS/Redis/PostgreSQL | P3 | Legacy Implemented（进程内） | Planned | 重复/乱序消息、多副本、fencing、DLQ 和配额测试 |
-| 2.13 | Tool/Skill/Agent/Workflow/Policy/Result/Evidence 协议 | api-contracts | P0/P3 | Legacy Implemented（部分 Schema） | Implemented（P0 版本化 Schema 基线；P3 运行时待实现） | OpenAPI/JSON Schema lint、兼容性和生成代码检查 |
+| 2.12 | 队列、优先级、租户配额、分布式锁、幂等、DLQ | control-plane + NATS/Redis/PostgreSQL | P3 | Legacy Implemented（进程内） | Implemented（P3 durable queue、lease/fencing、idempotency、stale lease recovery、DLQ；租户级队列配额待 P8 压测） | 重复/乱序消息、多副本、fencing、DLQ 和配额测试 |
+| 2.13 | Tool/Skill/Agent/Workflow/Policy/Result/Evidence 协议 | api-contracts | P0/P3 | Legacy Implemented（部分 Schema） | Implemented（P3 OpenAPI 44 operations，Agent/Skill/Workflow/TaskStage/TaskExecution/DLQ 契约和生成类型） | OpenAPI/JSON Schema lint、兼容性和生成代码检查 |
 | 2.14 | Policy Engine、多级审批、明确拒绝原因 | control-plane + policy-engine | P5 | Legacy Verified（双人基础） | Designed（P0 流程与信任边界；P1 提供 approver 权限边界；P5 执行面待实现） | deny-overrides、职责分离、撤销、过期和 TOCTOU 测试 |
 | 2.15 | 全量日志、追加审计、trace、脱敏和完整性 | audit-service + observability | P1/P8 | Legacy Verified（单库 hash chain） | Verified（P1 每租户 hash chain、append-only trigger、结构化日志；外部锚定待 P8） | 必记事件覆盖、篡改检测、脱敏和外部锚定测试 |
 | 2.16 | Compose 一键开发、初始化、迁移、备份恢复、K8s/Helm | infrastructure | P0/P8 | Legacy Verified（单 API Compose） | Implemented（P0 本地平台基线；P8 生产化待实现） | Compose health、迁移、备份恢复、Helm lint/render |

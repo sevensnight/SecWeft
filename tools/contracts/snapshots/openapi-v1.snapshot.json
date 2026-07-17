@@ -1,9 +1,50 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "8386ae3c38e25167d5d716733232f5e44a2c95b2aaf311c4084340b5839b38d1",
+  "document_sha256": "3af0786b2650df5b9458d917831e9e66264e6eee7b2924210899b637458c30da",
   "openapi": "3.1.0",
-  "info_version": "1.2.0-p2",
+  "info_version": "1.3.0-p3",
   "operations": [
+    {
+      "method": "GET",
+      "path": "/agents",
+      "operation_id": "listAgents",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/agents",
+      "operation_id": "createAgent",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
     {
       "method": "GET",
       "path": "/audit/events",
@@ -412,6 +453,24 @@
     },
     {
       "method": "GET",
+      "path": "/protocols/tools",
+      "operation_id": "getToolProtocolManifest",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/providers",
       "operation_id": "listModelProviders",
       "parameters": [
@@ -568,6 +627,79 @@
     },
     {
       "method": "GET",
+      "path": "/skills",
+      "operation_id": "listSkills",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/skills",
+      "operation_id": "createSkill",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/skills/{skill_id}/enabled",
+      "operation_id": "setSkillEnabled",
+      "parameters": [
+        {
+          "name": "skill_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "enabled",
+          "in": "query",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/system/requirements",
       "operation_id": "getSystemRequirements",
       "parameters": [
@@ -578,6 +710,29 @@
       "responses": [
         "200",
         "401"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/task-dead-letters",
+      "operation_id": "listTaskDeadLetters",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
       ],
       "success_media_types": [
         "application/json"
@@ -601,6 +756,29 @@
         "200",
         "401",
         "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks",
+      "operation_id": "createTask",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
       ],
       "success_media_types": [
         "application/json"
@@ -676,6 +854,154 @@
     },
     {
       "method": "GET",
+      "path": "/tasks/{task_id}/executions",
+      "operation_id": "listTaskExecutions",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/executions",
+      "operation_id": "dispatchTaskExecution",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "404",
+        "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/pause",
+      "operation_id": "pauseTask",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/resume",
+      "operation_id": "resumeTask",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/retry",
+      "operation_id": "retryTask",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/{task_id}/stages",
+      "operation_id": "listTaskStages",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/tenants/current",
       "operation_id": "getCurrentTenant",
       "parameters": [
@@ -691,9 +1017,52 @@
       "success_media_types": [
         "application/json"
       ]
+    },
+    {
+      "method": "GET",
+      "path": "/workflows",
+      "operation_id": "listWorkflows",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/workflows",
+      "operation_id": "createWorkflow",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
     }
   ],
   "schemas": [
+    "AgentDefinition",
+    "AgentDefinitionCreate",
     "AuditEvent",
     "AuditEventPage",
     "ConfigEntry",
@@ -726,12 +1095,23 @@
     "RolePage",
     "Session",
     "SessionProjectAccess",
+    "SkillDefinition",
+    "SkillDefinitionCreate",
     "SystemRequirements",
     "Task",
+    "TaskActionRequest",
+    "TaskCreate",
+    "TaskDeadLetter",
     "TaskEvent",
+    "TaskExecution",
+    "TaskStage",
     "Tenant",
+    "ToolProtocolManifest",
     "User",
     "UserPage",
-    "UserProvisionCreate"
+    "UserProvisionCreate",
+    "WorkflowDefinition",
+    "WorkflowDefinitionCreate",
+    "WorkflowStageDefinition"
   ]
 }

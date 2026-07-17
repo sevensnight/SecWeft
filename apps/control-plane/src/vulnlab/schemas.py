@@ -216,6 +216,10 @@ class TaskCreate(APIModel):
     scope_id: str
 
 
+class TaskActionRequest(APIModel):
+    reason: str | None = Field(default=None, max_length=500)
+
+
 class TaskResponse(APIModel):
     id: str
     title: str
@@ -227,9 +231,17 @@ class TaskResponse(APIModel):
     approval_status: str
     created_by: str
     assigned_skills: list[str]
+    workflow_name: str = "p3.synthetic.defensive"
+    workflow_version: str = "1.0"
     plan: dict[str, Any] | None
     result: dict[str, Any] | None
     error: str | None
+    current_stage: str | None = None
+    pause_requested: bool = False
+    cancel_requested: bool = False
+    retry_count: int = 0
+    max_retries: int = 2
+    fencing_token: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -241,21 +253,158 @@ class ApprovalRequest(APIModel):
 
 class SkillCreate(APIModel):
     name: str = Field(min_length=3, max_length=80, pattern=r"^[a-z][a-z0-9_.-]+$")
+    version: str = Field(default="1.0", min_length=1, max_length=40)
     description: str = Field(min_length=3, max_length=500)
     risk_level: Literal["low", "medium", "high"]
     required_role: Role
     input_schema: dict[str, Any]
+    output_schema: dict[str, Any] = Field(default_factory=lambda: {"type": "object"})
+    permissions: list[str] = Field(default_factory=list, max_length=32)
+    resource_limits: dict[str, Any] = Field(default_factory=dict)
+    timeout_seconds: float = Field(default=30, ge=1, le=600)
+    execution_type: Literal["internal", "webhook", "sandbox_deferred"] = "internal"
+    tool_dependencies: list[str] = Field(default_factory=list, max_length=32)
+    approval_required: bool = False
 
 
 class SkillResponse(APIModel):
     id: str
     name: str
+    version: str
     description: str
     risk_level: str
     required_role: Role
     input_schema: dict[str, Any]
+    output_schema: dict[str, Any]
+    permissions: list[str]
+    resource_limits: dict[str, Any]
+    timeout_seconds: float
+    execution_type: str
+    tool_dependencies: list[str]
+    approval_required: bool
     enabled: bool
     builtin: bool
+    invocation_count: int = 0
+    success_count: int = 0
+    failure_count: int = 0
+
+
+class AgentCreate(APIModel):
+    name: str = Field(min_length=3, max_length=80, pattern=r"^[a-z][a-z0-9_.-]+$")
+    version: str = Field(default="1.0", min_length=1, max_length=40)
+    description: str = Field(min_length=3, max_length=500)
+    responsibilities: list[str] = Field(min_length=1, max_length=16)
+    input_schema: dict[str, Any] = Field(default_factory=lambda: {"type": "object"})
+    output_schema: dict[str, Any] = Field(default_factory=lambda: {"type": "object"})
+    allowed_tools: list[str] = Field(default_factory=list, max_length=32)
+    data_scope: Literal["task", "project", "tenant"] = "task"
+    token_budget: int = Field(default=2048, ge=0, le=1_000_000)
+    timeout_seconds: float = Field(default=60, ge=1, le=3600)
+    risk_level: Literal["low", "medium", "high"] = "low"
+    retry_policy: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def no_duplicate_tools(self) -> AgentCreate:
+        if len(self.allowed_tools) != len(set(self.allowed_tools)):
+            raise ValueError("allowed_tools must be unique")
+        return self
+
+
+class AgentResponse(AgentCreate):
+    id: str
+    enabled: bool
+    builtin: bool
+    created_by: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class WorkflowStageDefinition(APIModel):
+    code: str = Field(min_length=1, max_length=80, pattern=r"^[a-z][a-z0-9_.-]+$")
+    display_name: str = Field(min_length=1, max_length=120)
+    agent_name: str = Field(min_length=3, max_length=80, pattern=r"^[a-z][a-z0-9_.-]+$")
+    agent_version: str = Field(default="1.0", min_length=1, max_length=40)
+    skill_name: str = Field(min_length=3, max_length=80, pattern=r"^[a-z][a-z0-9_.-]+$")
+    skill_version: str = Field(default="1.0", min_length=1, max_length=40)
+    depends_on: list[str] = Field(default_factory=list, max_length=16)
+    max_attempts: int = Field(default=1, ge=1, le=10)
+
+
+class WorkflowCreate(APIModel):
+    name: str = Field(min_length=3, max_length=120, pattern=r"^[a-z][a-z0-9_.-]+$")
+    version: str = Field(default="1.0", min_length=1, max_length=40)
+    description: str = Field(min_length=3, max_length=800)
+    stages: list[WorkflowStageDefinition] = Field(min_length=1, max_length=32)
+
+    @model_validator(mode="after")
+    def valid_dag(self) -> WorkflowCreate:
+        codes = [stage.code for stage in self.stages]
+        if len(codes) != len(set(codes)):
+            raise ValueError("workflow stage codes must be unique")
+        seen: set[str] = set()
+        for stage in self.stages:
+            missing = sorted(set(stage.depends_on) - seen)
+            if missing:
+                raise ValueError(
+                    f"stage {stage.code} depends on unknown or later stages: {', '.join(missing)}"
+                )
+            seen.add(stage.code)
+        return self
+
+
+class WorkflowResponse(WorkflowCreate):
+    id: str
+    enabled: bool
+    builtin: bool
+    created_by: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TaskStageResponse(APIModel):
+    id: str
+    task_id: str
+    stage_code: str
+    display_name: str
+    sequence_no: int
+    agent_name: str
+    agent_version: str
+    skill_name: str
+    skill_version: str
+    depends_on: list[str]
+    status: str
+    attempt: int
+    max_attempts: int
+    checkpoint: dict[str, Any] | None = None
+    output: dict[str, Any] | None = None
+    error: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TaskExecutionResponse(APIModel):
+    id: str
+    task_id: str
+    worker_id: str
+    fencing_token: int
+    status: str
+    started_at: datetime
+    heartbeat_at: datetime
+    finished_at: datetime | None = None
+    error: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TaskDeadLetterResponse(APIModel):
+    id: str
+    task_id: str | None
+    queue_message_id: str | None
+    reason: str
+    payload: dict[str, Any]
+    created_at: datetime
 
 
 class ProbeStep(APIModel):
