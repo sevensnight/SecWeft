@@ -94,8 +94,10 @@ def test_model_gateway_scrubs_direct_prompt_secrets_before_provider(
 ):
     captured = {}
 
-    async def fake_invoke(row, messages, max_tokens):
+    async def fake_invoke(row, messages, max_tokens, response_format, tools):
         captured["messages"] = messages
+        captured["response_format"] = response_format
+        captured["tools"] = tools
         return "safe response"
 
     gateway: ModelGateway = app.state.services.gateway
@@ -113,6 +115,8 @@ def test_model_gateway_scrubs_direct_prompt_secrets_before_provider(
         )
     )
     assert result["content"] == "safe response"
+    assert captured["response_format"] == "text"
+    assert captured["tools"] == []
     assert "prompt-canary-token" not in json.dumps(captured["messages"])
     assert "[REDACTED]" in json.dumps(captured["messages"])
 

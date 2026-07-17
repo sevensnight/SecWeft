@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from conftest import make_user
 from fastapi.testclient import TestClient
 
@@ -179,6 +181,118 @@ def test_model_gateway_fails_over_to_qualified_mock(client, admin_headers):
     assert result.status_code == 200, result.text
     assert result.json()["provider"] == "offline-mock"
     assert result.json()["failover_count"] == 1
+
+
+def test_model_gateway_records_usage_cost_and_never_echoes_secret(client, admin_headers):
+    provider = client.post(
+        "/api/v1/providers",
+        headers=admin_headers,
+        json={
+            "name": "tenant-mock-p2",
+            "kind": "mock",
+            "model": "deterministic-p2",
+            "api_key": "provider-test-secret-must-not-return",
+            "priority": 1,
+            "input_cost_per_1k": 0.25,
+            "output_cost_per_1k": 0.5,
+            "capabilities": ["text", "json_object", "tool_protocol"],
+        },
+    )
+    assert provider.status_code == 201, provider.text
+    provider_body = provider.json()
+    assert provider_body["has_api_key"] is True
+    assert provider_body["credential_ref"].startswith("credential://provider/")
+    assert "provider-test-secret" not in provider.text
+
+    result = client.post(
+        "/api/v1/models/complete",
+        headers=admin_headers,
+        json={
+            "purpose": "tool_selection",
+            "response_format": {"type": "json_object"},
+            "tools": [
+                {
+                    "name": "scope.check",
+                    "description": "Check whether a target is inside the approved scope.",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {"target": {"type": "string"}},
+                    },
+                }
+            ],
+            "messages": [{"role": "user", "content": "Summarize with api_key=hidden-value"}],
+        },
+    )
+    assert result.status_code == 200, result.text
+    body = result.json()
+    parsed = json.loads(body["content"])
+    assert body["provider"] == "tenant-mock-p2"
+    assert body["response_format"] == "json_object"
+    assert parsed["allowed_tools"] == ["scope.check"]
+    assert body["tool_protocol"]["allowed_tools"] == ["scope.check"]
+    assert body["usage"]["total_tokens"] > 0
+    assert body["cost_usd"] > 0
+    assert "hidden-value" not in result.text
+
+    ledger = client.get("/api/v1/models/invocations", headers=admin_headers).json()
+    assert ledger[0]["id"] == body["id"]
+    assert ledger[0]["provider"] == "tenant-mock-p2"
+    assert ledger[0]["structured_output"] is True
+    assert ledger[0]["tool_count"] == 1
+    assert "content" not in ledger[0]
+    assert "hidden-value" not in json.dumps(ledger)
+
+    catalog = client.get("/api/v1/models/catalog", headers=admin_headers).json()
+    assert any(item["provider"] == "tenant-mock-p2" for item in catalog)
+    health = client.get("/api/v1/providers/health", headers=admin_headers).json()
+    assert any(
+        item["provider"] == "tenant-mock-p2" and item["status"] == "ready" for item in health
+    )
+
+
+def test_model_gateway_token_quota_is_enforced(client, admin_headers):
+    providers = client.get("/api/v1/providers", headers=admin_headers).json()
+    for provider in providers:
+        client.post(
+            f"/api/v1/providers/{provider['id']}/enabled?enabled=false",
+            headers=admin_headers,
+        )
+    created = client.post(
+        "/api/v1/providers",
+        headers=admin_headers,
+        json={
+            "name": "quota-mock",
+            "kind": "mock",
+            "model": "quota-p2",
+            "priority": 1,
+            "token_quota_per_minute": 128,
+        },
+    )
+    assert created.status_code == 201, created.text
+    response = client.post(
+        "/api/v1/models/complete",
+        headers=admin_headers,
+        json={
+            "max_tokens": 64,
+            "messages": [{"role": "user", "content": "x" * 600}],
+        },
+    )
+    assert response.status_code == 429
+    assert response.json()["code"] == "model_rate_limited"
+
+
+def test_model_gateway_streams_sse_without_repeating_full_payload(client, admin_headers):
+    response = client.post(
+        "/api/v1/models/stream",
+        headers=admin_headers,
+        json={"stream": True, "messages": [{"role": "user", "content": "stream a safe summary"}]},
+    )
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert "event: delta" in response.text
+    assert "event: done" in response.text
+    done_payload = response.text.split("event: done", 1)[1]
+    assert "AUTHORIZED_LAB_PLAN" not in done_payload
 
 
 def test_openapi_and_protocol_manifest(client, admin_headers):

@@ -92,6 +92,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List model providers without secret material */
+        get: operations["listModelProviders"];
+        put?: never;
+        /** Create a model provider and optional write-only credential */
+        post: operations["createModelProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/providers/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List provider readiness, circuit breaker, and recent demand signals */
+        get: operations["listModelProviderHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/providers/{provider_id}/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rotate or revoke the write-only credential bound to a provider */
+        put: operations["rotateModelProviderSecret"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/providers/{provider_id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enable or disable a provider without deleting its audit history */
+        post: operations["setModelProviderEnabled"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/models/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List routable model instances and capabilities */
+        get: operations["listModelCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/models/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a non-streaming model completion through the gateway */
+        post: operations["createModelCompletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/models/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stream a model completion through Server-Sent Events */
+        post: operations["streamModelCompletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/models/invocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List model invocation ledger entries without prompt or response bodies */
+        get: operations["listModelInvocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session": {
         parameters: {
             query?: never;
@@ -350,6 +487,167 @@ export interface components {
             next_cursor: string | null;
             has_more: boolean;
             page_size: number;
+        };
+        ModelProviderCreate: {
+            name: string;
+            /** @enum {string} */
+            kind: "mock" | "openai_compatible" | "ollama";
+            /** Format: uri */
+            base_url?: string | null;
+            model: string;
+            /** @description Accepted only on write. Never returned by any response. */
+            api_key?: string | null;
+            /** @default true */
+            enabled: boolean;
+            /** @default 100 */
+            priority: number;
+            /** @default 60 */
+            rate_limit_per_minute: number;
+            /** @default 100000 */
+            token_quota_per_minute: number;
+            /** @default 30 */
+            timeout_seconds: number;
+            /** @default 0 */
+            input_cost_per_1k: number;
+            /** @default 0 */
+            output_cost_per_1k: number;
+            capabilities?: string[];
+            config?: {
+                [key: string]: unknown;
+            };
+        };
+        ModelProvider: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "mock" | "openai_compatible" | "ollama";
+            /** Format: uri */
+            base_url: string | null;
+            model: string;
+            has_api_key: boolean;
+            /** @description Non-secret reference to configured credential material. */
+            credential_ref: string | null;
+            enabled: boolean;
+            priority: number;
+            rate_limit_per_minute: number;
+            token_quota_per_minute: number;
+            timeout_seconds: number;
+            input_cost_per_1k: number;
+            output_cost_per_1k: number;
+            capabilities: string[];
+            config: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ModelProviderHealth: {
+            /** Format: uuid */
+            provider_id: string;
+            provider: string;
+            model: string;
+            enabled: boolean;
+            /** @enum {string} */
+            status: "ready" | "disabled" | "circuit_open";
+            failure_count: number;
+            circuit_open: boolean;
+            circuit_retry_after_ms: number;
+            recent_request_count: number;
+        };
+        ModelCatalogItem: {
+            /** Format: uuid */
+            provider_id: string;
+            provider: string;
+            /** @enum {string} */
+            kind: "mock" | "openai_compatible" | "ollama";
+            model: string;
+            enabled: boolean;
+            priority: number;
+            capabilities: string[];
+            input_cost_per_1k: number;
+            output_cost_per_1k: number;
+        };
+        ModelChatMessage: {
+            /** @enum {string} */
+            role: "user" | "assistant";
+            content: string;
+        };
+        ModelResponseFormat: {
+            /**
+             * @default text
+             * @enum {string}
+             */
+            type: "text" | "json_object";
+        };
+        ModelToolDefinition: {
+            name: string;
+            description: string;
+            /** @description JSON Schema object for tool input. Tool names are the invocation allow-list. */
+            input_schema: {
+                [key: string]: unknown;
+            };
+        };
+        ModelCompletionRequest: {
+            messages: components["schemas"]["ModelChatMessage"][];
+            /**
+             * @default planning
+             * @enum {string}
+             */
+            purpose: "planning" | "summarization" | "reporting" | "tool_selection";
+            /** @default 512 */
+            max_tokens: number;
+            response_format?: components["schemas"]["ModelResponseFormat"];
+            tools?: components["schemas"]["ModelToolDefinition"][];
+            /** @default false */
+            stream: boolean;
+        };
+        ModelUsage: {
+            prompt_tokens: number;
+            completion_tokens: number;
+            total_tokens: number;
+        };
+        ModelToolProtocol: {
+            allowed_tools: string[];
+            /** @description Tool calls emitted by a provider, constrained to allowed_tools. */
+            tool_calls: {
+                [key: string]: unknown;
+            }[];
+        };
+        ModelCompletion: {
+            /** Format: uuid */
+            id: string;
+            provider: string;
+            model: string;
+            purpose: string;
+            content: string;
+            /** @enum {string} */
+            response_format: "text" | "json_object";
+            tool_protocol: components["schemas"]["ModelToolProtocol"];
+            usage: components["schemas"]["ModelUsage"];
+            cost_usd: number;
+            failover_count: number;
+            latency_ms: number;
+        };
+        ModelInvocation: {
+            /** Format: uuid */
+            id: string;
+            provider: string;
+            model: string;
+            purpose: string;
+            /** @enum {string} */
+            status: "succeeded" | "failed";
+            usage: components["schemas"]["ModelUsage"];
+            cost_usd: number;
+            failover_count: number;
+            structured_output: boolean;
+            tool_count: number;
+            latency_ms: number;
+            error: string | null;
+            /** Format: date-time */
+            created_at: string;
         };
         Tenant: {
             /** Format: uuid */
@@ -647,10 +945,20 @@ export interface components {
                 "application/json": components["schemas"]["Problem"];
             };
         };
+        /** @description Provider request or token quota has been exceeded */
+        TooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         XRequestId: string;
         TaskId: string;
+        ProviderId: string;
         /** @description Resource selection only; never accepted as authorization proof. */
         XProjectId: string;
         IdempotencyKey: string;
@@ -799,6 +1107,293 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listModelProviders: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Provider collection */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelProvider"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createModelProvider: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelProviderCreate"];
+            };
+        };
+        responses: {
+            /** @description Provider created without echoing secret values */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelProvider"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listModelProviderHealth: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Provider health collection */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelProviderHealth"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    rotateModelProviderSecret: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Write-only credential value. It is never returned by any API. */
+                "X-Provider-API-Key"?: string;
+            };
+            path: {
+                provider_id: components["parameters"]["ProviderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Credential metadata updated without returning secret material */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelProvider"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    setModelProviderEnabled: {
+        parameters: {
+            query: {
+                enabled: boolean;
+            };
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                provider_id: components["parameters"]["ProviderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Provider enabled state changed */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelProvider"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listModelCatalog: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Model catalog */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCatalogItem"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createModelCompletion: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelCompletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Completion with usage, cost, and allowed tool metadata */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCompletion"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    streamModelCompletion: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelCompletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Completion chunks followed by final usage metadata */
+            200: {
+                headers: {
+                    /** @description no-cache */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listModelInvocations: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                /** @description Resource selection only; never accepted as authorization proof. */
+                "X-Project-ID"?: components["parameters"]["XProjectId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invocation ledger entries */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelInvocation"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     getEnterpriseSession: {

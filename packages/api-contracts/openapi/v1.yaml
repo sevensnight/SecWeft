@@ -1,17 +1,18 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.1.0-p1
+  version: 1.2.0-p2
   description: >-
-    P1 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
-    layered configuration, and append-only audit. P0 task projections remain an
-    explicitly separated API-key compatibility surface.
+    P2 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
+    layered configuration, append-only audit, and the model gateway. P0 task
+    projections remain an explicitly separated API-key compatibility surface.
 servers:
   - url: /api/v1
 tags:
   - name: System
   - name: Tasks
   - name: Identity
+  - name: Models
   - name: Tenancy
   - name: IAM
   - name: Configuration
@@ -142,6 +143,308 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /providers:
+    get:
+      operationId: listModelProviders
+      tags: [Models]
+      summary: List model providers without secret material
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+      responses:
+        '200':
+          description: Provider collection
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelProvider'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createModelProvider
+      tags: [Models]
+      summary: Create a model provider and optional write-only credential
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelProviderCreate'
+      responses:
+        '201':
+          description: Provider created without echoing secret values
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelProvider'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /providers/health:
+    get:
+      operationId: listModelProviderHealth
+      tags: [Models]
+      summary: List provider readiness, circuit breaker, and recent demand signals
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+      responses:
+        '200':
+          description: Provider health collection
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelProviderHealth'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /providers/{provider_id}/secret:
+    put:
+      operationId: rotateModelProviderSecret
+      tags: [Models]
+      summary: Rotate or revoke the write-only credential bound to a provider
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/ProviderId'
+        - name: X-Provider-API-Key
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 4096
+          description: Write-only credential value. It is never returned by any API.
+      responses:
+        '200':
+          description: Credential metadata updated without returning secret material
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelProvider'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /providers/{provider_id}/enabled:
+    post:
+      operationId: setModelProviderEnabled
+      tags: [Models]
+      summary: Enable or disable a provider without deleting its audit history
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/ProviderId'
+        - name: enabled
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Provider enabled state changed
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelProvider'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /models/catalog:
+    get:
+      operationId: listModelCatalog
+      tags: [Models]
+      summary: List routable model instances and capabilities
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+      responses:
+        '200':
+          description: Model catalog
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelCatalogItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /models/complete:
+    post:
+      operationId: createModelCompletion
+      tags: [Models]
+      summary: Create a non-streaming model completion through the gateway
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelCompletionRequest'
+      responses:
+        '200':
+          description: Completion with usage, cost, and allowed tool metadata
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelCompletion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /models/stream:
+    post:
+      operationId: streamModelCompletion
+      tags: [Models]
+      summary: Stream a model completion through Server-Sent Events
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelCompletionRequest'
+      responses:
+        '200':
+          description: Completion chunks followed by final usage metadata
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-cache
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /models/invocations:
+    get:
+      operationId: listModelInvocations
+      tags: [Models]
+      summary: List model invocation ledger entries without prompt or response bodies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XProjectId'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Invocation ledger entries
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelInvocation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /session:
     get:
       operationId: getEnterpriseSession
@@ -601,6 +904,13 @@ components:
       schema:
         type: string
         format: uuid
+    ProviderId:
+      name: provider_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     XProjectId:
       name: X-Project-ID
       in: header
@@ -680,6 +990,12 @@ components:
             $ref: '#/components/schemas/Problem'
     ValidationFailed:
       description: Input failed schema or managed-configuration validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: Provider request or token quota has been exceeded
       content:
         application/json:
           schema:
@@ -827,6 +1143,215 @@ components:
           type: integer
           minimum: 1
           maximum: 100
+    ModelProviderCreate:
+      type: object
+      additionalProperties: false
+      required: [name, kind, model]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        kind: { type: string, enum: [mock, openai_compatible, ollama] }
+        base_url: { type: [string, 'null'], format: uri, maxLength: 2048 }
+        model: { type: string, minLength: 1, maxLength: 128 }
+        api_key:
+          type: [string, 'null']
+          maxLength: 4096
+          writeOnly: true
+          description: Accepted only on write. Never returned by any response.
+        enabled: { type: boolean, default: true }
+        priority: { type: integer, minimum: 0, maximum: 10000, default: 100 }
+        rate_limit_per_minute: { type: integer, minimum: 1, maximum: 10000, default: 60 }
+        token_quota_per_minute: { type: integer, minimum: 128, maximum: 10000000, default: 100000 }
+        timeout_seconds: { type: number, minimum: 1, maximum: 300, default: 30 }
+        input_cost_per_1k: { type: number, minimum: 0, default: 0 }
+        output_cost_per_1k: { type: number, minimum: 0, default: 0 }
+        capabilities:
+          type: array
+          maxItems: 32
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 80 }
+        config:
+          type: object
+          additionalProperties: true
+    ModelProvider:
+      type: object
+      additionalProperties: false
+      required:
+        [id, name, kind, base_url, model, has_api_key, credential_ref, enabled,
+         priority, rate_limit_per_minute, token_quota_per_minute, timeout_seconds,
+         input_cost_per_1k, output_cost_per_1k, capabilities, config, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        kind: { type: string, enum: [mock, openai_compatible, ollama] }
+        base_url: { type: [string, 'null'], format: uri }
+        model: { type: string }
+        has_api_key: { type: boolean }
+        credential_ref:
+          type: [string, 'null']
+          pattern: '^credential://provider/[0-9a-f-]+/api-key$'
+          description: Non-secret reference to configured credential material.
+        enabled: { type: boolean }
+        priority: { type: integer }
+        rate_limit_per_minute: { type: integer }
+        token_quota_per_minute: { type: integer }
+        timeout_seconds: { type: number }
+        input_cost_per_1k: { type: number }
+        output_cost_per_1k: { type: number }
+        capabilities:
+          type: array
+          items: { type: string }
+        config:
+          type: object
+          additionalProperties: true
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ModelProviderHealth:
+      type: object
+      additionalProperties: false
+      required:
+        [provider_id, provider, model, enabled, status, failure_count,
+         circuit_open, circuit_retry_after_ms, recent_request_count]
+      properties:
+        provider_id: { type: string, format: uuid }
+        provider: { type: string }
+        model: { type: string }
+        enabled: { type: boolean }
+        status: { type: string, enum: [ready, disabled, circuit_open] }
+        failure_count: { type: integer, minimum: 0 }
+        circuit_open: { type: boolean }
+        circuit_retry_after_ms: { type: integer, minimum: 0 }
+        recent_request_count: { type: integer, minimum: 0 }
+    ModelCatalogItem:
+      type: object
+      additionalProperties: false
+      required:
+        [provider_id, provider, kind, model, enabled, priority, capabilities,
+         input_cost_per_1k, output_cost_per_1k]
+      properties:
+        provider_id: { type: string, format: uuid }
+        provider: { type: string }
+        kind: { type: string, enum: [mock, openai_compatible, ollama] }
+        model: { type: string }
+        enabled: { type: boolean }
+        priority: { type: integer }
+        capabilities:
+          type: array
+          items: { type: string }
+        input_cost_per_1k: { type: number }
+        output_cost_per_1k: { type: number }
+    ModelChatMessage:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string, minLength: 1, maxLength: 50000 }
+    ModelResponseFormat:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type: { type: string, enum: [text, json_object], default: text }
+    ModelToolDefinition:
+      type: object
+      additionalProperties: false
+      required: [name, description, input_schema]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '^[A-Za-z][A-Za-z0-9_.-]*$'
+        description: { type: string, minLength: 1, maxLength: 500 }
+        input_schema:
+          type: object
+          additionalProperties: true
+          description: JSON Schema object for tool input. Tool names are the invocation allow-list.
+    ModelCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/ModelChatMessage'
+        purpose: { type: string, enum: [planning, summarization, reporting, tool_selection], default: planning }
+        max_tokens: { type: integer, minimum: 16, maximum: 4096, default: 512 }
+        response_format:
+          $ref: '#/components/schemas/ModelResponseFormat'
+        tools:
+          type: array
+          maxItems: 16
+          items:
+            $ref: '#/components/schemas/ModelToolDefinition'
+        stream: { type: boolean, default: false }
+    ModelUsage:
+      type: object
+      additionalProperties: false
+      required: [prompt_tokens, completion_tokens, total_tokens]
+      properties:
+        prompt_tokens: { type: integer, minimum: 0 }
+        completion_tokens: { type: integer, minimum: 0 }
+        total_tokens: { type: integer, minimum: 0 }
+    ModelToolProtocol:
+      type: object
+      additionalProperties: false
+      required: [allowed_tools, tool_calls]
+      properties:
+        allowed_tools:
+          type: array
+          uniqueItems: true
+          items: { type: string }
+        tool_calls:
+          type: array
+          description: Tool calls emitted by a provider, constrained to allowed_tools.
+          items:
+            type: object
+            additionalProperties: true
+    ModelCompletion:
+      type: object
+      additionalProperties: false
+      required:
+        [id, provider, model, purpose, content, response_format, tool_protocol,
+         usage, cost_usd, failover_count, latency_ms]
+      properties:
+        id: { type: string, format: uuid }
+        provider: { type: string }
+        model: { type: string }
+        purpose: { type: string }
+        content: { type: string }
+        response_format: { type: string, enum: [text, json_object] }
+        tool_protocol:
+          $ref: '#/components/schemas/ModelToolProtocol'
+        usage:
+          $ref: '#/components/schemas/ModelUsage'
+        cost_usd: { type: number, minimum: 0 }
+        failover_count: { type: integer, minimum: 0 }
+        latency_ms: { type: integer, minimum: 0 }
+    ModelInvocation:
+      type: object
+      additionalProperties: false
+      required:
+        [id, provider, model, purpose, status, usage, cost_usd, failover_count,
+         structured_output, tool_count, latency_ms, error, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        provider: { type: string }
+        model: { type: string }
+        purpose: { type: string }
+        status: { type: string, enum: [succeeded, failed] }
+        usage:
+          $ref: '#/components/schemas/ModelUsage'
+        cost_usd: { type: number, minimum: 0 }
+        failover_count: { type: integer, minimum: 0 }
+        structured_output: { type: boolean }
+        tool_count: { type: integer, minimum: 0 }
+        latency_ms: { type: integer, minimum: 0 }
+        error: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
     Tenant:
       type: object
       additionalProperties: false

@@ -11,6 +11,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0002_p1_identity_tenancy_rbac",
         "0003_p1_role_scope_enforcement",
         "0004_p1_application_least_privilege",
+        "0005_p2_model_gateway",
     ]
 
 
@@ -23,6 +24,25 @@ def test_p0_migration_contains_no_execution_or_vulnerability_payloads() -> None:
     assert "credential theft" not in sql
     assert "todo" not in sql
     assert MIGRATIONS.is_dir()
+
+
+def test_p2_model_gateway_migration_keeps_secrets_and_payloads_out_of_read_models() -> None:
+    up = MIGRATIONS / "0005_p2_model_gateway.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists model" in sql
+    assert "model.credentials" in sql
+    assert "secret_ciphertext bytea not null" in sql
+    assert "secret_plaintext" not in sql
+    assert "api_key text" not in sql
+    assert "api_key varchar" not in sql
+    assert "prompt_text" not in sql
+    assert "response_text" not in sql
+    assert "request_sha256" in sql
+    assert "response_sha256" in sql
+    assert "alter table %s force row level security" in sql
+    assert "grant select, insert, update on all tables in schema model to vulnlab_app" in sql
+    assert "grant select, insert, update, delete on all tables in schema model" not in sql
 
 
 def test_migration_checker_rejects_tenant_unsafe_foreign_key(tmp_path) -> None:

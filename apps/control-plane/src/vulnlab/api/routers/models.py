@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import StreamingResponse
 
 from ...schemas import ModelRequest, ProviderCreate
 from ...security import Principal
@@ -26,6 +28,14 @@ def list_providers(
     _: Annotated[Principal, Depends(require("provider:read"))],
 ) -> list[dict[str, Any]]:
     return services.providers.list()
+
+
+@router.get("/api/v1/providers/health")
+def provider_health(
+    services: ServicesDep,
+    _: Annotated[Principal, Depends(require("provider:read"))],
+) -> list[dict[str, Any]]:
+    return services.gateway.health()
 
 
 @router.put("/api/v1/providers/{provider_id}/secret")
@@ -54,6 +64,23 @@ def toggle_provider(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.get("/api/v1/models/catalog")
+def model_catalog(
+    services: ServicesDep,
+    _: Annotated[Principal, Depends(require("provider:read"))],
+) -> list[dict[str, Any]]:
+    return services.gateway.catalog()
+
+
+@router.get("/api/v1/models/invocations")
+def model_invocations(
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("provider:read"))],
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    return services.gateway.invocations(current, limit)
+
+
 @router.post("/api/v1/models/complete")
 async def model_complete(
     value: ModelRequest,
@@ -65,4 +92,30 @@ async def model_complete(
         [message.model_dump() for message in value.messages],
         value.purpose,
         value.max_tokens,
+        value.response_format.type,
+        [tool.model_dump() for tool in value.tools],
     )
+
+
+@router.post("/api/v1/models/stream")
+async def model_stream(
+    value: ModelRequest,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("task:create"))],
+) -> StreamingResponse:
+    async def events() -> Any:
+        result = await services.gateway.complete(
+            current,
+            [message.model_dump() for message in value.messages],
+            value.purpose,
+            value.max_tokens,
+            value.response_format.type,
+            [tool.model_dump() for tool in value.tools],
+        )
+        content = str(result.pop("content"))
+        for index, start in enumerate(range(0, len(content), 64), start=1):
+            payload = {"index": index, "delta": content[start : start + 64]}
+            yield f"event: delta\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        yield f"event: done\ndata: {json.dumps(result, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(events(), media_type="text/event-stream")

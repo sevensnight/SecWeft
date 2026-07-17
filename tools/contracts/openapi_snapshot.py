@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and snapshot the checked-in P1 OpenAPI contract.
+"""Validate and snapshot the checked-in P2 OpenAPI contract.
 
 The snapshot is semantic: comments and YAML formatting do not change its digest.
 Runtime comparison is intentionally one-way. Every contract operation must exist in
@@ -32,6 +32,14 @@ CRITICAL_PATHS = frozenset(
         "/tasks/{task_id}",
         "/tasks/{task_id}/events",
         "/tasks/{task_id}/events/stream",
+        "/providers",
+        "/providers/health",
+        "/providers/{provider_id}/secret",
+        "/providers/{provider_id}/enabled",
+        "/models/catalog",
+        "/models/complete",
+        "/models/stream",
+        "/models/invocations",
         "/session",
         "/tenants/current",
         "/organizations",
@@ -55,6 +63,7 @@ P0_COMPATIBILITY_PATHS = frozenset(
     }
 )
 SSE_PATH = "/tasks/{task_id}/events/stream"
+MODEL_SSE_PATH = "/models/stream"
 FORBIDDEN_PATH_FRAGMENTS = ("/run", "/sandbox", "/assets/probe", "/validation", "/exploit")
 
 
@@ -281,6 +290,12 @@ def validate_document(document: dict[str, Any]) -> list[str]:
             ):
                 errors.append("Last-Event-ID must be a non-negative integer")
 
+    model_stream = paths.get(MODEL_SSE_PATH, {}).get("post", {}) if isinstance(paths, dict) else {}
+    if isinstance(model_stream, dict) and _response_media_types(model_stream) != [
+        "text/event-stream"
+    ]:
+        errors.append(f"POST {MODEL_SSE_PATH} must return only text/event-stream for response 200")
+
     schemas = components.get("schemas", {}) if isinstance(components, dict) else {}
     for required_schema in (
         "Problem",
@@ -296,6 +311,15 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         "RoleAssignment",
         "ConfigEntry",
         "AuditEvent",
+        "ModelProvider",
+        "ModelProviderCreate",
+        "ModelProviderHealth",
+        "ModelCatalogItem",
+        "ModelCompletionRequest",
+        "ModelCompletion",
+        "ModelInvocation",
+        "ModelUsage",
+        "ModelToolDefinition",
     ):
         if not isinstance(schemas, dict) or required_schema not in schemas:
             errors.append(f"components.schemas.{required_schema} is required")
@@ -401,7 +425,7 @@ def check(*, runtime: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="OpenAPI P1 semantic snapshot and compatibility checker"
+        description="OpenAPI P2 semantic snapshot and compatibility checker"
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
     check_parser = subcommands.add_parser(

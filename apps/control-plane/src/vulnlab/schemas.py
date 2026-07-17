@@ -55,7 +55,11 @@ class ProviderCreate(APIModel):
     enabled: bool = True
     priority: int = Field(default=100, ge=0, le=10_000)
     rate_limit_per_minute: int = Field(default=60, ge=1, le=10_000)
+    token_quota_per_minute: int = Field(default=100_000, ge=128, le=10_000_000)
     timeout_seconds: float = Field(default=30, ge=1, le=300)
+    input_cost_per_1k: float = Field(default=0.0, ge=0, le=10_000)
+    output_cost_per_1k: float = Field(default=0.0, ge=0, le=10_000)
+    capabilities: list[str] = Field(default_factory=list, max_length=32)
     config: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("base_url")
@@ -70,6 +74,8 @@ class ProviderCreate(APIModel):
     def required_endpoint(self) -> ProviderCreate:
         if self.kind != "mock" and self.base_url is None:
             raise ValueError("base_url is required for non-mock providers")
+        if len(set(self.capabilities)) != len(self.capabilities):
+            raise ValueError("capabilities must be unique")
         return self
 
 
@@ -80,10 +86,15 @@ class ProviderResponse(APIModel):
     base_url: str | None
     model: str
     has_api_key: bool
+    credential_ref: str | None
     enabled: bool
     priority: int
     rate_limit_per_minute: int
+    token_quota_per_minute: int
     timeout_seconds: float
+    input_cost_per_1k: float
+    output_cost_per_1k: float
+    capabilities: list[str]
     config: dict[str, Any]
     created_at: datetime
     updated_at: datetime
@@ -94,10 +105,37 @@ class ChatMessage(APIModel):
     content: str = Field(min_length=1, max_length=50_000)
 
 
+class ModelToolDefinition(APIModel):
+    name: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z][A-Za-z0-9_.-]*$")
+    description: str = Field(min_length=1, max_length=500)
+    input_schema: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def valid_schema_shape(self) -> ModelToolDefinition:
+        schema_type = self.input_schema.get("type", "object")
+        if schema_type != "object":
+            raise ValueError("tool input_schema must be a JSON object schema")
+        return self
+
+
+class ModelResponseFormat(APIModel):
+    type: Literal["text", "json_object"] = "text"
+
+
 class ModelRequest(APIModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=64)
-    purpose: Literal["planning", "summarization", "reporting"] = "planning"
+    purpose: Literal["planning", "summarization", "reporting", "tool_selection"] = "planning"
     max_tokens: int = Field(default=512, ge=16, le=4096)
+    response_format: ModelResponseFormat = Field(default_factory=ModelResponseFormat)
+    tools: list[ModelToolDefinition] = Field(default_factory=list, max_length=16)
+    stream: bool = False
+
+    @model_validator(mode="after")
+    def unique_tools(self) -> ModelRequest:
+        names = [tool.name for tool in self.tools]
+        if len(names) != len(set(names)):
+            raise ValueError("tool names must be unique")
+        return self
 
 
 class ScopeCreate(APIModel):

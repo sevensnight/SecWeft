@@ -26,7 +26,7 @@ def test_checked_in_openapi_matches_reviewed_semantic_snapshot() -> None:
 def test_checked_in_p1_operations_exist_in_runtime() -> None:
     result = check(runtime=True)
     assert result["valid"], result["errors"]
-    assert result["operation_count"] == 19
+    assert result["operation_count"] == 28
 
 
 def test_sse_contract_is_resumable_and_uses_event_stream_media_type() -> None:
@@ -52,6 +52,15 @@ def test_sse_contract_rejects_json_transport_regression() -> None:
     operation["responses"]["200"]["content"] = {"application/json": {"schema": {"type": "object"}}}
 
     assert any("text/event-stream" in error for error in validate_document(document))
+
+
+def test_p2_model_stream_contract_uses_event_stream_media_type() -> None:
+    document = load_document()
+    operation = document["paths"]["/models/stream"]["post"]
+
+    assert operation["operationId"] == "streamModelCompletion"
+    assert set(operation["responses"]["200"]["content"]) == {"text/event-stream"}
+    assert validate_document(document) == []
 
 
 def test_p0_runtime_critical_read_paths_and_request_correlation(settings) -> None:

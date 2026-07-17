@@ -113,17 +113,40 @@ $result.result | ConvertTo-Json -Depth 10
 
 ## 6. 模型网关
 
-默认离线 mock 可直接验证：
+默认离线 mock 可直接验证。响应包含 usage、cost、failover_count 和 tool_protocol；不会回显任何 Provider secret：
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri "$base/models/complete" -Headers $analyst -ContentType "application/json" -Body (@{
   purpose = "reporting"
   max_tokens = 256
+  response_format = @{ type = "json_object" }
+  tools = @(@{
+    name = "scope.check"
+    description = "Check whether a target is inside the approved scope."
+    input_schema = @{ type = "object"; properties = @{ target = @{ type = "string" } } }
+  })
   messages = @(@{ role = "user"; content = "Summarize this authorized regression result." })
 } | ConvertTo-Json -Depth 5)
 ```
 
-注册外部 Provider 仅限管理员；`api_key` 会在写入前加密且不会在响应中返回。轮换也可以通过 `PUT /providers/{id}/secret` 的 `X-Provider-API-Key` 请求头完成。
+查看 provider health、模型目录和调用账本：
+
+```powershell
+Invoke-RestMethod -Uri "$base/providers/health" -Headers $admin
+Invoke-RestMethod -Uri "$base/models/catalog" -Headers $admin
+Invoke-RestMethod -Uri "$base/models/invocations?limit=20" -Headers $admin
+```
+
+SSE 流式输出：
+
+```powershell
+Invoke-WebRequest -Method Post -Uri "$base/models/stream" -Headers $analyst -ContentType "application/json" -Body (@{
+  stream = $true
+  messages = @(@{ role = "user"; content = "Stream a short authorized summary." })
+} | ConvertTo-Json -Depth 5)
+```
+
+注册外部 Provider 仅限管理员；`api_key` 会在写入前加密且不会在响应中返回。轮换也可以通过 `PUT /providers/{id}/secret` 的 `X-Provider-API-Key` 请求头完成。调用账本只保存 hash、usage、cost、状态和延迟，不保存 prompt/response 正文。
 
 ## 7. RAG 与 checkpoint
 

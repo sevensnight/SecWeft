@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "5b8012e75ac8ab62439edc51deb6ed3ddcb51c622fff5d6c2cbe54f6b0480076",
+  "document_sha256": "8386ae3c38e25167d5d716733232f5e44a2c95b2aaf311c4084340b5839b38d1",
   "openapi": "3.1.0",
-  "info_version": "1.1.0-p1",
+  "info_version": "1.2.0-p2",
   "operations": [
     {
       "method": "GET",
@@ -211,6 +211,107 @@
     },
     {
       "method": "GET",
+      "path": "/models/catalog",
+      "operation_id": "listModelCatalog",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/models/complete",
+      "operation_id": "createModelCompletion",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "409",
+        "422",
+        "429"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/models/invocations",
+      "operation_id": "listModelInvocations",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/models/stream",
+      "operation_id": "streamModelCompletion",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "409",
+        "422",
+        "429"
+      ],
+      "success_media_types": [
+        "text/event-stream"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/organizations",
       "operation_id": "listOrganizations",
       "parameters": [
@@ -304,6 +405,142 @@
         "403",
         "409",
         "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/providers",
+      "operation_id": "listModelProviders",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/providers",
+      "operation_id": "createModelProvider",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/providers/health",
+      "operation_id": "listModelProviderHealth",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/providers/{provider_id}/enabled",
+      "operation_id": "setModelProviderEnabled",
+      "parameters": [
+        {
+          "name": "enabled",
+          "in": "query",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/ProviderId"
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/providers/{provider_id}/secret",
+      "operation_id": "rotateModelProviderSecret",
+      "parameters": [
+        {
+          "name": "X-Provider-API-Key",
+          "in": "header",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/ProviderId"
+        },
+        {
+          "ref": "#/components/parameters/XProjectId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409"
       ],
       "success_media_types": [
         "application/json"
@@ -462,6 +699,18 @@
     "ConfigEntry",
     "ConfigEntryUpdate",
     "EffectiveConfig",
+    "ModelCatalogItem",
+    "ModelChatMessage",
+    "ModelCompletion",
+    "ModelCompletionRequest",
+    "ModelInvocation",
+    "ModelProvider",
+    "ModelProviderCreate",
+    "ModelProviderHealth",
+    "ModelResponseFormat",
+    "ModelToolDefinition",
+    "ModelToolProtocol",
+    "ModelUsage",
     "Organization",
     "OrganizationCreate",
     "OrganizationPage",

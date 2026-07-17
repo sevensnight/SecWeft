@@ -86,6 +86,8 @@
 
 出口：Mock 加一个真实兼容 Provider 的契约测试通过；secret 永不回显；跨租户配额生效。
 
+当前状态：Implemented。已完成 mock/openai-compatible/ollama 适配边界、SSE stream、结构化输出校验、工具 allow-list、request/token quota、retry/circuit/failover、usage/cost、provider health、CredentialRef 和 `model` schema/RLS。真实外部 Provider 与跨租户 live quota 需要 Docker/测试 Provider 恢复后复验。
+
 ## 5. P3：任务与 Agent 编排
 
 交付：持久 Task/Stage/Execution 状态机、队列、租约/fencing、幂等/DLQ、Agent/Skill/Workflow 版本、暂停恢复、取消重试、SSE。

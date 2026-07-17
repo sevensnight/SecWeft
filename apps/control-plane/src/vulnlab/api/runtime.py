@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from psycopg import Error as PsycopgError
 
 from ..enterprise.errors import EnterpriseError
-from ..model_gateway import ModelGatewayError, ProviderConfigurationError
+from ..model_gateway import ModelGatewayError, ProviderConfigurationError, RateLimitError
 from ..observability import request_logger
 from ..orchestrator import TaskStateError
 from ..sandbox import SandboxPolicyError, SandboxRuntimeError
@@ -182,6 +182,10 @@ def install_runtime(app: FastAPI, services: Services) -> None:
         return problem(
             request, status_code=503, detail=str(exc), code="sandbox_runtime_unavailable"
         )
+
+    @app.exception_handler(RateLimitError)
+    async def model_rate_limit_error(request: Request, exc: RateLimitError) -> JSONResponse:
+        return problem(request, status_code=429, detail=str(exc), code="model_rate_limited")
 
     @app.exception_handler(ModelGatewayError)
     async def gateway_error(request: Request, exc: ModelGatewayError) -> JSONResponse:

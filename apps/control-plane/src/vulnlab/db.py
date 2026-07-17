@@ -29,10 +29,35 @@ CREATE TABLE IF NOT EXISTS providers (
     enabled INTEGER NOT NULL DEFAULT 1,
     priority INTEGER NOT NULL DEFAULT 100,
     rate_limit_per_minute INTEGER NOT NULL DEFAULT 60,
+    token_quota_per_minute INTEGER NOT NULL DEFAULT 100000,
     timeout_seconds REAL NOT NULL DEFAULT 30,
+    input_cost_per_1k REAL NOT NULL DEFAULT 0,
+    output_cost_per_1k REAL NOT NULL DEFAULT 0,
+    capabilities_json TEXT NOT NULL DEFAULT '[]',
     config_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS model_invocations (
+    id TEXT PRIMARY KEY,
+    actor_id TEXT NOT NULL REFERENCES users(id),
+    provider_id TEXT,
+    provider_name TEXT NOT NULL,
+    model TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    request_hash TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('succeeded','failed')),
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_usd REAL NOT NULL DEFAULT 0,
+    failover_count INTEGER NOT NULL DEFAULT 0,
+    structured_output INTEGER NOT NULL DEFAULT 0,
+    tool_count INTEGER NOT NULL DEFAULT 0,
+    latency_ms INTEGER NOT NULL DEFAULT 0,
+    error TEXT,
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS scopes (
@@ -181,6 +206,10 @@ CREATE INDEX IF NOT EXISTS idx_task_events_task ON task_events(task_id);
 CREATE INDEX IF NOT EXISTS idx_memory_task ON memory_messages(task_id);
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_rag_classification ON rag_documents(classification);
+CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
+    ON model_invocations(actor_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
+    ON model_invocations(provider_id, created_at);
 """
 
 
@@ -259,6 +288,17 @@ class Database:
                     "ALTER TABLE target_profiles ADD COLUMN proxy_scope_id TEXT REFERENCES scopes(id)"
                 )
 
+            provider_columns = self._columns(connection, "providers")
+            provider_additions = {
+                "token_quota_per_minute": "INTEGER NOT NULL DEFAULT 100000",
+                "input_cost_per_1k": "REAL NOT NULL DEFAULT 0",
+                "output_cost_per_1k": "REAL NOT NULL DEFAULT 0",
+                "capabilities_json": "TEXT NOT NULL DEFAULT '[]'",
+            }
+            for name, definition in provider_additions.items():
+                if name not in provider_columns:
+                    connection.execute(f"ALTER TABLE providers ADD COLUMN {name} {definition}")
+
             # Only backfill records that truly came from a legacy schema. Recomputing every
             # hash on startup would silently bless an offline modification to an approved scope.
             scope_rows = connection.execute("SELECT * FROM scopes").fetchall()
@@ -300,7 +340,7 @@ class Database:
                         "INSERT INTO audit_head(id,entry_count,last_hash,updated_at) VALUES(1,?,?,?)",
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
-            connection.execute("PRAGMA user_version=2")
+            connection.execute("PRAGMA user_version=3")
             connection.commit()
         except Exception:
             connection.rollback()

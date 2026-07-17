@@ -10,9 +10,9 @@
 
 | 编号 | 能力 | 目标责任服务 | 首次实现阶段 | 旧原型状态 | 目标状态（P0） | 必需验收证据 |
 |---|---|---|---|---|---|---|
-| 2.1 | 统一模型接入、流式输出、路由、限流、熔断、成本 | model-gateway | P2 | Legacy Verified（窄范围） | Planned | Provider 契约测试、故障切换、流式、限流和成本测试 |
-| 2.2 | API Key/凭据加密、隔离、轮换、吊销、Vault/KMS 接口 | model-gateway + secret manager | P2 | Legacy Verified（Fernet 单实例） | Planned | write-only API、轮换、撤销、跨租户和明文泄漏负向测试 |
-| 2.3 | 开源模型注册、版本、端点、算力、健康、路由权重 | model-gateway | P2 | Legacy Implemented（有限适配） | Planned | 注册/健康/启停/权重和资源元数据集成测试 |
+| 2.1 | 统一模型接入、流式输出、路由、限流、熔断、成本 | model-gateway | P2 | Legacy Verified（窄范围） | Implemented（P2 mock/openai-compatible/ollama adapter、SSE、限流、熔断、failover、usage/cost；真实外部 Provider 需显式测试端点复验） | Provider 契约测试、故障切换、流式、限流和成本测试 |
+| 2.2 | API Key/凭据加密、隔离、轮换、吊销、Vault/KMS 接口 | model-gateway + secret manager | P2 | Legacy Verified（Fernet 单实例） | Implemented（P2 write-only secret、CredentialRef、密文字段、最小权限；外部 Vault/KMS 适配待生产部署阶段） | write-only API、轮换、撤销、跨租户和明文泄漏负向测试 |
+| 2.3 | 开源模型注册、版本、端点、算力、健康、路由权重 | model-gateway | P2 | Legacy Implemented（有限适配） | Implemented（P2 Provider/Instance schema、能力标签、health、priority routing；GPU/NPU 运行资源联动待 P8） | 注册/健康/启停/权重和资源元数据集成测试 |
 | 2.4 | 主任务规划、持久状态、暂停恢复、取消重试、补偿 | control-plane | P3 | Legacy Verified（单进程） | Planned | PostgreSQL 状态机、多副本竞态、重启恢复和幂等测试 |
 | 2.5 | 多 Agent 编排、职责、Schema、工具、预算和审计 | agent-orchestrator | P3 | Legacy Implemented | Planned | Agent/Skill/Workflow 契约、预算、超时、循环上限测试 |
 | 2.6 | Skill 注册、版本、灰度、权限、统计和失败分析 | agent-orchestrator | P3 | Legacy Verified（基础注册） | Planned | 版本兼容、启停、灰度、权限、统计测试 |
