@@ -285,7 +285,9 @@ CREATE TABLE IF NOT EXISTS memory_messages (
     owner_id TEXT NOT NULL REFERENCES users(id),
     role TEXT NOT NULL,
     content TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
     visibility TEXT NOT NULL CHECK(visibility IN ('private','task')),
+    sequence_no INTEGER NOT NULL DEFAULT 0,
     token_estimate INTEGER NOT NULL,
     created_at TEXT NOT NULL
 );
@@ -295,23 +297,57 @@ CREATE TABLE IF NOT EXISTS checkpoints (
     task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     summary TEXT NOT NULL,
     state_json TEXT NOT NULL,
+    summary_hash TEXT NOT NULL,
+    state_hash TEXT NOT NULL,
     message_count INTEGER NOT NULL,
+    evidence_count INTEGER NOT NULL DEFAULT 0,
+    restore_policy_hash TEXT NOT NULL DEFAULT '',
     created_by TEXT NOT NULL REFERENCES users(id),
     created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS rag_documents (
     id TEXT PRIMARY KEY,
+    tenant_key TEXT NOT NULL DEFAULT 'compat',
+    project_key TEXT,
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     source TEXT NOT NULL,
     classification TEXT NOT NULL CHECK(classification IN ('public','internal','restricted')),
     version TEXT NOT NULL,
     tags_json TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     content_hash TEXT NOT NULL,
     created_by TEXT NOT NULL REFERENCES users(id),
     created_at TEXT NOT NULL,
-    UNIQUE(source, version, content_hash)
+    UNIQUE(tenant_key, project_key, source, version, content_hash)
+);
+
+CREATE TABLE IF NOT EXISTS rag_chunks (
+    id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL REFERENCES rag_documents(id) ON DELETE CASCADE,
+    chunk_index INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    token_estimate INTEGER NOT NULL,
+    chunk_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(document_id, chunk_index),
+    UNIQUE(document_id, chunk_hash)
+);
+
+CREATE TABLE IF NOT EXISTS evidence_items (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    source_type TEXT NOT NULL CHECK(source_type IN ('manual','rag_chunk','checkpoint','task_output')),
+    source_ref TEXT NOT NULL,
+    content TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    classification TEXT NOT NULL CHECK(classification IN ('public','internal','restricted')),
+    trust TEXT NOT NULL CHECK(trust IN ('untrusted_evidence_only','operator_attested','system_observed')),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sandbox_runs (
@@ -358,8 +394,11 @@ CREATE INDEX IF NOT EXISTS idx_task_dead_letters_task ON task_dead_letters(task_
 CREATE INDEX IF NOT EXISTS idx_agents_name ON agents(name, version);
 CREATE INDEX IF NOT EXISTS idx_workflows_name ON workflows(name, version);
 CREATE INDEX IF NOT EXISTS idx_memory_task ON memory_messages(task_id);
+CREATE INDEX IF NOT EXISTS idx_memory_task_sequence ON memory_messages(task_id, sequence_no);
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_rag_classification ON rag_documents(classification);
+CREATE INDEX IF NOT EXISTS idx_rag_chunks_document ON rag_chunks(document_id, chunk_index);
+CREATE INDEX IF NOT EXISTS idx_evidence_task ON evidence_items(task_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
@@ -489,6 +528,98 @@ class Database:
                 if name not in provider_columns:
                     connection.execute(f"ALTER TABLE providers ADD COLUMN {name} {definition}")
 
+            memory_columns = self._columns(connection, "memory_messages")
+            memory_additions = {
+                "content_hash": "TEXT NOT NULL DEFAULT ''",
+                "sequence_no": "INTEGER NOT NULL DEFAULT 0",
+            }
+            for name, definition in memory_additions.items():
+                if name not in memory_columns:
+                    connection.execute(
+                        f"ALTER TABLE memory_messages ADD COLUMN {name} {definition}"
+                    )
+            memory_rows = connection.execute(
+                "SELECT id, task_id, content FROM memory_messages ORDER BY task_id, created_at, id"
+            ).fetchall()
+            sequence_by_task: dict[str, int] = {}
+            for row in memory_rows:
+                task_id = str(row["task_id"])
+                sequence_by_task[task_id] = sequence_by_task.get(task_id, 0) + 1
+                content_hash = hashlib.sha256(str(row["content"]).encode()).hexdigest()
+                connection.execute(
+                    "UPDATE memory_messages SET content_hash=?, sequence_no=? WHERE id=?",
+                    (content_hash, sequence_by_task[task_id], row["id"]),
+                )
+
+            checkpoint_columns = self._columns(connection, "checkpoints")
+            checkpoint_additions = {
+                "summary_hash": "TEXT NOT NULL DEFAULT ''",
+                "state_hash": "TEXT NOT NULL DEFAULT ''",
+                "evidence_count": "INTEGER NOT NULL DEFAULT 0",
+                "restore_policy_hash": "TEXT NOT NULL DEFAULT ''",
+            }
+            for name, definition in checkpoint_additions.items():
+                if name not in checkpoint_columns:
+                    connection.execute(f"ALTER TABLE checkpoints ADD COLUMN {name} {definition}")
+            checkpoint_rows = connection.execute(
+                "SELECT id, summary, state_json FROM checkpoints"
+            ).fetchall()
+            for row in checkpoint_rows:
+                summary_hash = hashlib.sha256(str(row["summary"]).encode()).hexdigest()
+                state_hash = hashlib.sha256(str(row["state_json"]).encode()).hexdigest()
+                restore_policy_hash = hashlib.sha256(
+                    b"restored-context-never-restores-authority:v1"
+                ).hexdigest()
+                connection.execute(
+                    """UPDATE checkpoints
+                       SET summary_hash=?, state_hash=?, restore_policy_hash=?
+                       WHERE id=?""",
+                    (summary_hash, state_hash, restore_policy_hash, row["id"]),
+                )
+
+            rag_columns = self._columns(connection, "rag_documents")
+            rag_additions = {
+                "tenant_key": "TEXT NOT NULL DEFAULT 'compat'",
+                "project_key": "TEXT",
+                "metadata_json": "TEXT NOT NULL DEFAULT '{}'",
+            }
+            for name, definition in rag_additions.items():
+                if name not in rag_columns:
+                    connection.execute(f"ALTER TABLE rag_documents ADD COLUMN {name} {definition}")
+            rag_rows = connection.execute(
+                "SELECT id, content, created_at FROM rag_documents ORDER BY created_at, id"
+            ).fetchall()
+            for row in rag_rows:
+                existing_chunk = connection.execute(
+                    "SELECT id FROM rag_chunks WHERE document_id=? LIMIT 1", (row["id"],)
+                ).fetchone()
+                if existing_chunk is not None:
+                    continue
+                content = str(row["content"])
+                connection.execute(
+                    """INSERT INTO rag_chunks(
+                       id, document_id, chunk_index, content, token_estimate, chunk_hash, created_at
+                       ) VALUES(?,?,?,?,?,?,?)""",
+                    (
+                        hashlib.sha256(f"{row['id']}:0".encode()).hexdigest(),
+                        row["id"],
+                        0,
+                        content,
+                        max(1, len(content) // 4),
+                        hashlib.sha256(content.encode()).hexdigest(),
+                        row["created_at"],
+                    ),
+                )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_memory_task_sequence ON memory_messages(task_id, sequence_no)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_rag_chunks_document ON rag_chunks(document_id, chunk_index)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_evidence_task ON evidence_items(task_id, created_at DESC)"
+            )
+
             # Only backfill records that truly came from a legacy schema. Recomputing every
             # hash on startup would silently bless an offline modification to an approved scope.
             scope_rows = connection.execute("SELECT * FROM scopes").fetchall()
@@ -531,7 +662,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=4")
+            connection.execute("PRAGMA user_version=5")
             connection.commit()
         except Exception:
             connection.rollback()

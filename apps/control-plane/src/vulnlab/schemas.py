@@ -467,7 +467,11 @@ class CheckpointResponse(APIModel):
     task_id: str
     summary: str
     state: dict[str, Any]
+    summary_hash: str
+    state_hash: str
     message_count: int
+    evidence_count: int = 0
+    restore_policy_hash: str
     created_at: datetime
 
 
@@ -478,11 +482,31 @@ class RAGDocumentCreate(APIModel):
     classification: Literal["public", "internal", "restricted"] = "internal"
     version: str = Field(default="1", min_length=1, max_length=50)
     tags: list[str] = Field(default_factory=list, max_length=64)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RAGSearchRequest(APIModel):
     query: str = Field(min_length=2, max_length=1000)
     top_k: int = Field(default=5, ge=1, le=20)
+    classifications: list[Literal["public", "internal", "restricted"]] | None = None
+
+
+class EvidenceCreate(APIModel):
+    title: str = Field(min_length=1, max_length=200)
+    source_type: Literal["manual", "rag_chunk", "checkpoint", "task_output"] = "manual"
+    source_ref: str = Field(default="manual://operator-note", min_length=1, max_length=500)
+    content: str = Field(min_length=1, max_length=100_000)
+    classification: Literal["public", "internal", "restricted"] = "internal"
+    trust: Literal["untrusted_evidence_only", "operator_attested", "system_observed"] = (
+        "untrusted_evidence_only"
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgePackRequest(APIModel):
+    query: str = Field(min_length=2, max_length=1000)
+    top_k: int = Field(default=5, ge=1, le=20)
+    include_private_context: bool = False
     classifications: list[Literal["public", "internal", "restricted"]] | None = None
 
 

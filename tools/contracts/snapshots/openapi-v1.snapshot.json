@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "3af0786b2650df5b9458d917831e9e66264e6eee7b2924210899b637458c30da",
+  "document_sha256": "038102d10c13091c1b33098ef7d2903f4724d604ac2e1535461c12e19949f1d3",
   "openapi": "3.1.0",
-  "info_version": "1.3.0-p3",
+  "info_version": "1.4.0-p4",
   "operations": [
     {
       "method": "GET",
@@ -606,6 +606,75 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/rag/documents",
+      "operation_id": "ingestRagDocument",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/rag/documents/{document_id}/chunks",
+      "operation_id": "listRagDocumentChunks",
+      "parameters": [
+        {
+          "name": "document_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/rag/search",
+      "operation_id": "searchRagDocuments",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
       "method": "GET",
       "path": "/session",
       "operation_id": "getEnterpriseSession",
@@ -807,6 +876,158 @@
     },
     {
       "method": "GET",
+      "path": "/tasks/{task_id}/checkpoints",
+      "operation_id": "listTaskCheckpoints",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/checkpoints",
+      "operation_id": "createTaskCheckpoint",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/{task_id}/checkpoints/latest",
+      "operation_id": "getLatestTaskCheckpoint",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/{task_id}/context",
+      "operation_id": "listTaskContext",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/context",
+      "operation_id": "addTaskContext",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/context/restore",
+      "operation_id": "restoreTaskContext",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/tasks/{task_id}/events",
       "operation_id": "listTaskEvents",
       "parameters": [
@@ -854,6 +1075,59 @@
     },
     {
       "method": "GET",
+      "path": "/tasks/{task_id}/evidence",
+      "operation_id": "listTaskEvidence",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/evidence",
+      "operation_id": "addTaskEvidence",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/tasks/{task_id}/executions",
       "operation_id": "listTaskExecutions",
       "parameters": [
@@ -895,6 +1169,32 @@
         "403",
         "404",
         "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/{task_id}/knowledge-pack",
+      "operation_id": "buildTaskKnowledgePack",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/TaskId"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
       ],
       "success_media_types": [
         "application/json"
@@ -1065,9 +1365,17 @@
     "AgentDefinitionCreate",
     "AuditEvent",
     "AuditEventPage",
+    "Checkpoint",
     "ConfigEntry",
     "ConfigEntryUpdate",
+    "ContextMessage",
+    "ContextMessageCreate",
+    "ContextRestore",
     "EffectiveConfig",
+    "EvidenceCreate",
+    "EvidenceItem",
+    "KnowledgePack",
+    "KnowledgePackRequest",
     "ModelCatalogItem",
     "ModelChatMessage",
     "ModelCompletion",
@@ -1088,6 +1396,13 @@
     "Project",
     "ProjectCreate",
     "ProjectPage",
+    "RAGChunk",
+    "RAGCitation",
+    "RAGDocument",
+    "RAGDocumentCreate",
+    "RAGSearchRequest",
+    "RAGSearchResponse",
+    "RAGSearchResult",
     "Role",
     "RoleAssignment",
     "RoleAssignmentCreate",

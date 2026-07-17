@@ -9,6 +9,7 @@ from ..config import Settings
 from ..context import ContextService
 from ..db import Database
 from ..enterprise import EnterpriseServices, build_enterprise_services
+from ..evidence import EvidenceService
 from ..model_gateway import ModelGateway, ProviderStore
 from ..orchestrator import Orchestrator
 from ..rag import RAGService
@@ -31,6 +32,7 @@ class Services:
     agents: AgentRegistry
     context: ContextService
     rag: RAGService
+    evidence: EvidenceService
     sandbox: SandboxService
     orchestrator: Orchestrator
     enterprise: EnterpriseServices | None = None
@@ -62,6 +64,7 @@ def build_services(settings: Settings) -> Services:
     agents.ensure_builtins()
     context = ContextService(db, audit)
     rag = RAGService(db, audit)
+    evidence = EvidenceService(db, audit)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
     enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
@@ -77,6 +80,7 @@ def build_services(settings: Settings) -> Services:
         agents=agents,
         context=context,
         rag=rag,
+        evidence=evidence,
         sandbox=sandbox,
         orchestrator=orchestrator,
         enterprise=enterprise,

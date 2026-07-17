@@ -1,11 +1,12 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.3.0-p3
+  version: 1.4.0-p4
   description: >-
-    P3 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
+    P4 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
     layered configuration, append-only audit, the model gateway, and durable
-    task/Agent orchestration with resumable Server-Sent Events.
+    task/Agent orchestration with resumable Server-Sent Events plus tenant-safe
+    context, checkpoint, evidence, and retrieval-augmented knowledge services.
 servers:
   - url: /api/v1
 tags:
@@ -13,6 +14,7 @@ tags:
   - name: Tasks
   - name: Agents
   - name: Skills
+  - name: Knowledge
   - name: Identity
   - name: Models
   - name: Tenancy
@@ -374,6 +376,358 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /tasks/{task_id}/context:
+    get:
+      operationId: listTaskContext
+      tags: [Knowledge]
+      summary: List bounded task context messages visible to the principal
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 200
+      responses:
+        '200':
+          description: Context messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContextMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: addTaskContext
+      tags: [Knowledge]
+      summary: Append a scrubbed task context message
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContextMessageCreate'
+      responses:
+        '201':
+          description: Context message appended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /tasks/{task_id}/checkpoints:
+    get:
+      operationId: listTaskCheckpoints
+      tags: [Knowledge]
+      summary: List immutable task context checkpoints
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Checkpoint collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Checkpoint'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createTaskCheckpoint
+      tags: [Knowledge]
+      summary: Persist a hashed checkpoint of context, task envelope, and evidence refs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '201':
+          description: Checkpoint created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Checkpoint'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{task_id}/checkpoints/latest:
+    get:
+      operationId: getLatestTaskCheckpoint
+      tags: [Knowledge]
+      summary: Return the latest task checkpoint if one exists
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Latest checkpoint or null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Checkpoint'
+                  - type: 'null'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{task_id}/context/restore:
+    post:
+      operationId: restoreTaskContext
+      tags: [Knowledge]
+      summary: Restore a checkpoint summary without restoring execution authority
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Restored checkpoint summary and current security envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextRestore'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{task_id}/evidence:
+    get:
+      operationId: listTaskEvidence
+      tags: [Knowledge]
+      summary: List classified task evidence visible to the principal
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/TaskId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        '200':
+          description: Evidence collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvidenceItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: addTaskEvidence
+      tags: [Knowledge]
+      summary: Add non-executable, classified task evidence
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceCreate'
+      responses:
+        '201':
+          description: Evidence item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /tasks/{task_id}/knowledge-pack:
+    post:
+      operationId: buildTaskKnowledgePack
+      tags: [Knowledge]
+      summary: Assemble read-only task context, evidence, checkpoint, and RAG citations
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgePackRequest'
+      responses:
+        '200':
+          description: Bounded read-only knowledge pack
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePack'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /rag/documents:
+    post:
+      operationId: ingestRagDocument
+      tags: [Knowledge]
+      summary: Ingest a scrubbed classified document and deterministic chunks
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RAGDocumentCreate'
+      responses:
+        '201':
+          description: RAG document created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RAGDocument'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /rag/search:
+    post:
+      operationId: searchRagDocuments
+      tags: [Knowledge]
+      summary: Search RAG chunks after ACL pre-filtering by classification
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RAGSearchRequest'
+      responses:
+        '200':
+          description: RAG search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RAGSearchResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /rag/documents/{document_id}/chunks:
+    get:
+      operationId: listRagDocumentChunks
+      tags: [Knowledge]
+      summary: List document chunks subject to classification ACL
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: RAG document chunks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RAGChunk'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /agents:
     get:
       operationId: listAgents
@@ -1679,6 +2033,275 @@ components:
         payload:
           type: object
           additionalProperties: true
+        created_at: { type: string, format: date-time }
+    ContextMessageCreate:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [system, user, assistant, tool] }
+        content: { type: string, minLength: 1, maxLength: 20000 }
+        visibility: { type: string, enum: [private, task], default: task }
+    ContextMessage:
+      type: object
+      additionalProperties: false
+      required:
+        [id, task_id, owner_id, role, content, content_hash, visibility,
+         sequence_no, token_estimate, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        owner_id: { type: string, format: uuid }
+        role: { type: string, enum: [system, user, assistant, tool] }
+        content: { type: string }
+        content_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        visibility: { type: string, enum: [private, task] }
+        sequence_no: { type: integer, minimum: 0 }
+        token_estimate: { type: integer, minimum: 1 }
+        created_at: { type: string, format: date-time }
+    Checkpoint:
+      type: object
+      additionalProperties: false
+      required:
+        [id, task_id, summary, state, summary_hash, state_hash, message_count,
+         evidence_count, restore_policy_hash, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        summary: { type: string }
+        state:
+          type: object
+          additionalProperties: true
+        summary_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        state_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        message_count: { type: integer, minimum: 0 }
+        evidence_count: { type: integer, minimum: 0 }
+        restore_policy_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        created_at: { type: string, format: date-time }
+    ContextRestore:
+      type: object
+      additionalProperties: false
+      required:
+        [checkpoint_id, summary, summary_hash, state_hash, restore_policy_hash,
+         current_security_envelope, scope_error]
+      properties:
+        checkpoint_id: { type: string, format: uuid }
+        summary: { type: string }
+        summary_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        state_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        restore_policy_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        current_security_envelope:
+          type: object
+          additionalProperties: true
+        scope_error: { type: [string, 'null'] }
+    EvidenceCreate:
+      type: object
+      additionalProperties: false
+      required: [title, content]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        source_type:
+          type: string
+          enum: [manual, rag_chunk, checkpoint, task_output]
+          default: manual
+        source_ref:
+          type: string
+          minLength: 1
+          maxLength: 500
+          default: manual://operator-note
+        content: { type: string, minLength: 1, maxLength: 100000 }
+        classification:
+          type: string
+          enum: [public, internal, restricted]
+          default: internal
+        trust:
+          type: string
+          enum: [untrusted_evidence_only, operator_attested, system_observed]
+          default: untrusted_evidence_only
+        metadata:
+          type: object
+          additionalProperties: true
+    EvidenceItem:
+      type: object
+      additionalProperties: false
+      required:
+        [id, task_id, title, source_type, source_ref, content, content_hash,
+         classification, trust, metadata, created_by, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        title: { type: string }
+        source_type: { type: string, enum: [manual, rag_chunk, checkpoint, task_output] }
+        source_ref: { type: string }
+        content: { type: string }
+        content_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        classification: { type: string, enum: [public, internal, restricted] }
+        trust:
+          type: string
+          enum: [untrusted_evidence_only, operator_attested, system_observed]
+        metadata:
+          type: object
+          additionalProperties: true
+        created_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+    KnowledgePackRequest:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties:
+        query: { type: string, minLength: 2, maxLength: 1000 }
+        top_k: { type: integer, minimum: 1, maximum: 20, default: 5 }
+        include_private_context: { type: boolean, default: false }
+        classifications:
+          type: [array, 'null']
+          items: { type: string, enum: [public, internal, restricted] }
+    KnowledgePack:
+      type: object
+      additionalProperties: false
+      required:
+        [task_id, query, security_envelope, messages, latest_checkpoint,
+         evidence, rag_results]
+      properties:
+        task_id: { type: string, format: uuid }
+        query: { type: string }
+        security_envelope:
+          type: object
+          additionalProperties: true
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContextMessage'
+        latest_checkpoint:
+          oneOf:
+            - $ref: '#/components/schemas/Checkpoint'
+            - type: 'null'
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceItem'
+        rag_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RAGSearchResult'
+    RAGDocumentCreate:
+      type: object
+      additionalProperties: false
+      required: [title, content, source]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        content: { type: string, minLength: 1, maxLength: 500000 }
+        source: { type: string, minLength: 1, maxLength: 500 }
+        classification:
+          type: string
+          enum: [public, internal, restricted]
+          default: internal
+        version: { type: string, minLength: 1, maxLength: 50, default: '1' }
+        tags:
+          type: array
+          maxItems: 64
+          items: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true
+    RAGDocument:
+      type: object
+      additionalProperties: false
+      required:
+        [id, title, source, classification, version, tags, metadata,
+         content_hash, chunk_count, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        source: { type: string }
+        classification: { type: string, enum: [public, internal, restricted] }
+        version: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true
+        content_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        chunk_count: { type: integer, minimum: 1 }
+        created_at: { type: string, format: date-time }
+    RAGSearchRequest:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties:
+        query: { type: string, minLength: 2, maxLength: 1000 }
+        top_k: { type: integer, minimum: 1, maximum: 20, default: 5 }
+        classifications:
+          type: [array, 'null']
+          items: { type: string, enum: [public, internal, restricted] }
+    RAGCitation:
+      type: object
+      additionalProperties: false
+      required: [document_id, chunk_id, source, version, content_hash, chunk_hash]
+      properties:
+        document_id: { type: string, format: uuid }
+        chunk_id: { type: string, format: uuid }
+        source: { type: string }
+        version: { type: string }
+        content_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        chunk_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+    RAGSearchResult:
+      type: object
+      additionalProperties: false
+      required:
+        [id, document_id, chunk_id, chunk_index, title, excerpt, source,
+         version, classification, tags, metadata, content_hash, chunk_hash,
+         score, trust, citation]
+      properties:
+        id: { type: string, format: uuid }
+        document_id: { type: string, format: uuid }
+        chunk_id: { type: string, format: uuid }
+        chunk_index: { type: integer, minimum: 0 }
+        title: { type: string }
+        excerpt: { type: string }
+        source: { type: string }
+        version: { type: string }
+        classification: { type: string, enum: [public, internal, restricted] }
+        tags:
+          type: array
+          items: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true
+        content_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        chunk_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        score: { type: number, minimum: 0 }
+        trust: { type: string, enum: [untrusted_evidence_only] }
+        citation:
+          $ref: '#/components/schemas/RAGCitation'
+    RAGSearchResponse:
+      type: object
+      additionalProperties: false
+      required: [query, results]
+      properties:
+        query: { type: string }
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RAGSearchResult'
+    RAGChunk:
+      type: object
+      additionalProperties: false
+      required:
+        [document_id, chunk_id, chunk_index, title, source, version,
+         classification, content_hash, content, token_estimate, chunk_hash, created_at]
+      properties:
+        document_id: { type: string, format: uuid }
+        chunk_id: { type: string, format: uuid }
+        chunk_index: { type: integer, minimum: 0 }
+        title: { type: string }
+        source: { type: string }
+        version: { type: string }
+        classification: { type: string, enum: [public, internal, restricted] }
+        content_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        content: { type: string }
+        token_estimate: { type: integer, minimum: 1 }
+        chunk_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
         created_at: { type: string, format: date-time }
     AgentDefinitionCreate:
       type: object

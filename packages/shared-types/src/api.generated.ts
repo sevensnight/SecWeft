@@ -196,6 +196,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks/{task_id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List bounded task context messages visible to the principal */
+        get: operations["listTaskContext"];
+        put?: never;
+        /** Append a scrubbed task context message */
+        post: operations["addTaskContext"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/checkpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List immutable task context checkpoints */
+        get: operations["listTaskCheckpoints"];
+        put?: never;
+        /** Persist a hashed checkpoint of context, task envelope, and evidence refs */
+        post: operations["createTaskCheckpoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/checkpoints/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Return the latest task checkpoint if one exists */
+        get: operations["getLatestTaskCheckpoint"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/context/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a checkpoint summary without restoring execution authority */
+        post: operations["restoreTaskContext"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List classified task evidence visible to the principal */
+        get: operations["listTaskEvidence"];
+        put?: never;
+        /** Add non-executable, classified task evidence */
+        post: operations["addTaskEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{task_id}/knowledge-pack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assemble read-only task context, evidence, checkpoint, and RAG citations */
+        post: operations["buildTaskKnowledgePack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rag/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingest a scrubbed classified document and deterministic chunks */
+        post: operations["ingestRagDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rag/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search RAG chunks after ACL pre-filtering by classification */
+        post: operations["searchRagDocuments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rag/documents/{document_id}/chunks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List document chunks subject to classification ACL */
+        get: operations["listRagDocumentChunks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agents": {
         parameters: {
             query?: never;
@@ -751,6 +907,226 @@ export interface components {
             payload: {
                 [key: string]: unknown;
             };
+            /** Format: date-time */
+            created_at: string;
+        };
+        ContextMessageCreate: {
+            /** @enum {string} */
+            role: "system" | "user" | "assistant" | "tool";
+            content: string;
+            /**
+             * @default task
+             * @enum {string}
+             */
+            visibility: "private" | "task";
+        };
+        ContextMessage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            task_id: string;
+            /** Format: uuid */
+            owner_id: string;
+            /** @enum {string} */
+            role: "system" | "user" | "assistant" | "tool";
+            content: string;
+            content_hash: string;
+            /** @enum {string} */
+            visibility: "private" | "task";
+            sequence_no: number;
+            token_estimate: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        Checkpoint: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            task_id: string;
+            summary: string;
+            state: {
+                [key: string]: unknown;
+            };
+            summary_hash: string;
+            state_hash: string;
+            message_count: number;
+            evidence_count: number;
+            restore_policy_hash: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ContextRestore: {
+            /** Format: uuid */
+            checkpoint_id: string;
+            summary: string;
+            summary_hash: string;
+            state_hash: string;
+            restore_policy_hash: string;
+            current_security_envelope: {
+                [key: string]: unknown;
+            };
+            scope_error: string | null;
+        };
+        EvidenceCreate: {
+            title: string;
+            /**
+             * @default manual
+             * @enum {string}
+             */
+            source_type: "manual" | "rag_chunk" | "checkpoint" | "task_output";
+            /** @default manual://operator-note */
+            source_ref: string;
+            content: string;
+            /**
+             * @default internal
+             * @enum {string}
+             */
+            classification: "public" | "internal" | "restricted";
+            /**
+             * @default untrusted_evidence_only
+             * @enum {string}
+             */
+            trust: "untrusted_evidence_only" | "operator_attested" | "system_observed";
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        EvidenceItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            task_id: string;
+            title: string;
+            /** @enum {string} */
+            source_type: "manual" | "rag_chunk" | "checkpoint" | "task_output";
+            source_ref: string;
+            content: string;
+            content_hash: string;
+            /** @enum {string} */
+            classification: "public" | "internal" | "restricted";
+            /** @enum {string} */
+            trust: "untrusted_evidence_only" | "operator_attested" | "system_observed";
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        KnowledgePackRequest: {
+            query: string;
+            /** @default 5 */
+            top_k: number;
+            /** @default false */
+            include_private_context: boolean;
+            classifications?: ("public" | "internal" | "restricted")[] | null;
+        };
+        KnowledgePack: {
+            /** Format: uuid */
+            task_id: string;
+            query: string;
+            security_envelope: {
+                [key: string]: unknown;
+            };
+            messages: components["schemas"]["ContextMessage"][];
+            latest_checkpoint: components["schemas"]["Checkpoint"] | null;
+            evidence: components["schemas"]["EvidenceItem"][];
+            rag_results: components["schemas"]["RAGSearchResult"][];
+        };
+        RAGDocumentCreate: {
+            title: string;
+            content: string;
+            source: string;
+            /**
+             * @default internal
+             * @enum {string}
+             */
+            classification: "public" | "internal" | "restricted";
+            /** @default 1 */
+            version: string;
+            tags?: string[];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        RAGDocument: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            source: string;
+            /** @enum {string} */
+            classification: "public" | "internal" | "restricted";
+            version: string;
+            tags: string[];
+            metadata: {
+                [key: string]: unknown;
+            };
+            content_hash: string;
+            chunk_count: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        RAGSearchRequest: {
+            query: string;
+            /** @default 5 */
+            top_k: number;
+            classifications?: ("public" | "internal" | "restricted")[] | null;
+        };
+        RAGCitation: {
+            /** Format: uuid */
+            document_id: string;
+            /** Format: uuid */
+            chunk_id: string;
+            source: string;
+            version: string;
+            content_hash: string;
+            chunk_hash: string;
+        };
+        RAGSearchResult: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            document_id: string;
+            /** Format: uuid */
+            chunk_id: string;
+            chunk_index: number;
+            title: string;
+            excerpt: string;
+            source: string;
+            version: string;
+            /** @enum {string} */
+            classification: "public" | "internal" | "restricted";
+            tags: string[];
+            metadata: {
+                [key: string]: unknown;
+            };
+            content_hash: string;
+            chunk_hash: string;
+            score: number;
+            /** @enum {string} */
+            trust: "untrusted_evidence_only";
+            citation: components["schemas"]["RAGCitation"];
+        };
+        RAGSearchResponse: {
+            query: string;
+            results: components["schemas"]["RAGSearchResult"][];
+        };
+        RAGChunk: {
+            /** Format: uuid */
+            document_id: string;
+            /** Format: uuid */
+            chunk_id: string;
+            chunk_index: number;
+            title: string;
+            source: string;
+            version: string;
+            /** @enum {string} */
+            classification: "public" | "internal" | "restricted";
+            content_hash: string;
+            content: string;
+            token_estimate: number;
+            chunk_hash: string;
             /** Format: date-time */
             created_at: string;
         };
@@ -1748,6 +2124,363 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listTaskContext: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Context messages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextMessage"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addTaskContext: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContextMessageCreate"];
+            };
+        };
+        responses: {
+            /** @description Context message appended */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextMessage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listTaskCheckpoints: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Checkpoint collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checkpoint"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createTaskCheckpoint: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Checkpoint created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checkpoint"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getLatestTaskCheckpoint: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest checkpoint or null */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checkpoint"] | null;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    restoreTaskContext: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restored checkpoint summary and current security envelope */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextRestore"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listTaskEvidence: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Evidence collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceItem"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addTaskEvidence: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceCreate"];
+            };
+        };
+        responses: {
+            /** @description Evidence item created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceItem"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    buildTaskKnowledgePack: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                task_id: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KnowledgePackRequest"];
+            };
+        };
+        responses: {
+            /** @description Bounded read-only knowledge pack */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgePack"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    ingestRagDocument: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RAGDocumentCreate"];
+            };
+        };
+        responses: {
+            /** @description RAG document created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RAGDocument"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    searchRagDocuments: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RAGSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description RAG search results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RAGSearchResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listRagDocumentChunks: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description RAG document chunks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RAGChunk"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listAgents: {

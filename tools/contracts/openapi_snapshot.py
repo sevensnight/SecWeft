@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and snapshot the checked-in P3 OpenAPI contract.
+"""Validate and snapshot the checked-in P4 OpenAPI contract.
 
 The snapshot is semantic: comments and YAML formatting do not change its digest.
 Runtime comparison is intentionally one-way. Every contract operation must exist in
@@ -38,6 +38,15 @@ CRITICAL_PATHS = frozenset(
         "/tasks/{task_id}/resume",
         "/tasks/{task_id}/retry",
         "/task-dead-letters",
+        "/tasks/{task_id}/context",
+        "/tasks/{task_id}/checkpoints",
+        "/tasks/{task_id}/checkpoints/latest",
+        "/tasks/{task_id}/context/restore",
+        "/tasks/{task_id}/evidence",
+        "/tasks/{task_id}/knowledge-pack",
+        "/rag/documents",
+        "/rag/search",
+        "/rag/documents/{document_id}/chunks",
         "/agents",
         "/workflows",
         "/skills",
@@ -246,7 +255,7 @@ def validate_document(document: dict[str, Any]) -> list[str]:
     for path, method, operation in iter_operations(document):
         operation_count += 1
         if method not in {"get", "post", "put"}:
-            errors.append(f"P3 contract uses an unsupported method: {method.upper()} {path}")
+            errors.append(f"P4 contract uses an unsupported method: {method.upper()} {path}")
         operation_id = operation.get("operationId")
         if not isinstance(operation_id, str) or not operation_id:
             errors.append(f"operationId is required for {method.upper()} {path}")
@@ -313,6 +322,21 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         "TaskStage",
         "TaskExecution",
         "TaskDeadLetter",
+        "ContextMessageCreate",
+        "ContextMessage",
+        "Checkpoint",
+        "ContextRestore",
+        "EvidenceCreate",
+        "EvidenceItem",
+        "KnowledgePackRequest",
+        "KnowledgePack",
+        "RAGDocumentCreate",
+        "RAGDocument",
+        "RAGSearchRequest",
+        "RAGSearchResponse",
+        "RAGSearchResult",
+        "RAGCitation",
+        "RAGChunk",
         "AgentDefinition",
         "AgentDefinitionCreate",
         "WorkflowDefinition",
@@ -443,7 +467,7 @@ def check(*, runtime: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="OpenAPI P3 semantic snapshot and compatibility checker"
+        description="OpenAPI P4 semantic snapshot and compatibility checker"
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
     check_parser = subcommands.add_parser(
