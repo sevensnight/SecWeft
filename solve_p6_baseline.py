@@ -106,7 +106,7 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     schemas = document["components"]["schemas"]
     paths = document["paths"]
     invariants = {
-        "operation_count_is_p6": value["operation_count"] == 62,
+        "operation_count_preserves_p6_floor": value["operation_count"] >= 62,
         "validation_plan_paths_exist": "/tasks/{task_id}/validation-plans" in paths
         and "/validation-plans/{plan_id}/submit" in paths
         and "/validation-plans/{plan_id}/review" in paths,
@@ -134,9 +134,9 @@ def _non_execution_boundary_check() -> tuple[str, dict[str, Any]]:
         "services.execution",
     )
     invariants = {
-        "contract_has_no_validation_execution_endpoint": all(
-            marker not in contract for marker in ("/validation-runs", "/validation-executions")
-        ),
+        "contract_has_no_legacy_validation_run_endpoint": "/validation-runs" not in contract,
+        "p9_execution_is_split_from_p6_plan_service": "/validation-executions" in contract
+        and (ROOT / "apps/control-plane/src/vulnlab/validation_execution.py").is_file(),
         "contract_still_excludes_legacy_execution": all(
             marker not in contract for marker in ("/assets/probe", "/sandbox", "/exploit")
         ),

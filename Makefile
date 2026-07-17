@@ -6,7 +6,7 @@ PLATFORM_CONFIG_ENV ?= infrastructure/docker-compose/.env.platform.example
 BACKUP ?=
 
 .PHONY: help bootstrap python-compile python-format python-lint python-mypy python-test lint typecheck test build contracts-check \
-	p0-check p0-check-full p1-check p1-check-full p1-postgres p1-keycloak p1-browser p2-check p2-check-full p3-check p3-check-full p4-check p4-check-full p5-check p5-check-full p6-check p6-check-full p7-check p7-check-full p8-check p8-check-full \
+	p0-check p0-check-full p1-check p1-check-full p1-postgres p1-keycloak p1-browser p2-check p2-check-full p3-check p3-check-full p4-check p4-check-full p5-check p5-check-full p6-check p6-check-full p7-check p7-check-full p8-check p8-check-full p9-check p9-check-full \
 	platform-config platform-up platform-up-identity platform-down platform-down-identity platform-logs platform-backup platform-restore helm-lint check
 
 help:
@@ -30,6 +30,7 @@ help:
 	  'p6-check           Run P6 validation-plan checks' \
 	  'p7-check           Run P7 web console checks' \
 	  'p8-check           Run P8 operations readiness checks' \
+	  'p9-check           Run P9 validation execution-plane checks' \
 	  'p1-postgres        Validate an explicit disposable PostgreSQL test database' \
 	  'p1-keycloak        Validate an explicit Keycloak test instance' \
 	  'p1-browser         Validate browser OIDC discovery, CSP, and PKCE entry' \
@@ -41,13 +42,13 @@ help:
 	  'platform-down-identity Stop the platform including the development OIDC provider' \
 	  'platform-backup    Back up persistent platform state' \
 	  'platform-restore   Restore BACKUP=/absolute/path with CONFIRM_RESTORE=yes' \
-	  'check              Run the full P0-P8 validation suite'
+	  'check              Run the full P0-P9 validation suite'
 
 bootstrap:
 	PYTHON="$(PYTHON)" sh infrastructure/scripts/bootstrap.sh
 
 python-compile:
-	$(PYTHON) -m compileall -q apps/control-plane/src solve_module2.py solve_p0_baseline.py solve_p1_baseline.py solve_p2_baseline.py solve_p3_baseline.py solve_p4_baseline.py solve_p5_baseline.py solve_p6_baseline.py solve_p7_baseline.py solve_p8_baseline.py
+	$(PYTHON) -m compileall -q apps/control-plane/src apps/validation-worker solve_module2.py solve_p0_baseline.py solve_p1_baseline.py solve_p2_baseline.py solve_p3_baseline.py solve_p4_baseline.py solve_p5_baseline.py solve_p6_baseline.py solve_p7_baseline.py solve_p8_baseline.py solve_p9_baseline.py
 
 python-test:
 	$(PYTHON) -m pytest -q -p no:cacheprovider
@@ -141,6 +142,12 @@ p8-check:
 p8-check-full:
 	$(PYTHON) solve_p8_baseline.py --full
 
+p9-check:
+	$(PYTHON) solve_p9_baseline.py
+
+p9-check-full:
+	$(PYTHON) solve_p9_baseline.py --full
+
 platform-config:
 	docker compose --env-file "$(PLATFORM_CONFIG_ENV)" -f "$(PLATFORM_COMPOSE)" config --quiet
 	docker compose --env-file "$(PLATFORM_CONFIG_ENV)" -f "$(PLATFORM_COMPOSE)" --profile identity config --quiet
@@ -173,4 +180,4 @@ platform-restore:
 	@test "$(CONFIRM_RESTORE)" = 'yes' || (echo 'CONFIRM_RESTORE=yes is required' >&2; exit 2)
 	sh infrastructure/scripts/restore.sh --yes "$(BACKUP)" "$(PLATFORM_ENV)"
 
-check: python-compile python-format python-lint python-mypy lint typecheck test build contracts-check platform-config helm-lint p0-check p1-check p2-check p3-check p4-check p5-check p6-check p7-check p8-check
+check: python-compile python-format python-lint python-mypy lint typecheck test build contracts-check platform-config helm-lint p0-check p1-check p2-check p3-check p4-check p5-check p6-check p7-check p8-check p9-check

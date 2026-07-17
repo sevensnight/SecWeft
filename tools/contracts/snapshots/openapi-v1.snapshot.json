@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "a8e7bf73c2877cc6ffdc38f8837589ed50126dda8e383128ec20a2b038b73c38",
+  "document_sha256": "c9c6a7e065d3e23c2b368bc2b7bc70ab1663ea2a8df0d4d4ed4d6f2ec7623f89",
   "openapi": "3.1.0",
-  "info_version": "1.6.0-p6",
+  "info_version": "1.9.0-p9",
   "operations": [
     {
       "method": "GET",
@@ -1395,6 +1395,240 @@
     },
     {
       "method": "GET",
+      "path": "/validation-executions",
+      "operation_id": "listValidationExecutions",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "task_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/validation-executions/{execution_id}",
+      "operation_id": "getValidationExecution",
+      "parameters": [
+        {
+          "name": "execution_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/validation-executions/{execution_id}/cancel",
+      "operation_id": "cancelValidationExecution",
+      "parameters": [
+        {
+          "name": "execution_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/validation-executions/{execution_id}/events",
+      "operation_id": "listValidationExecutionEvents",
+      "parameters": [
+        {
+          "name": "execution_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "after_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/validation-executions/{execution_id}/events/stream",
+      "operation_id": "streamValidationExecutionEvents",
+      "parameters": [
+        {
+          "name": "Last-Event-ID",
+          "in": "header",
+          "required": false
+        },
+        {
+          "name": "execution_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "text/event-stream"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/validation-executions/{execution_id}/evidence",
+      "operation_id": "listValidationExecutionEvidence",
+      "parameters": [
+        {
+          "name": "execution_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/validation-executions/{execution_id}/retry",
+      "operation_id": "retryValidationExecution",
+      "parameters": [
+        {
+          "name": "execution_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "404",
+        "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/validation-executions/{execution_id}/reviews",
+      "operation_id": "reviewValidationExecution",
+      "parameters": [
+        {
+          "name": "execution_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/validation-plans/{plan_id}",
       "operation_id": "getValidationPlan",
       "parameters": [
@@ -1412,6 +1646,36 @@
         "401",
         "403",
         "404"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/validation-plans/{plan_id}/executions",
+      "operation_id": "createValidationExecution",
+      "parameters": [
+        {
+          "name": "plan_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
       ],
       "success_media_types": [
         "application/json"
@@ -1469,6 +1733,48 @@
         "403",
         "404",
         "409"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/validation-templates",
+      "operation_id": "listValidationTemplates",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/validation-templates/{template_id}",
+      "operation_id": "getValidationTemplate",
+      "parameters": [
+        {
+          "name": "template_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "404"
       ],
       "success_media_types": [
         "application/json"
@@ -1583,10 +1889,16 @@
     "User",
     "UserPage",
     "UserProvisionCreate",
+    "ValidationExecution",
+    "ValidationExecutionCreate",
+    "ValidationExecutionEvent",
+    "ValidationExecutionEvidence",
+    "ValidationExecutionReview",
     "ValidationPlan",
     "ValidationPlanCreate",
     "ValidationPlanReview",
     "ValidationProbeStep",
+    "ValidationTemplate",
     "WorkflowDefinition",
     "WorkflowDefinitionCreate",
     "WorkflowStageDefinition"

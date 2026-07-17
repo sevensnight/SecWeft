@@ -379,6 +379,78 @@ CREATE TABLE IF NOT EXISTS validation_plans (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS validation_executions (
+    id TEXT PRIMARY KEY,
+    plan_id TEXT NOT NULL REFERENCES validation_plans(id) ON DELETE CASCADE,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    template_id TEXT NOT NULL,
+    template_version TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN (
+        'QUEUED','PROVISIONING','RUNNING','COLLECTING_EVIDENCE','VERIFYING',
+        'SUCCEEDED','FAILED','CANCELLED','EXPIRED','POLICY_REJECTED',
+        'APPROVAL_REVOKED','SCOPE_INVALID','SANDBOX_FAILED','RESOURCE_EXCEEDED',
+        'EXECUTION_TIMEOUT','EVIDENCE_INCOMPLETE'
+    )),
+    trace_id TEXT NOT NULL,
+    sandbox_id TEXT NOT NULL,
+    approval_id TEXT NOT NULL,
+    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+    idempotency_key TEXT,
+    queue_message_id TEXT,
+    result_json TEXT NOT NULL DEFAULT '{}',
+    error TEXT,
+    review_decision TEXT CHECK(review_decision IN ('accepted','rejected')),
+    review_reason TEXT,
+    reviewed_by TEXT REFERENCES users(id),
+    reviewed_at TEXT,
+    retry_of TEXT REFERENCES validation_executions(id),
+    created_by TEXT NOT NULL REFERENCES users(id),
+    started_at TEXT,
+    finished_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS validation_execution_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS validation_execution_evidence (
+    id TEXT PRIMARY KEY,
+    execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    evidence_item_id TEXT REFERENCES evidence_items(id),
+    title TEXT NOT NULL,
+    artifact_ref TEXT NOT NULL,
+    content_sha256 TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS validation_queue_messages (
+    id TEXT PRIMARY KEY,
+    execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
+    message_id TEXT NOT NULL UNIQUE,
+    subject TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('ready','leased','done','cancelled','dead')),
+    attempt INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
+    available_at TEXT NOT NULL,
+    locked_by TEXT,
+    lock_token TEXT,
+    locked_until TEXT,
+    last_error TEXT,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sandbox_runs (
     id TEXT PRIMARY KEY,
     task_id TEXT REFERENCES tasks(id),
@@ -434,6 +506,16 @@ CREATE INDEX IF NOT EXISTS idx_policy_decisions_resource
     ON policy_decisions(resource_type, resource_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_validation_plans_task
     ON validation_plans(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_validation_executions_task
+    ON validation_executions(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_validation_executions_plan
+    ON validation_executions(plan_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_validation_execution_events_execution
+    ON validation_execution_events(execution_id, id);
+CREATE INDEX IF NOT EXISTS idx_validation_execution_evidence_execution
+    ON validation_execution_evidence(execution_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_validation_queue_ready
+    ON validation_queue_messages(status, available_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
@@ -666,6 +748,102 @@ class Database:
                 """CREATE INDEX IF NOT EXISTS idx_validation_plans_task
                    ON validation_plans(task_id, created_at DESC)"""
             )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS validation_executions (
+                    id TEXT PRIMARY KEY,
+                    plan_id TEXT NOT NULL REFERENCES validation_plans(id) ON DELETE CASCADE,
+                    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                    tenant_id TEXT NOT NULL,
+                    template_id TEXT NOT NULL,
+                    template_version TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN (
+                        'QUEUED','PROVISIONING','RUNNING','COLLECTING_EVIDENCE','VERIFYING',
+                        'SUCCEEDED','FAILED','CANCELLED','EXPIRED','POLICY_REJECTED',
+                        'APPROVAL_REVOKED','SCOPE_INVALID','SANDBOX_FAILED','RESOURCE_EXCEEDED',
+                        'EXECUTION_TIMEOUT','EVIDENCE_INCOMPLETE'
+                    )),
+                    trace_id TEXT NOT NULL,
+                    sandbox_id TEXT NOT NULL,
+                    approval_id TEXT NOT NULL,
+                    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+                    idempotency_key TEXT,
+                    queue_message_id TEXT,
+                    result_json TEXT NOT NULL DEFAULT '{}',
+                    error TEXT,
+                    review_decision TEXT CHECK(review_decision IN ('accepted','rejected')),
+                    review_reason TEXT,
+                    reviewed_by TEXT REFERENCES users(id),
+                    reviewed_at TEXT,
+                    retry_of TEXT REFERENCES validation_executions(id),
+                    created_by TEXT NOT NULL REFERENCES users(id),
+                    started_at TEXT,
+                    finished_at TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )"""
+            )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS validation_execution_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
+                    event_type TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    payload_json TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL
+                )"""
+            )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS validation_execution_evidence (
+                    id TEXT PRIMARY KEY,
+                    execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
+                    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                    evidence_item_id TEXT REFERENCES evidence_items(id),
+                    title TEXT NOT NULL,
+                    artifact_ref TEXT NOT NULL,
+                    content_sha256 TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL
+                )"""
+            )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS validation_queue_messages (
+                    id TEXT PRIMARY KEY,
+                    execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
+                    message_id TEXT NOT NULL UNIQUE,
+                    subject TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('ready','leased','done','cancelled','dead')),
+                    attempt INTEGER NOT NULL DEFAULT 0,
+                    max_attempts INTEGER NOT NULL DEFAULT 3,
+                    available_at TEXT NOT NULL,
+                    locked_by TEXT,
+                    lock_token TEXT,
+                    locked_until TEXT,
+                    last_error TEXT,
+                    payload_json TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )"""
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_validation_executions_task
+                   ON validation_executions(task_id, created_at DESC)"""
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_validation_executions_plan
+                   ON validation_executions(plan_id, created_at DESC)"""
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_validation_execution_events_execution
+                   ON validation_execution_events(execution_id, id)"""
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_validation_execution_evidence_execution
+                   ON validation_execution_evidence(execution_id, created_at DESC)"""
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS idx_validation_queue_ready
+                   ON validation_queue_messages(status, available_at)"""
+            )
 
             # Only backfill records that truly came from a legacy schema. Recomputing every
             # hash on startup would silently bless an offline modification to an approved scope.
@@ -709,7 +887,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=7")
+            connection.execute("PRAGMA user_version=8")
             connection.commit()
         except Exception:
             connection.rollback()

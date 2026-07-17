@@ -42,6 +42,7 @@ class PolicyService:
             "rules": [
                 "destructive actions are denied",
                 "legacy execution actions are denied when legacy execution is disabled",
+                "validation execution is allowed only through registered versioned templates",
                 "task-bound execution requires current approval",
                 "scope-bound actions must pass current scope validation",
                 "sandbox argv must not contain shell metacharacters",

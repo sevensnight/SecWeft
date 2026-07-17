@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.6.0-p6
+  version: 1.9.0-p9
   description: >-
     P6 contract for OIDC identity, tenant/project data scope, eight-role RBAC,
     layered configuration, append-only audit, the model gateway, and durable
@@ -1804,6 +1804,385 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+  /validation-plans/{plan_id}/executions:
+    post:
+      operationId: createValidationExecution
+      tags: [Validation]
+      summary: Queue an approved validation plan execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationExecutionCreate'
+      responses:
+        '202':
+          description: Validation execution accepted and durably queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationExecution'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /validation-executions:
+    get:
+      operationId: listValidationExecutions
+      tags: [Validation]
+      summary: List validation executions visible to the caller
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: status
+          in: query
+          schema:
+            type: [string, 'null']
+            maxLength: 64
+        - name: task_id
+          in: query
+          schema:
+            type: [string, 'null']
+            format: uuid
+      responses:
+        '200':
+          description: Validation execution collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ValidationExecution'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /validation-executions/{execution_id}:
+    get:
+      operationId: getValidationExecution
+      tags: [Validation]
+      summary: Get a validation execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Validation execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationExecution'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /validation-executions/{execution_id}/cancel:
+    post:
+      operationId: cancelValidationExecution
+      tags: [Validation]
+      summary: Cancel a queued or running validation execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskActionRequest'
+      responses:
+        '200':
+          description: Validation execution cancelled or already terminal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationExecution'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /validation-executions/{execution_id}/retry:
+    post:
+      operationId: retryValidationExecution
+      tags: [Validation]
+      summary: Queue a retry for a terminal failed validation execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Retry execution accepted and durably queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationExecution'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /validation-executions/{execution_id}/events:
+    get:
+      operationId: listValidationExecutionEvents
+      tags: [Validation]
+      summary: List persisted validation execution events
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: after_id
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 500
+      responses:
+        '200':
+          description: Validation execution event collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ValidationExecutionEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /validation-executions/{execution_id}/events/stream:
+    get:
+      operationId: streamValidationExecutionEvents
+      tags: [Validation]
+      summary: Stream persisted validation execution events as SSE
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Validation execution event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /validation-executions/{execution_id}/evidence:
+    get:
+      operationId: listValidationExecutionEvidence
+      tags: [Validation]
+      summary: List evidence produced by a validation execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        '200':
+          description: Validation execution evidence collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ValidationExecutionEvidence'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /validation-executions/{execution_id}/reviews:
+    post:
+      operationId: reviewValidationExecution
+      tags: [Validation]
+      summary: Record human review for a terminal validation execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationExecutionReview'
+      responses:
+        '200':
+          description: Validation execution review persisted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationExecution'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /validation-templates:
+    get:
+      operationId: listValidationTemplates
+      tags: [Validation]
+      summary: List registered versioned validation templates
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Registered validation templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ValidationTemplate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /validation-templates/{template_id}:
+    get:
+      operationId: getValidationTemplate
+      tags: [Validation]
+      summary: Get one registered validation template
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 120
+      responses:
+        '200':
+          description: Registered validation template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationTemplate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /policies/evaluate:
     post:
       operationId: evaluatePolicy
@@ -3182,6 +3561,116 @@ components:
         review_reason: { type: [string, 'null'] }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+    ValidationExecutionCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        template_id:
+          type: [string, 'null']
+          maxLength: 120
+    ValidationExecutionReview:
+      type: object
+      additionalProperties: false
+      required: [accepted, reason]
+      properties:
+        accepted: { type: boolean }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    ValidationTemplate:
+      type: object
+      additionalProperties: false
+      required:
+        [id, version, name, description, risk_level, enabled, input_schema,
+         output_schema, timeout_seconds, sandbox]
+      properties:
+        id: { type: string, maxLength: 120 }
+        version: { type: string, maxLength: 40 }
+        name: { type: string }
+        description: { type: string }
+        risk_level: { type: string, enum: [low, medium, high] }
+        enabled: { type: boolean }
+        input_schema:
+          type: object
+          additionalProperties: true
+        output_schema:
+          type: object
+          additionalProperties: true
+        timeout_seconds: { type: number, minimum: 0.5, maximum: 600 }
+        sandbox:
+          type: object
+          additionalProperties: true
+    ValidationExecution:
+      type: object
+      additionalProperties: false
+      required:
+        [id, plan_id, task_id, tenant_id, template_id, template_version, status,
+         trace_id, sandbox_id, approval_id, policy_decision_id, idempotency_key,
+         queue_message_id, result, error, review_decision, review_reason, reviewed_by,
+         reviewed_at, retry_of, created_by, started_at, finished_at, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        plan_id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        template_id: { type: string }
+        template_version: { type: string }
+        status:
+          type: string
+          enum:
+            [QUEUED, PROVISIONING, RUNNING, COLLECTING_EVIDENCE, VERIFYING,
+             SUCCEEDED, FAILED, CANCELLED, EXPIRED, POLICY_REJECTED,
+             APPROVAL_REVOKED, SCOPE_INVALID, SANDBOX_FAILED, RESOURCE_EXCEEDED,
+             EXECUTION_TIMEOUT, EVIDENCE_INCOMPLETE]
+        trace_id: { type: string }
+        sandbox_id: { type: string }
+        approval_id: { type: string }
+        policy_decision_id: { type: string, format: uuid }
+        idempotency_key: { type: [string, 'null'] }
+        queue_message_id: { type: [string, 'null'], format: uuid }
+        result:
+          type: object
+          additionalProperties: true
+        error: { type: [string, 'null'] }
+        review_decision: { type: [string, 'null'], enum: [accepted, rejected, null] }
+        review_reason: { type: [string, 'null'] }
+        reviewed_by: { type: [string, 'null'], format: uuid }
+        reviewed_at: { type: [string, 'null'], format: date-time }
+        retry_of: { type: [string, 'null'], format: uuid }
+        created_by: { type: string, format: uuid }
+        started_at: { type: [string, 'null'], format: date-time }
+        finished_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ValidationExecutionEvent:
+      type: object
+      additionalProperties: false
+      required: [id, execution_id, event_type, status, payload, created_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        execution_id: { type: string, format: uuid }
+        event_type: { type: string }
+        status: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+        created_at: { type: string, format: date-time }
+    ValidationExecutionEvidence:
+      type: object
+      additionalProperties: false
+      required:
+        [id, execution_id, task_id, evidence_item_id, title, artifact_ref,
+         content_sha256, metadata, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        execution_id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        evidence_item_id: { type: [string, 'null'], format: uuid }
+        title: { type: string }
+        artifact_ref: { type: string }
+        content_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at: { type: string, format: date-time }
     PolicyEvaluationRequest:
       type: object
       additionalProperties: false
@@ -3189,7 +3678,7 @@ components:
       properties:
         action:
           type: string
-          enum: [asset.probe, sandbox.run, task.execute, context.restore, rag.search]
+          enum: [asset.probe, sandbox.run, validation.execute, task.execute, context.restore, rag.search]
         resource_type: { type: string, minLength: 1, maxLength: 80, default: task }
         resource_id: { type: string, minLength: 1, maxLength: 200, default: ad-hoc }
         task_id: { type: [string, 'null'], format: uuid }

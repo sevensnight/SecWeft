@@ -19,6 +19,7 @@ from ..scope import ScopeService
 from ..security import SecurityService
 from ..skills import SkillRegistry
 from ..validation import ValidationPlanService
+from ..validation_execution import ValidationExecutionService
 
 
 @dataclass(slots=True)
@@ -37,6 +38,7 @@ class Services:
     evidence: EvidenceService
     policy: PolicyService
     validation: ValidationPlanService
+    validation_execution: ValidationExecutionService
     sandbox: SandboxService
     orchestrator: Orchestrator
     enterprise: EnterpriseServices | None = None
@@ -71,6 +73,9 @@ def build_services(settings: Settings) -> Services:
     evidence = EvidenceService(db, audit)
     policy = PolicyService(db, scope_service, settings, audit)
     validation = ValidationPlanService(db, policy, audit)
+    validation_execution = ValidationExecutionService(
+        db, settings, scope_service, evidence, policy, audit
+    )
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
     enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
@@ -89,6 +94,7 @@ def build_services(settings: Settings) -> Services:
         evidence=evidence,
         policy=policy,
         validation=validation,
+        validation_execution=validation_execution,
         sandbox=sandbox,
         orchestrator=orchestrator,
         enterprise=enterprise,

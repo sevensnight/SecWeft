@@ -18,7 +18,8 @@ $baselineScripts = @(
     'solve_p5_baseline.py',
     'solve_p6_baseline.py',
     'solve_p7_baseline.py',
-    'solve_p8_baseline.py'
+    'solve_p8_baseline.py',
+    'solve_p9_baseline.py'
 )
 
 if ([string]::IsNullOrWhiteSpace($Python)) {
@@ -39,7 +40,7 @@ function Invoke-Checked {
 
 Push-Location $repositoryRoot
 try {
-    Invoke-Checked $Python @(@('-m', 'compileall', '-q', 'apps/control-plane/src', 'solve_module2.py') + $baselineScripts)
+    Invoke-Checked $Python @(@('-m', 'compileall', '-q', 'apps/control-plane/src', 'apps/validation-worker', 'solve_module2.py') + $baselineScripts)
     Invoke-Checked $Python @('-m', 'ruff', 'format', '--check', '.')
     Invoke-Checked $Python @('-m', 'ruff', 'check', '.')
     Invoke-Checked $Python @('-m', 'mypy', 'apps/control-plane/src')
@@ -71,4 +72,4 @@ finally {
     Pop-Location
 }
 
-Write-Output 'P0-P8 validation completed successfully.'
+Write-Output 'P0-P9 validation completed successfully.'

@@ -72,6 +72,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "validation:read",
             "validation:create",
             "validation:submit",
+            "validation:execute",
         }
     ),
     Role.ADMIN: frozenset({"*"}),

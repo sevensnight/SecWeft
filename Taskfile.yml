@@ -25,7 +25,7 @@ tasks:
   python:compile:
     desc: Compile Python sources without starting services
     cmds:
-      - '{{.PYTHON}} -m compileall -q apps/control-plane/src solve_module2.py solve_p0_baseline.py solve_p1_baseline.py solve_p2_baseline.py solve_p3_baseline.py solve_p4_baseline.py solve_p5_baseline.py solve_p6_baseline.py solve_p7_baseline.py solve_p8_baseline.py'
+      - '{{.PYTHON}} -m compileall -q apps/control-plane/src apps/validation-worker solve_module2.py solve_p0_baseline.py solve_p1_baseline.py solve_p2_baseline.py solve_p3_baseline.py solve_p4_baseline.py solve_p5_baseline.py solve_p6_baseline.py solve_p7_baseline.py solve_p8_baseline.py solve_p9_baseline.py'
 
   python:test:
     desc: Run the Python regression suite
@@ -184,6 +184,16 @@ tasks:
     cmds:
       - '{{.PYTHON}} solve_p8_baseline.py --full'
 
+  p9:check:
+    desc: Run the P9 controlled validation execution-plane checks
+    cmds:
+      - '{{.PYTHON}} solve_p9_baseline.py'
+
+  p9:check:full:
+    desc: Run P9 checks plus broader local quality gates
+    cmds:
+      - '{{.PYTHON}} solve_p9_baseline.py --full'
+
   platform:config:
     desc: Statically validate the base and identity-profile Compose models
     cmds:
@@ -266,7 +276,7 @@ tasks:
       - sh infrastructure/scripts/restore.sh --yes "{{.BACKUP}}" "{{.PLATFORM_ENV}}"
 
   check:
-    desc: Run the complete P0-P8 static and automated validation suite
+    desc: Run the complete P0-P9 static and automated validation suite
     cmds:
       - task: python:compile
       - task: python:format
@@ -289,6 +299,7 @@ tasks:
       - task: p6:check
       - task: p7:check
       - task: p8:check
+      - task: p9:check
 
   check:script:
     desc: Run the shared validation through the Windows script

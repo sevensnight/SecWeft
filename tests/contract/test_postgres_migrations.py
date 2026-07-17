@@ -13,6 +13,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0004_p1_application_least_privilege",
         "0005_p2_model_gateway",
         "0006_p3_agent_orchestration",
+        "0007_p9_validation_execution_plane",
     ]
 
 
@@ -65,6 +66,25 @@ def test_p3_agent_orchestration_migration_has_leases_dlq_and_rls() -> None:
     assert "alter table %s force row level security" in sql
     assert "grant select, insert, update on all tables in schema agent to vulnlab_app" in sql
     assert "grant select, insert, update, delete on all tables in schema agent" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p9_validation_execution_migration_has_queue_evidence_and_statuses() -> None:
+    up = MIGRATIONS / "0007_p9_validation_execution_plane.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists validation" in sql
+    assert "validation.executions" in sql
+    assert "validation.execution_events" in sql
+    assert "validation.execution_evidence" in sql
+    assert "validation.queue_messages" in sql
+    assert "approval_revoked" in sql
+    assert "policy_rejected" in sql
+    assert "execution_timeout" in sql
+    assert "content_sha256 char(64) not null" in sql
+    assert "idx_validation_queue_ready" in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
     assert "exploit payload" not in sql
 
 

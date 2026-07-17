@@ -460,6 +460,94 @@ class ValidationPlanResponse(APIModel):
     updated_at: datetime
 
 
+class ValidationExecutionCreate(APIModel):
+    template_id: str | None = Field(default=None, max_length=120)
+
+
+class ValidationExecutionReview(APIModel):
+    accepted: bool
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class ValidationTemplateResponse(APIModel):
+    id: str
+    version: str
+    name: str
+    description: str
+    risk_level: Literal["low", "medium", "high"]
+    enabled: bool
+    input_schema: dict[str, Any]
+    output_schema: dict[str, Any]
+    timeout_seconds: float
+    sandbox: dict[str, Any]
+
+
+class ValidationExecutionResponse(APIModel):
+    id: str
+    plan_id: str
+    task_id: str
+    tenant_id: str
+    template_id: str
+    template_version: str
+    status: Literal[
+        "QUEUED",
+        "PROVISIONING",
+        "RUNNING",
+        "COLLECTING_EVIDENCE",
+        "VERIFYING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+        "EXPIRED",
+        "POLICY_REJECTED",
+        "APPROVAL_REVOKED",
+        "SCOPE_INVALID",
+        "SANDBOX_FAILED",
+        "RESOURCE_EXCEEDED",
+        "EXECUTION_TIMEOUT",
+        "EVIDENCE_INCOMPLETE",
+    ]
+    trace_id: str
+    sandbox_id: str
+    approval_id: str
+    policy_decision_id: str
+    idempotency_key: str | None
+    queue_message_id: str | None
+    result: dict[str, Any]
+    error: str | None
+    review_decision: Literal["accepted", "rejected"] | None
+    review_reason: str | None
+    reviewed_by: str | None
+    reviewed_at: datetime | None
+    retry_of: str | None
+    created_by: str
+    started_at: datetime | None
+    finished_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ValidationExecutionEventResponse(APIModel):
+    id: int
+    execution_id: str
+    event_type: str
+    status: str
+    payload: dict[str, Any]
+    created_at: datetime
+
+
+class ValidationExecutionEvidenceResponse(APIModel):
+    id: str
+    execution_id: str
+    task_id: str
+    evidence_item_id: str | None
+    title: str
+    artifact_ref: str
+    content_sha256: str
+    metadata: dict[str, Any]
+    created_at: datetime
+
+
 class SandboxRequest(APIModel):
     task_id: str | None = None
     argv: list[str] = Field(min_length=1, max_length=32)
@@ -541,6 +629,7 @@ class PolicyEvaluationRequest(APIModel):
     action: Literal[
         "asset.probe",
         "sandbox.run",
+        "validation.execute",
         "task.execute",
         "context.restore",
         "rag.search",
