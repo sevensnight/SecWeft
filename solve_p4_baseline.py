@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -75,6 +76,7 @@ def _layout_check() -> tuple[str, dict[str, Any]]:
 
 def _storage_check() -> tuple[str, dict[str, Any]]:
     db = (ROOT / "apps/control-plane/src/vulnlab/db.py").read_text(encoding="utf-8")
+    user_version_match = re.search(r"PRAGMA user_version=(\d+)", db)
     invariants = {
         "context_messages_are_hashed": "content_hash TEXT NOT NULL" in db
         and "sequence_no INTEGER NOT NULL" in db,
@@ -83,7 +85,8 @@ def _storage_check() -> tuple[str, dict[str, Any]]:
         and "restore_policy_hash TEXT NOT NULL" in db,
         "rag_chunks_are_persisted": "CREATE TABLE IF NOT EXISTS rag_chunks" in db,
         "task_evidence_is_persisted": "CREATE TABLE IF NOT EXISTS evidence_items" in db,
-        "p4_migration_version": "PRAGMA user_version=5" in db,
+        "user_version_preserves_p4_floor": bool(user_version_match)
+        and int(user_version_match.group(1)) >= 5,
     }
     errors = sorted(name for name, valid in invariants.items() if not valid)
     return ("PASS" if not errors else "FAIL"), {"invariants": invariants, "errors": errors}
@@ -125,7 +128,7 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     value = openapi_snapshot.check(runtime=True)
     schemas = openapi_snapshot.load_document()["components"]["schemas"]
     invariants = {
-        "operation_count_is_p4": value["operation_count"] == 56,
+        "operation_count_preserves_p4_floor": value["operation_count"] >= 56,
         "context_schema_exists": "ContextMessage" in schemas,
         "checkpoint_schema_exists": "Checkpoint" in schemas,
         "evidence_schema_exists": "EvidenceItem" in schemas,

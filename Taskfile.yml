@@ -25,7 +25,7 @@ tasks:
   python:compile:
     desc: Compile Python sources without starting services
     cmds:
-      - '{{.PYTHON}} -m compileall -q apps/control-plane/src solve_module2.py solve_p0_baseline.py solve_p1_baseline.py'
+      - '{{.PYTHON}} -m compileall -q apps/control-plane/src solve_module2.py solve_p0_baseline.py solve_p1_baseline.py solve_p2_baseline.py solve_p3_baseline.py solve_p4_baseline.py solve_p5_baseline.py solve_p6_baseline.py solve_p7_baseline.py solve_p8_baseline.py'
 
   python:test:
     desc: Run the Python regression suite
@@ -79,6 +79,16 @@ tasks:
       - pnpm generate:api
       - git diff --exit-code -- packages/shared-types/src/api.generated.ts
 
+  p0:check:
+    desc: Run the read-only P0 architecture and engineering baseline checks
+    cmds:
+      - '{{.PYTHON}} solve_p0_baseline.py'
+
+  p0:check:full:
+    desc: Run P0 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p0_baseline.py --full'
+
   p1:check:
     desc: Run the read-only P1 identity, tenancy, RBAC, configuration, and audit checks
     cmds:
@@ -103,6 +113,76 @@ tasks:
     desc: Validate browser OIDC discovery, gateway CSP, and the PKCE authorization request
     cmds:
       - node tools/p1/validate_oidc_browser_entry.mjs
+
+  p2:check:
+    desc: Run the P2 model gateway routing, quota, and audit checks
+    cmds:
+      - '{{.PYTHON}} solve_p2_baseline.py'
+
+  p2:check:full:
+    desc: Run P2 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p2_baseline.py --full'
+
+  p3:check:
+    desc: Run the P3 durable agent orchestration checks
+    cmds:
+      - '{{.PYTHON}} solve_p3_baseline.py'
+
+  p3:check:full:
+    desc: Run P3 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p3_baseline.py --full'
+
+  p4:check:
+    desc: Run the P4 knowledge, retrieval, context, and evidence checks
+    cmds:
+      - '{{.PYTHON}} solve_p4_baseline.py'
+
+  p4:check:full:
+    desc: Run P4 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p4_baseline.py --full'
+
+  p5:check:
+    desc: Run the P5 policy decision and enforcement boundary checks
+    cmds:
+      - '{{.PYTHON}} solve_p5_baseline.py'
+
+  p5:check:full:
+    desc: Run P5 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p5_baseline.py --full'
+
+  p6:check:
+    desc: Run the P6 validation-plan approval workflow checks
+    cmds:
+      - '{{.PYTHON}} solve_p6_baseline.py'
+
+  p6:check:full:
+    desc: Run P6 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p6_baseline.py --full'
+
+  p7:check:
+    desc: Run the P7 enterprise web console route and build checks
+    cmds:
+      - '{{.PYTHON}} solve_p7_baseline.py'
+
+  p7:check:full:
+    desc: Run P7 checks plus all local quality and build gates
+    cmds:
+      - '{{.PYTHON}} solve_p7_baseline.py --full'
+
+  p8:check:
+    desc: Run the P8 operations readiness and performance smoke checks
+    cmds:
+      - '{{.PYTHON}} solve_p8_baseline.py'
+
+  p8:check:full:
+    desc: Run P8 checks plus all local quality, build, Compose, and Helm gates
+    cmds:
+      - '{{.PYTHON}} solve_p8_baseline.py --full'
 
   platform:config:
     desc: Statically validate the base and identity-profile Compose models
@@ -186,7 +266,7 @@ tasks:
       - sh infrastructure/scripts/restore.sh --yes "{{.BACKUP}}" "{{.PLATFORM_ENV}}"
 
   check:
-    desc: Run the complete P0/P1 static and automated validation suite
+    desc: Run the complete P0-P8 static and automated validation suite
     cmds:
       - task: python:compile
       - task: python:format
@@ -200,7 +280,15 @@ tasks:
       - task: contracts:check
       - task: platform:config
       - task: helm:lint
+      - task: p0:check
       - task: p1:check
+      - task: p2:check
+      - task: p3:check
+      - task: p4:check
+      - task: p5:check
+      - task: p6:check
+      - task: p7:check
+      - task: p8:check
 
   check:script:
     desc: Run the shared validation through the Windows script

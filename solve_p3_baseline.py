@@ -133,7 +133,7 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     value = openapi_snapshot.check(runtime=True)
     schemas = openapi_snapshot.load_document()["components"]["schemas"]
     invariants = {
-        "operation_count_is_p3": value["operation_count"] == 44,
+        "operation_count_preserves_p3_floor": value["operation_count"] >= 44,
         "task_stage_schema_exists": "TaskStage" in schemas,
         "task_execution_schema_exists": "TaskExecution" in schemas,
         "agent_schema_exists": "AgentDefinition" in schemas,

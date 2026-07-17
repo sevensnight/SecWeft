@@ -9,6 +9,17 @@ $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).
 $composeFile = Join-Path $repositoryRoot 'infrastructure\docker-compose\platform.yml'
 $exampleEnv = Join-Path $repositoryRoot 'infrastructure\docker-compose\.env.platform.example'
 $chart = Join-Path $repositoryRoot 'infrastructure\kubernetes\helm\vulnlab-platform'
+$baselineScripts = @(
+    'solve_p0_baseline.py',
+    'solve_p1_baseline.py',
+    'solve_p2_baseline.py',
+    'solve_p3_baseline.py',
+    'solve_p4_baseline.py',
+    'solve_p5_baseline.py',
+    'solve_p6_baseline.py',
+    'solve_p7_baseline.py',
+    'solve_p8_baseline.py'
+)
 
 if ([string]::IsNullOrWhiteSpace($Python)) {
     $venvPython = Join-Path $repositoryRoot '.venv\Scripts\python.exe'
@@ -28,7 +39,7 @@ function Invoke-Checked {
 
 Push-Location $repositoryRoot
 try {
-    Invoke-Checked $Python @('-m', 'compileall', '-q', 'apps/control-plane/src', 'solve_module2.py', 'solve_p0_baseline.py', 'solve_p1_baseline.py')
+    Invoke-Checked $Python @(@('-m', 'compileall', '-q', 'apps/control-plane/src', 'solve_module2.py') + $baselineScripts)
     Invoke-Checked $Python @('-m', 'ruff', 'format', '--check', '.')
     Invoke-Checked $Python @('-m', 'ruff', 'check', '.')
     Invoke-Checked $Python @('-m', 'mypy', 'apps/control-plane/src')
@@ -40,6 +51,9 @@ try {
     Invoke-Checked 'pnpm' @('build')
     if (Test-Path -LiteralPath (Join-Path $repositoryRoot '.git') -PathType Container) {
         Invoke-Checked 'git' @('diff', '--exit-code', '--', 'packages/shared-types/src/api.generated.ts')
+    }
+    foreach ($baseline in $baselineScripts) {
+        Invoke-Checked $Python @($baseline)
     }
     Invoke-Checked 'docker' @('compose', '--env-file', $exampleEnv, '-f', $composeFile, 'config', '--quiet')
     Invoke-Checked 'docker' @('compose', '--env-file', $exampleEnv, '-f', $composeFile, '--profile', 'identity', 'config', '--quiet')
@@ -57,4 +71,4 @@ finally {
     Pop-Location
 }
 
-Write-Output 'P0/P1 validation completed successfully.'
+Write-Output 'P0-P8 validation completed successfully.'

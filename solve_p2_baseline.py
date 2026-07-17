@@ -113,7 +113,7 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     value = openapi_snapshot.check(runtime=True)
     schemas = openapi_snapshot.load_document()["components"]["schemas"]
     invariants = {
-        "operation_count_is_p2": value["operation_count"] == 28,
+        "operation_count_preserves_p2_floor": value["operation_count"] >= 28,
         "model_provider_schema_exists": "ModelProvider" in schemas,
         "model_completion_schema_exists": "ModelCompletion" in schemas,
         "model_invocation_schema_exists": "ModelInvocation" in schemas,
