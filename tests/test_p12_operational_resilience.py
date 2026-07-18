@@ -114,7 +114,7 @@ def test_p12_system_resilience_snapshot_and_worker_heartbeat(client, admin_heade
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["version"] == "2.12.0-p12"
+    assert body["version"] == "2.12.1-p12r"
     assert body["capacity"]["global_concurrency_limit"] >= 1
     assert body["queue"]["dead_letter"] == 0
     assert "worker-a" in {item["worker_id"] for item in body["workers"]}
@@ -266,3 +266,41 @@ def test_p12_evidence_consistency_reports_missing_object(client, admin_headers):
     assert body["status"] == "inconsistent"
     assert body["summary"]["missing_object"] == 1
     assert any(item["status"] == "missing_object" for item in body["findings"])
+
+
+def test_p12_evidence_consistency_reports_tenant_prefix_mismatch(client, admin_headers):
+    plan, analyst_headers = _approved_plan(client, admin_headers)
+    execution = _create_local_lab_execution(
+        client,
+        plan["id"],
+        admin_headers,
+        "p12-evidence-tenant-prefix",
+    )
+    services = client.app.state.services
+    result = services.validation_execution.run_worker_once("worker-evidence-prefix")
+    assert result is not None
+    assert result["status"] == "SUCCEEDED"
+
+    row = services.db.fetch_one(
+        "SELECT * FROM validation_execution_evidence WHERE execution_id=?",
+        (execution["id"],),
+    )
+    assert row is not None
+    metadata = json.loads(row["metadata_json"])
+    metadata["object_key"] = f"tenant=other/{metadata['object_key'].split('/', 1)[1]}"
+    services.db.execute(
+        "UPDATE validation_execution_evidence SET metadata_json=? WHERE id=?",
+        (json.dumps(metadata, ensure_ascii=False, sort_keys=True), row["id"]),
+    )
+
+    inconsistent = client.post(
+        "/api/v1/system/resilience/evidence-consistency/check",
+        headers=analyst_headers,
+        json={"repair": False, "repair_action": "none"},
+    )
+
+    assert inconsistent.status_code == 200, inconsistent.text
+    body = inconsistent.json()
+    assert body["status"] == "inconsistent"
+    assert body["summary"]["tenant_prefix_mismatch"] == 1
+    assert any(item["status"] == "tenant_prefix_mismatch" for item in body["findings"])

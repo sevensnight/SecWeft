@@ -19,7 +19,7 @@ gateway:
   replicaCount: 2
   image:
     repository: vulnlab/api-gateway
-    tag: 2.12.0-p12
+    tag: 2.12.1-p12r
   service:
     type: ClusterIP
     port: 8080
@@ -43,7 +43,7 @@ webConsole:
   replicaCount: 2
   image:
     repository: vulnlab/web-console
-    tag: 2.12.0-p12
+    tag: 2.12.1-p12r
   resources:
     requests:
       cpu: 50m
@@ -64,7 +64,7 @@ controlPlane:
   replicaCount: 3
   image:
     repository: vulnlab/control-plane
-    tag: 2.12.0-p12
+    tag: 2.12.1-p12r
   environment: production
   authMode: oidc
   executionMode: docker
@@ -124,7 +124,7 @@ validationWorker:
   replicaCount: 3
   image:
     repository: vulnlab/control-plane
-    tag: 2.12.0-p12
+    tag: 2.12.1-p12r
   command: ["python"]
   args: ["apps/validation-worker/main.py", "--idle-sleep", "0.5"]
   resources:

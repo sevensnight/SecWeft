@@ -15,8 +15,19 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+from tools.p12.runtime_acceptance import (  # noqa: E402
+    environment_fingerprint,
+    require_isolated_runtime,
+    runtime_claimed,
+    summarize_checks,
+    utc_timestamp,
+    write_report,
+)
 
 CHART = "infrastructure/kubernetes/helm/vulnlab-platform"
 
@@ -102,11 +113,40 @@ def _helm_render_readiness() -> tuple[str, dict[str, Any]]:
 def _runtime_cluster_check(
     namespace: str, release: str, values_file: str | None
 ) -> tuple[str, dict[str, Any]]:
+    isolation_ok, isolation = require_isolated_runtime()
+    if not isolation_ok:
+        return "FAIL", {
+            **isolation,
+            "errors": ["runtime_precondition_failed", *isolation["errors"]],
+        }
     if not values_file:
         return "FAIL", {
+            "runtime_executed": False,
             "errors": [
-                "--values is required for runtime because production dependencies and secrets are environment-specific"
-            ]
+                "runtime_precondition_failed",
+                "--values is required for runtime because production dependencies and secrets are environment-specific",
+            ],
+        }
+    cluster_tools = {
+        "helm": shutil.which("helm") is not None,
+        "kubectl": shutil.which("kubectl") is not None,
+        "kind": shutil.which("kind") is not None,
+        "k3d": shutil.which("k3d") is not None,
+    }
+    if not cluster_tools["helm"] or not cluster_tools["kubectl"]:
+        return "FAIL", {
+            "runtime_executed": False,
+            "cluster_tools": cluster_tools,
+            "errors": ["runtime_precondition_failed", "helm and kubectl are required"],
+        }
+    if not cluster_tools["kind"] and not cluster_tools["k3d"]:
+        return "FAIL", {
+            "runtime_executed": False,
+            "cluster_tools": cluster_tools,
+            "errors": [
+                "runtime_precondition_failed",
+                "kind or k3d is required for authoritative Linux runtime acceptance",
+            ],
         }
     commands: list[list[str]] = [
         ["kubectl", "get", "nodes"],
@@ -143,8 +183,11 @@ def _runtime_cluster_check(
         ],
     ]
     results: list[dict[str, Any]] = []
+    runtime_executed = False
     for command in commands:
         completed = _run(command, timeout_seconds=300)
+        if command[0] == "helm":
+            runtime_executed = True
         results.append(
             {
                 "command": command,
@@ -153,21 +196,156 @@ def _runtime_cluster_check(
             }
         )
         if completed.returncode != 0:
-            return "FAIL", {"results": results, "errors": ["runtime_cluster_command_failed"]}
+            return "FAIL", {
+                "runtime_executed": runtime_executed,
+                "results": results,
+                "errors": ["runtime_cluster_command_failed"],
+            }
+    probes = _runtime_kubernetes_probes(namespace, release)
+    if probes["errors"]:
+        return "FAIL", {
+            "runtime_executed": True,
+            "results": results,
+            "probes": probes,
+            "errors": ["runtime_probe_failed", *probes["errors"]],
+        }
     return "PASS", {
+        "runtime_executed": True,
         "results": results,
+        "probes": probes,
         "verified": [
             "control-plane rollout reached ready state",
             "validation-worker rollout reached ready state",
+            "at least three control-plane pods are available",
+            "at least three validation-worker pods are available",
+            "HPA and PDB objects are present",
+            "single control-plane and worker pod termination recover through rollout status",
         ],
-        "next_manual_or_ci_probe": (
-            "terminate one control-plane pod and one worker pod, then run P9 runtime execution "
-            "creation and verify exactly-once evidence"
-        ),
+    }
+
+
+def _kubectl_json(command: list[str], *, timeout_seconds: float = 120) -> dict[str, Any]:
+    completed = _run(command, timeout_seconds=timeout_seconds)
+    if completed.returncode != 0:
+        return {
+            "ok": False,
+            "command": command,
+            "returncode": completed.returncode,
+            "output": completed.stdout[-4000:],
+        }
+    try:
+        parsed = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        return {
+            "ok": False,
+            "command": command,
+            "returncode": completed.returncode,
+            "output": completed.stdout[-4000:],
+            "error": f"invalid json: {exc}",
+        }
+    return {"ok": True, "command": command, "returncode": 0, "json": parsed}
+
+
+def _deployment_available(namespace: str, deployment: str) -> dict[str, Any]:
+    probe = _kubectl_json(
+        ["kubectl", "get", "deployment", deployment, "-n", namespace, "-o", "json"]
+    )
+    if not probe["ok"]:
+        return probe
+    status = probe["json"].get("status", {})
+    spec = probe["json"].get("spec", {})
+    return {
+        **probe,
+        "desired_replicas": int(spec.get("replicas") or 0),
+        "available_replicas": int(status.get("availableReplicas") or 0),
+        "ready_replicas": int(status.get("readyReplicas") or 0),
+    }
+
+
+def _delete_one_pod(namespace: str, selector: str) -> dict[str, Any]:
+    pod_list = _kubectl_json(
+        ["kubectl", "get", "pods", "-n", namespace, "-l", selector, "-o", "json"],
+        timeout_seconds=120,
+    )
+    if not pod_list["ok"]:
+        return pod_list
+    items = pod_list["json"].get("items", [])
+    if not items:
+        return {"ok": False, "selector": selector, "error": "no matching pods"}
+    pod_name = items[0]["metadata"]["name"]
+    completed = _run(
+        ["kubectl", "delete", "pod", pod_name, "-n", namespace, "--wait=false"],
+        timeout_seconds=120,
+    )
+    return {
+        "ok": completed.returncode == 0,
+        "selector": selector,
+        "pod": pod_name,
+        "returncode": completed.returncode,
+        "output": completed.stdout[-4000:],
+    }
+
+
+def _rollout_status(namespace: str, deployment: str) -> dict[str, Any]:
+    completed = _run(
+        [
+            "kubectl",
+            "rollout",
+            "status",
+            f"deployment/{deployment}",
+            "-n",
+            namespace,
+            "--timeout=180s",
+        ],
+        timeout_seconds=240,
+    )
+    return {
+        "ok": completed.returncode == 0,
+        "deployment": deployment,
+        "returncode": completed.returncode,
+        "output": completed.stdout[-4000:],
+    }
+
+
+def _runtime_kubernetes_probes(namespace: str, release: str) -> dict[str, Any]:
+    control_plane = f"{release}-vulnlab-platform-control-plane"
+    validation_worker = f"{release}-vulnlab-platform-validation-worker"
+    control_status = _deployment_available(namespace, control_plane)
+    worker_status = _deployment_available(namespace, validation_worker)
+    hpa = _kubectl_json(["kubectl", "get", "hpa", "-n", namespace, "-o", "json"])
+    pdb = _kubectl_json(["kubectl", "get", "pdb", "-n", namespace, "-o", "json"])
+    control_delete = _delete_one_pod(namespace, "app.kubernetes.io/component=control-plane")
+    worker_delete = _delete_one_pod(namespace, "app.kubernetes.io/component=validation-worker")
+    control_rollout = _rollout_status(namespace, control_plane)
+    worker_rollout = _rollout_status(namespace, validation_worker)
+    errors: list[str] = []
+    if not control_status.get("ok") or control_status.get("available_replicas", 0) < 3:
+        errors.append("control_plane_available_replicas_below_three")
+    if not worker_status.get("ok") or worker_status.get("available_replicas", 0) < 3:
+        errors.append("worker_available_replicas_below_three")
+    if not hpa.get("ok") or len(hpa.get("json", {}).get("items", [])) < 2:
+        errors.append("hpa_missing")
+    if not pdb.get("ok") or len(pdb.get("json", {}).get("items", [])) < 2:
+        errors.append("pdb_missing")
+    if not control_delete.get("ok") or not control_rollout.get("ok"):
+        errors.append("control_plane_pod_termination_recovery_failed")
+    if not worker_delete.get("ok") or not worker_rollout.get("ok"):
+        errors.append("worker_pod_termination_recovery_failed")
+    return {
+        "control_plane": control_status,
+        "validation_worker": worker_status,
+        "hpa_count": len(hpa.get("json", {}).get("items", [])) if hpa.get("ok") else 0,
+        "pdb_count": len(pdb.get("json", {}).get("items", [])) if pdb.get("ok") else 0,
+        "control_plane_termination": control_delete,
+        "worker_termination": worker_delete,
+        "control_plane_recovery": control_rollout,
+        "worker_recovery": worker_rollout,
+        "errors": errors,
     }
 
 
 def run(*, runtime: bool, namespace: str, release: str, values_file: str | None) -> dict[str, Any]:
+    started_at = utc_timestamp()
     required_tools = ["helm"] + (["kubectl"] if runtime else [])
     checks = [
         _timed("scale_tooling", lambda: _require_tools(required_tools)),
@@ -196,15 +374,16 @@ def run(*, runtime: bool, namespace: str, release: str, values_file: str | None)
                 },
             )
         )
-    summary = {
-        "passed": sum(1 for check in checks if check.status == "PASS"),
-        "failed": sum(1 for check in checks if check.status == "FAIL"),
-        "skipped": sum(1 for check in checks if check.status == "SKIP"),
-    }
+    summary = summarize_checks(checks)
+    claimed = runtime_claimed(runtime, checks)
     return {
         "phase": "P12-scale",
-        "version": "2.12.0-p12",
+        "version": "2.12.1-p12r",
         "runtime": runtime,
+        "runtime_not_claimed": not claimed,
+        "started_at": started_at,
+        "finished_at": utc_timestamp(),
+        "environment": environment_fingerprint(),
         "valid": summary["failed"] == 0 and summary["skipped"] == 0,
         "summary": summary,
         "checks": [asdict(check) for check in checks],
@@ -219,6 +398,7 @@ def main() -> int:
     parser.add_argument("--namespace", default="vulnlab")
     parser.add_argument("--release", default="p12")
     parser.add_argument("--values", dest="values_file")
+    parser.add_argument("--report-json")
     args = parser.parse_args()
     result = run(
         runtime=args.runtime,
@@ -226,6 +406,7 @@ def main() -> int:
         release=args.release,
         values_file=args.values_file,
     )
+    write_report(args.report_json, result)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["valid"] else 1
 

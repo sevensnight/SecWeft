@@ -16,8 +16,19 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+from tools.p12.runtime_acceptance import (  # noqa: E402
+    environment_fingerprint,
+    require_isolated_runtime,
+    runtime_claimed,
+    summarize_checks,
+    utc_timestamp,
+    write_report,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,47 +104,121 @@ def _backup_manifest_check() -> tuple[str, dict[str, Any]]:
 
 
 def _runtime_backup() -> tuple[str, dict[str, Any]]:
+    isolation_ok, isolation = require_isolated_runtime()
+    if not isolation_ok:
+        return "FAIL", {
+            **isolation,
+            "errors": ["runtime_precondition_failed", *isolation["errors"]],
+        }
     if os.getenv("VULNLAB_P12_DR_MODE") != "isolated":
         return "FAIL", {
-            "errors": ["VULNLAB_P12_DR_MODE=isolated is required for runtime backup drills"]
+            "runtime_executed": False,
+            "errors": [
+                "runtime_precondition_failed",
+                "VULNLAB_P12_DR_MODE=isolated is required for runtime backup drills",
+            ],
         }
     if shutil.which("docker") is None:
-        return "FAIL", {"errors": ["docker is required for the existing compose backup drill"]}
+        return "FAIL", {
+            "runtime_executed": False,
+            "errors": ["runtime_precondition_failed", "docker is required for the runtime drill"],
+        }
+    if shutil.which("sh") is None:
+        return "FAIL", {
+            "runtime_executed": False,
+            "errors": ["runtime_precondition_failed", "POSIX sh is required for Linux runtime"],
+        }
     backup_root = os.getenv("VULNLAB_P12_DR_BACKUP_ROOT", "infrastructure/backups")
+    started_at = utc_timestamp()
+    timer = time.perf_counter()
     completed = _run(["sh", "infrastructure/scripts/backup.sh", backup_root], timeout_seconds=1200)
+    elapsed_ms = round((time.perf_counter() - timer) * 1000)
     return ("PASS" if completed.returncode == 0 else "FAIL"), {
+        "runtime_executed": True,
         "command": "sh infrastructure/scripts/backup.sh",
         "returncode": completed.returncode,
         "output": completed.stdout[-12000:],
         "rpo_target_minutes": 15,
+        "started_at": started_at,
+        "finished_at": utc_timestamp(),
+        "measured_backup_elapsed_ms": elapsed_ms,
+        "rpo_sla_claimed": False,
     }
 
 
 def _runtime_restore(backup_id: str | None) -> tuple[str, dict[str, Any]]:
+    isolation_ok, isolation = require_isolated_runtime()
+    if not isolation_ok:
+        return "FAIL", {
+            **isolation,
+            "errors": ["runtime_precondition_failed", *isolation["errors"]],
+        }
     if os.getenv("VULNLAB_P12_DR_MODE") != "isolated":
         return "FAIL", {
-            "errors": ["VULNLAB_P12_DR_MODE=isolated is required for runtime restore drills"]
+            "runtime_executed": False,
+            "errors": [
+                "runtime_precondition_failed",
+                "VULNLAB_P12_DR_MODE=isolated is required for runtime restore drills",
+            ],
         }
     if os.getenv("VULNLAB_P12_DR_CONFIRM") != "isolated-restore":
         return "FAIL", {
-            "errors": ["VULNLAB_P12_DR_CONFIRM=isolated-restore is required for restore"]
+            "runtime_executed": False,
+            "errors": [
+                "runtime_precondition_failed",
+                "VULNLAB_P12_DR_CONFIRM=isolated-restore is required for restore",
+            ],
         }
     if not backup_id:
-        return "FAIL", {"errors": ["--backup-id is required for restore"]}
+        return "FAIL", {
+            "runtime_executed": False,
+            "errors": ["runtime_precondition_failed", "--backup-id is required for restore"],
+        }
+    if shutil.which("sh") is None:
+        return "FAIL", {
+            "runtime_executed": False,
+            "errors": ["runtime_precondition_failed", "POSIX sh is required for Linux runtime"],
+        }
     backup_root = Path(os.getenv("VULNLAB_P12_DR_BACKUP_ROOT", "infrastructure/backups"))
     backup_dir = backup_root / backup_id
     if not backup_dir.is_dir():
-        return "FAIL", {"errors": [f"backup directory not found: {backup_dir}"]}
+        return "FAIL", {
+            "runtime_executed": False,
+            "errors": ["runtime_precondition_failed", f"backup directory not found: {backup_dir}"],
+        }
+    started_at = utc_timestamp()
+    timer = time.perf_counter()
     completed = _run(["sh", "infrastructure/scripts/restore.sh", "--yes", str(backup_dir)])
-    return ("PASS" if completed.returncode == 0 else "FAIL"), {
+    elapsed_ms = round((time.perf_counter() - timer) * 1000)
+    baseline = (
+        _run([sys.executable, "solve_p12_baseline.py", "--full"], timeout_seconds=1800)
+        if completed.returncode == 0
+        else None
+    )
+    restore_passed = completed.returncode == 0 and baseline is not None and baseline.returncode == 0
+    return ("PASS" if restore_passed else "FAIL"), {
+        "runtime_executed": True,
         "command": "sh infrastructure/scripts/restore.sh --yes",
         "returncode": completed.returncode,
         "output": completed.stdout[-12000:],
+        "baseline_after_restore": {
+            "command": [sys.executable, "solve_p12_baseline.py", "--full"],
+            "returncode": baseline.returncode if baseline is not None else None,
+            "output": baseline.stdout[-12000:] if baseline is not None else "",
+        }
+        if completed.returncode == 0
+        else None,
+        "restore_passed": restore_passed,
         "rto_target_minutes": 60,
+        "started_at": started_at,
+        "finished_at": utc_timestamp(),
+        "measured_restore_elapsed_ms": elapsed_ms,
+        "rto_sla_claimed": False,
     }
 
 
 def run(command: str, *, runtime: bool, backup_id: str | None) -> dict[str, Any]:
+    started_at = utc_timestamp()
     checks = [
         _timed("dr_required_files", _required_files),
         _timed("dr_backup_manifest_readiness", _backup_manifest_check),
@@ -187,16 +272,17 @@ def run(command: str, *, runtime: bool, backup_id: str | None) -> dict[str, Any]
                 },
             )
         )
-    summary = {
-        "passed": sum(1 for check in checks if check.status == "PASS"),
-        "failed": sum(1 for check in checks if check.status == "FAIL"),
-        "skipped": sum(1 for check in checks if check.status == "SKIP"),
-    }
+    summary = summarize_checks(checks)
+    claimed = runtime_claimed(runtime, checks)
     return {
         "phase": "P12-DR",
-        "version": "2.12.0-p12",
+        "version": "2.12.1-p12r",
         "command": command,
         "runtime": runtime,
+        "runtime_not_claimed": not claimed,
+        "started_at": started_at,
+        "finished_at": utc_timestamp(),
+        "environment": environment_fingerprint(),
         "valid": summary["failed"] == 0 and summary["skipped"] == 0,
         "summary": summary,
         "checks": [asdict(check) for check in checks],
@@ -210,8 +296,10 @@ def main() -> int:
     )
     parser.add_argument("--runtime", action="store_true", help="execute an isolated runtime drill")
     parser.add_argument("--backup-id")
+    parser.add_argument("--report-json")
     args = parser.parse_args()
     result = run(args.command, runtime=args.runtime, backup_id=args.backup_id)
+    write_report(args.report_json, result)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["valid"] else 1
 

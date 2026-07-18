@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      p12r_runtime:
+        description: Run P12-R isolated kind/k3d runtime acceptance
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -177,9 +183,9 @@ jobs:
         run: python solve_p9_hardening.py
 
   p12-linux-readiness:
-    name: P12 HA, scaling, and DR readiness
+    name: P12-R HA, scaling, and DR readiness
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -202,13 +208,135 @@ jobs:
       - run: python -m pip install --no-deps -e .
       - run: pnpm install --frozen-lockfile
       - run: pnpm generate:api
-      - name: Run P12 deterministic baseline
-        run: python solve_p12_baseline.py
+      - name: Run P9-P11 compatibility baselines
+        run: |
+          python solve_p9_baseline.py
+          python solve_p10_baseline.py
+          python solve_p11_baseline.py
+      - name: Run P12 full deterministic baseline
+        run: python solve_p12_baseline.py --full
       - name: Validate P12 scale, DR, and chaos guarded entry points
         run: |
           python solve_p12_scale.py
           python solve_p12_disaster_recovery.py
           python solve_p12_chaos.py
+      - name: Validate P12-R runtime gates fail closed without isolated runtime
+        run: |
+          mkdir -p work/p12r
+          set +e
+          python solve_p12_scale.py --runtime --namespace vulnlab --release p12 \
+            --values work/p12r/missing-runtime-values.yaml \
+            --report-json work/p12r/scale-precondition.json
+          scale_rc=$?
+          python solve_p12_disaster_recovery.py backup --runtime \
+            --report-json work/p12r/dr-backup-precondition.json
+          backup_rc=$?
+          python solve_p12_chaos.py --runtime --all \
+            --report-json work/p12r/chaos-precondition.json
+          chaos_rc=$?
+          set -e
+          test "$scale_rc" -ne 0
+          test "$backup_rc" -ne 0
+          test "$chaos_rc" -ne 0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for path in Path("work/p12r").glob("*-precondition.json"):
+              data = json.loads(path.read_text())
+              assert data["runtime"] is True, path
+              assert data["valid"] is False, path
+              assert data["runtime_not_claimed"] is True, path
+              assert data["summary"]["failed"] > 0, path
+          PY
+      - name: Upload P12-R precondition reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p12r-runtime-precondition-reports
+          path: work/p12r/*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  p12r-linux-runtime:
+    name: P12-R isolated Linux runtime acceptance
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.p12r_runtime }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      ENVIRONMENT: test
+      P12R_RUNTIME_ENV: isolated
+      P12R_TEST_CLUSTER_MARKER: isolated-runtime
+      CHAOS_ENABLED: "true"
+      VULNLAB_P12_CHAOS_ACK: isolated-chaos
+      VULNLAB_P12_DR_MODE: isolated
+      VULNLAB_P12_DR_CONFIRM: isolated-restore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Install kind
+        run: |
+          curl -fsSLo kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/kind
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: python -m pip install --no-deps -e .
+      - name: Require caller-provided runtime values
+        run: |
+          if [ -z "${P12R_RUNTIME_VALUES_B64:-}" ]; then
+            echo "P12R_RUNTIME_VALUES_B64 must contain the isolated runtime Helm values file."
+            echo "The runtime job intentionally fails without real PostgreSQL/NATS/MinIO/training-lab values."
+            exit 1
+          fi
+        env:
+          P12R_RUNTIME_VALUES_B64: ${{ secrets.P12R_RUNTIME_VALUES_B64 }}
+      - name: Create isolated kind cluster
+        run: |
+          kind create cluster --name vulnlab-p12r
+          kubectl cluster-info
+      - name: Write runtime values
+        run: |
+          mkdir -p work/p12r
+          printf '%s' "$P12R_RUNTIME_VALUES_B64" | base64 -d > work/p12r/runtime-values.yaml
+        env:
+          P12R_RUNTIME_VALUES_B64: ${{ secrets.P12R_RUNTIME_VALUES_B64 }}
+      - name: Run P12-R scale runtime acceptance
+        run: |
+          python solve_p12_scale.py --runtime --namespace vulnlab --release p12 \
+            --values work/p12r/runtime-values.yaml \
+            --report-json work/p12r/scale-runtime.json
+      - name: Run P12-R DR runtime backup
+        run: python solve_p12_disaster_recovery.py backup --runtime --report-json work/p12r/dr-backup-runtime.json
+      - name: Run P12-R DR runtime restore
+        run: |
+          backup_id=$(python - <<'PY'
+          from pathlib import Path
+
+          backups = sorted(Path("infrastructure/backups").glob("*/manifest.json"))
+          if not backups:
+              raise SystemExit("no backup manifest found")
+          print(backups[-1].parent.name)
+          PY
+          )
+          python solve_p12_disaster_recovery.py restore --runtime --backup-id "$backup_id" \
+            --report-json work/p12r/dr-restore-runtime.json
+      - name: Run P12-R chaos runtime acceptance
+        run: python solve_p12_chaos.py --runtime --all --report-json work/p12r/chaos-runtime.json
+      - name: Upload P12-R runtime reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p12r-runtime-reports
+          path: work/p12r/*.json
+          if-no-files-found: warn
+          retention-days: 30
 
   delivery-static:
     name: Delivery manifests and scripts

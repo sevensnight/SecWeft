@@ -48,6 +48,7 @@ REQUIRED_FILES = (
     "docs/operations/p12-disaster-recovery-runbook.md",
     "docs/security/p12-availability-boundaries.md",
     "docs/acceptance/p12-acceptance-report.md",
+    "docs/acceptance/p12-runtime-acceptance-report.md",
     "infrastructure/migrations/0012_p12_operational_resilience.up.sql",
     "infrastructure/migrations/0012_p12_operational_resilience.down.sql",
     "infrastructure/kubernetes/helm/vulnlab-platform/templates/deployment-validation-worker.yaml",
@@ -316,7 +317,7 @@ def run(full: bool) -> dict[str, Any]:
     }
     return {
         "phase": "P12",
-        "version": "2.12.0-p12",
+        "version": "2.12.1-p12r",
         "valid": summary["failed"] == 0 and summary["skipped"] == 0,
         "summary": summary,
         "checks": [asdict(check) for check in checks],

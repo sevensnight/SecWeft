@@ -315,6 +315,7 @@ class OperationalResilienceService:
         )
         metadata_keys: set[str] = set()
         findings: list[dict[str, Any]] = []
+        prefix = f"tenant={tenant_id}/"
         for row in rows:
             metadata = _json(row["metadata_json"], {})
             object_key = str(metadata.get("object_key", "")).strip()
@@ -328,6 +329,10 @@ class OperationalResilienceService:
             if not object_key:
                 status = "metadata_mismatch"
                 details["reason"] = "metadata does not contain object_key"
+            elif not object_key.startswith(prefix):
+                status = "tenant_prefix_mismatch"
+                details["expected_prefix"] = prefix
+                details["reason"] = "evidence metadata object_key is outside the tenant prefix"
             else:
                 metadata_keys.add(object_key)
                 inspected = self.evidence_store.inspect_json(object_key)
@@ -368,7 +373,6 @@ class OperationalResilienceService:
                     status = "metadata_mismatch"
             findings.append({"status": status, "details": details})
 
-        prefix = f"tenant={tenant_id}/"
         try:
             inventory = self.evidence_store.list_json_objects(prefix=prefix)
         except Exception as exc:
@@ -394,6 +398,9 @@ class OperationalResilienceService:
             "hash_mismatch": sum(1 for item in findings if item["status"] == "hash_mismatch"),
             "metadata_mismatch": sum(
                 1 for item in findings if item["status"] == "metadata_mismatch"
+            ),
+            "tenant_prefix_mismatch": sum(
+                1 for item in findings if item["status"] == "tenant_prefix_mismatch"
             ),
         }
         overall = (
@@ -491,7 +498,7 @@ class OperationalResilienceService:
         )
         queue = self.queue_summary()
         return {
-            "version": "2.12.0-p12",
+            "version": "2.12.1-p12r",
             "mode": {
                 "environment": self.settings.env,
                 "repository_backend": self.settings.repository_backend,

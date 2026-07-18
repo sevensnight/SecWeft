@@ -9,10 +9,14 @@ Create representative data before backup:
 - tenant and project
 - task
 - validation execution
+- validation execution events
 - evidence
 - vulnerability case
+- finding
+- remediation
 - retest and comparison
 - evaluation run
+- metric
 - audit events
 
 ## Drill sequence
@@ -28,6 +32,7 @@ Create representative data before backup:
 9. Verify audit chain continuity.
 10. Verify unfinished validation work resumes or is safely terminal.
 11. Rerun P9, P10, P11, and P12 acceptance.
+12. Save `solve_p12_disaster_recovery.py` runtime JSON reports and attach their summarized result to the acceptance report.
 
 ## Success criteria
 
@@ -36,7 +41,16 @@ Create representative data before backup:
 - No restore failure is marked as success.
 - Any incomplete evidence or broken relationship blocks success.
 - Runtime report is attached to `docs/acceptance/p12-acceptance-report.md`.
+- Runtime JSON contains `runtime=true`, `runtime_not_claimed=false`, `failed=0`, and `skipped=0`.
 
 ## Safety
 
 Never run restore against production unless a human operator has explicitly selected the target and backup. `solve_p12_disaster_recovery.py restore --runtime` requires isolated restore confirmation.
+
+P12-R runtime scripts additionally require:
+
+- `ENVIRONMENT=test`
+- `P12R_RUNTIME_ENV=isolated`
+- `P12R_TEST_CLUSTER_MARKER=isolated-runtime`
+
+If any of these are missing, the script fails as a runtime precondition and must not be counted as a skipped or passed runtime drill.

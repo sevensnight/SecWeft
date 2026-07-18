@@ -1,10 +1,9 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.12.0-p12
-  description: P12 contract for high availability, horizontal scaling, capacity controls,
-    evidence consistency, backup/restore, and disaster-recovery operations, preserving
-    P0-P11 control-plane compatibility.
+  version: 1.12.1-p12r
+  description: P12-R contract revision for resilience runtime acceptance gates and
+    reporting, preserving the P12 API surface and P0-P11 compatibility.
 servers:
 - url: /api/v1
 tags:

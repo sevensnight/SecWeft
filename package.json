@@ -1,6 +1,6 @@
 {
   "name": "vulnlab-module2-monorepo",
-  "version": "2.12.0-p12",
+  "version": "2.12.1-p12r",
   "private": true,
   "packageManager": "pnpm@10.30.1",
   "engines": {

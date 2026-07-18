@@ -16,6 +16,9 @@ These are targets until a real isolated runtime drill passes. The deterministic 
 Use an isolated environment:
 
 ```sh
+export ENVIRONMENT=test
+export P12R_RUNTIME_ENV=isolated
+export P12R_TEST_CLUSTER_MARKER=isolated-runtime
 export VULNLAB_P12_DR_MODE=isolated
 python solve_p12_disaster_recovery.py backup --runtime
 ```
@@ -34,12 +37,17 @@ The existing compose backup flow captures:
 Use an isolated environment only:
 
 ```sh
+export ENVIRONMENT=test
+export P12R_RUNTIME_ENV=isolated
+export P12R_TEST_CLUSTER_MARKER=isolated-runtime
 export VULNLAB_P12_DR_MODE=isolated
 export VULNLAB_P12_DR_CONFIRM=isolated-restore
 python solve_p12_disaster_recovery.py restore --runtime --backup-id <backup-directory-name>
 ```
 
-Restore must validate checksums before replacing state. If restore does not complete, stateful services remain stopped to prevent use of partial data.
+Restore must validate checksums before replacing state and must rerun `solve_p12_baseline.py --full` after state is restored. If restore does not complete, stateful services remain stopped to prevent use of partial data.
+
+Runtime backup and restore reports record measured elapsed time as test-environment RPO/RTO evidence only. These values are not production SLA claims.
 
 ## Kubernetes
 
@@ -49,3 +57,14 @@ The Helm chart includes:
 - restore Job disabled by default
 
 Runtime values must supply production dependencies and secrets. Restore requires an explicit backup ID and should be run only in an isolated recovery namespace before production use.
+
+## P12-R report artifacts
+
+Use `--report-json` to persist the exact machine-readable runtime result:
+
+```sh
+python solve_p12_disaster_recovery.py backup --runtime --report-json work/p12r-backup.json
+python solve_p12_disaster_recovery.py restore --runtime --backup-id <id> --report-json work/p12r-restore.json
+```
+
+The JSON report includes environment fingerprint, command output tails, start/end timestamps, measured backup/restore elapsed time, and whether runtime was actually claimed.
