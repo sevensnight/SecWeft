@@ -28,6 +28,8 @@ HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "opti
 CRITICAL_PATHS = frozenset(
     {
         "/system/requirements",
+        "/system/resilience",
+        "/system/resilience/evidence-consistency/check",
         "/tasks",
         "/tasks/{task_id}",
         "/tasks/{task_id}/events",
@@ -359,6 +361,9 @@ def validate_document(document: dict[str, Any]) -> list[str]:
     for required_schema in (
         "Problem",
         "SystemRequirements",
+        "SystemResilienceResponse",
+        "EvidenceConsistencyCheckRequest",
+        "EvidenceConsistencyReportResponse",
         "Task",
         "TaskCreate",
         "TaskEvent",

@@ -951,6 +951,88 @@ CREATE TABLE IF NOT EXISTS promotion_decisions (
     version INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS operational_capacity_quotas (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    quota_type TEXT NOT NULL CHECK(quota_type IN (
+        'tenant_concurrency','project_concurrency','global_concurrency',
+        'model_concurrency','sandbox_capacity','queue_backlog','api_rate_limit'
+    )),
+    subject_id TEXT NOT NULL,
+    max_concurrency INTEGER NOT NULL CHECK(max_concurrency > 0),
+    weight INTEGER NOT NULL DEFAULT 1 CHECK(weight > 0),
+    priority INTEGER NOT NULL DEFAULT 100 CHECK(priority >= 0),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, quota_type, subject_id)
+);
+
+CREATE TABLE IF NOT EXISTS operational_service_instances (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN ('control_plane','validation_worker','api_gateway','scheduler')),
+    status TEXT NOT NULL CHECK(status IN ('starting','ready','draining','terminated')),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    last_heartbeat_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS operational_worker_heartbeats (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    worker_id TEXT NOT NULL UNIQUE,
+    active_executions INTEGER NOT NULL DEFAULT 0 CHECK(active_executions >= 0),
+    sandbox_capacity INTEGER NOT NULL DEFAULT 0 CHECK(sandbox_capacity >= 0),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    last_heartbeat_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS operational_evidence_consistency_reports (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('healthy','inconsistent')),
+    summary_json TEXT NOT NULL DEFAULT '{}',
+    findings_json TEXT NOT NULL DEFAULT '[]',
+    repair_action TEXT NOT NULL DEFAULT 'none',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS operational_backup_restore_drills (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    drill_type TEXT NOT NULL CHECK(drill_type IN ('backup','restore','full_dr')),
+    status TEXT NOT NULL CHECK(status IN ('planned','running','succeeded','failed','aborted')),
+    rpo_seconds INTEGER CHECK(rpo_seconds IS NULL OR rpo_seconds >= 0),
+    rto_seconds INTEGER CHECK(rto_seconds IS NULL OR rto_seconds >= 0),
+    manifest_json TEXT NOT NULL DEFAULT '{}',
+    validation_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS operational_failure_injection_events (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    failure_type TEXT NOT NULL,
+    target TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('planned','running','succeeded','failed','blocked')),
+    isolated_environment INTEGER NOT NULL DEFAULT 1 CHECK(isolated_environment IN (0,1)),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE INDEX IF NOT EXISTS idx_evaluation_suites_tenant_project
     ON evaluation_suites(tenant_id, project_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_evaluation_datasets_suite
@@ -969,6 +1051,18 @@ CREATE INDEX IF NOT EXISTS idx_evaluation_reviews_run
     ON evaluation_reviews(run_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_promotion_decisions_run
     ON promotion_decisions(run_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_quota_subject
+    ON operational_capacity_quotas(tenant_id, quota_type, subject_id);
+CREATE INDEX IF NOT EXISTS idx_operational_instances_kind
+    ON operational_service_instances(kind, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_workers_heartbeat
+    ON operational_worker_heartbeats(tenant_id, last_heartbeat_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_evidence_reports
+    ON operational_evidence_consistency_reports(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_drills
+    ON operational_backup_restore_drills(tenant_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_failure_events
+    ON operational_failure_injection_events(tenant_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
@@ -1372,7 +1466,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=11")
+            connection.execute("PRAGMA user_version=12")
             connection.commit()
         except Exception:
             connection.rollback()

@@ -1,24 +1,33 @@
 # VulnLab platform Helm chart
 
-This chart is a runnable P0 deployment boundary for the gateway, static web
-console, and modular control plane. It deliberately keeps the control plane at
-one replica because its compatibility runtime still owns SQLite state. The
-gateway and console can scale independently.
+This chart is the P12 Kubernetes deployment boundary for:
 
-Render without cluster access:
+- API gateway and web console.
+- Three-or-more FastAPI control-plane replicas.
+- Three-or-more validation worker replicas.
+- HPA, PDB, rolling updates, readiness/liveness separation, topology spreading, and anti-affinity.
+- Backup CronJob and disabled-by-default restore Job.
+
+The chart does not install PostgreSQL, NATS JetStream, MinIO, OIDC, Docker runtime, or telemetry backends. Production mode must receive those dependencies through managed services or separately operated in-cluster charts. Runtime secrets must be provided by `secrets.existingSecret`; values files must not contain credentials.
+
+Required secret keys include at least:
+
+- `VULNLAB_ADMIN_KEY`
+- `VULNLAB_MASTER_KEY`
+- `DATABASE_URL`
+- `VULNLAB_NATS_URL`
+- `VULNLAB_MINIO_ENDPOINT`
+- `VULNLAB_MINIO_ACCESS_KEY`
+- `VULNLAB_MINIO_SECRET_KEY`
+- `VULNLAB_OIDC_ISSUER`
+- `VULNLAB_OIDC_AUDIENCE`
+- `VULNLAB_OIDC_JWKS_URL`
+
+Render and static validation:
 
 ```sh
-helm lint . --strict
-helm template p0 . --namespace vulnlab > rendered.yaml
+helm lint infrastructure/kubernetes/helm/vulnlab-platform --strict
+helm template p12 infrastructure/kubernetes/helm/vulnlab-platform --namespace vulnlab > rendered.yaml
 ```
 
-For a real deployment, build and publish the three images, provide their tags,
-and create an Opaque Secret named `vulnlab-platform-secrets` with
-`VULNLAB_ADMIN_KEY` and `VULNLAB_MASTER_KEY`. The master key must be a Fernet
-key and credentials must come from the deployment secret manager, not a values
-file.
-
-The chart does not install PostgreSQL, Redis, NATS, MinIO, or a telemetry
-backend. Production clusters should consume managed or separately operated
-instances after the control-plane adapters are activated in later phases. The
-local Compose model provides those integration dependencies for engineering.
+Authoritative multi-replica validation is not `helm template`. Use `solve_p12_scale.py --runtime --kind-cluster <cluster>` or the Linux CI job added in P12 to install into kind/k3d, wait for rollouts, terminate one control-plane pod and one worker pod, and verify that queued validation executions complete exactly once without duplicate evidence.

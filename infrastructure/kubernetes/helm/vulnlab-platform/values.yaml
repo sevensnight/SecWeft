@@ -1,6 +1,11 @@
 global:
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
 
 nameOverride: ""
 fullnameOverride: ""
@@ -14,7 +19,7 @@ gateway:
   replicaCount: 2
   image:
     repository: vulnlab/api-gateway
-    tag: 2.0.0-p0
+    tag: 2.12.0-p12
   service:
     type: ClusterIP
     port: 8080
@@ -26,7 +31,7 @@ gateway:
       cpu: 500m
       memory: 128Mi
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 2
     maxReplicas: 6
     targetCPUUtilizationPercentage: 70
@@ -38,7 +43,7 @@ webConsole:
   replicaCount: 2
   image:
     repository: vulnlab/web-console
-    tag: 2.0.0-p0
+    tag: 2.12.0-p12
   resources:
     requests:
       cpu: 50m
@@ -47,7 +52,7 @@ webConsole:
       cpu: 500m
       memory: 256Mi
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 2
     maxReplicas: 6
     targetCPUUtilizationPercentage: 70
@@ -56,15 +61,38 @@ webConsole:
     minAvailable: 1
 
 controlPlane:
-  replicaCount: 1
+  replicaCount: 3
   image:
     repository: vulnlab/control-plane
-    tag: 2.0.0-p0
+    tag: 2.12.0-p12
   environment: production
-  executionMode: dry_run
+  authMode: oidc
+  executionMode: docker
+  repositoryBackend: postgres
+  repositorySchema: compat
+  validationQueueBackend: nats
+  validationSandboxBackend: docker
+  validationSandboxNetwork: vulnlab-authorized-lab
+  evidenceStoreBackend: minio
   legacyExecutionEnabled: false
   allowedHosts: localhost,127.0.0.1,::1
   allowedPorts: 80,443,8000,8080
+  databasePool:
+    minSize: 2
+    maxSize: 16
+    timeoutSeconds: 10
+  p12:
+    queueDepthThreshold: 1000
+    maxPendingExecutions: 1000
+    globalConcurrencyLimit: 32
+    tenantConcurrencyLimit: 8
+    projectConcurrencyLimit: 4
+    modelConcurrencyLimit: 8
+    sandboxCapacityLimit: 8
+    apiRateLimitPerMinute: 600
+    minioUploadConcurrencyLimit: 8
+    retryMaxAttempts: 3
+    retryBaseDelaySeconds: 0.5
   resources:
     requests:
       cpu: 250m
@@ -72,12 +100,86 @@ controlPlane:
     limits:
       cpu: "1"
       memory: 1Gi
-  persistence:
+  autoscaling:
     enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 65
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+  gracefulShutdownSeconds: 30
+  persistence:
+    enabled: false
     accessModes: [ReadWriteOnce]
     size: 10Gi
     storageClass: ""
     existingClaim: ""
+
+validationWorker:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: vulnlab/control-plane
+    tag: 2.12.0-p12
+  command: ["python"]
+  args: ["apps/validation-worker/main.py", "--idle-sleep", "0.5"]
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 65
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+  gracefulShutdownSeconds: 30
+
+nats:
+  stream: VALIDATION_EXECUTIONS
+  subject: validation.executions.requested
+  durable: validation-worker
+  fetchTimeoutSeconds: 5
+
+minio:
+  bucket: validation-evidence
+  secure: false
+
+backup:
+  enabled: true
+  schedule: "*/15 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+restore:
+  enabled: false
+  backupId: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 
 secrets:
   create: false

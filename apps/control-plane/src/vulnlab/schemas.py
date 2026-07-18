@@ -1234,6 +1234,38 @@ class PromotionDecisionResponse(APIModel):
     version_no: int
 
 
+class EvidenceConsistencyCheckRequest(APIModel):
+    repair: bool = False
+    repair_action: Literal["none", "recompute_metadata_hash"] = "none"
+
+
+class EvidenceConsistencyReportResponse(APIModel):
+    id: str
+    tenant_id: str
+    status: Literal["healthy", "inconsistent"]
+    summary: dict[str, int]
+    findings: list[dict[str, Any]]
+    repair_action: str
+    created_at: str
+
+
+class SystemResilienceResponse(APIModel):
+    version: str
+    mode: dict[str, Any]
+    service_instances: list[dict[str, Any]]
+    workers: list[dict[str, Any]]
+    queue: dict[str, Any]
+    fairness: dict[str, Any]
+    capacity: dict[str, Any]
+    database: dict[str, Any]
+    nats: dict[str, Any]
+    evidence_consistency: dict[str, Any] | None
+    backup: dict[str, Any]
+    disaster_recovery: dict[str, Any]
+    chaos: dict[str, Any]
+    boundaries: list[str]
+
+
 class EvaluationDatasetDetailResponse(EvaluationDatasetResponse):
     cases: list[EvaluationCaseResponse] = Field(default_factory=list)
 

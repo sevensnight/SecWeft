@@ -8,7 +8,6 @@ import type {
   RemediationProposal,
   RemediationProposalCreate,
   RetestRequest,
-  VulnerabilityCase,
 } from '@vulnlab/shared-types';
 import {
   App,

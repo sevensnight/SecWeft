@@ -85,6 +85,19 @@ class Settings:
     minio_secret_key: str | None = None
     minio_bucket: str = "validation-evidence"
     minio_secure: bool = False
+    control_plane_instance_id: str = "control-plane-local"
+    worker_instance_id: str = "validation-worker-local"
+    p12_queue_depth_threshold: int = 1000
+    p12_max_pending_executions: int = 1000
+    p12_global_concurrency_limit: int = 32
+    p12_tenant_concurrency_limit: int = 8
+    p12_project_concurrency_limit: int = 4
+    p12_model_concurrency_limit: int = 8
+    p12_sandbox_capacity_limit: int = 8
+    p12_api_rate_limit_per_minute: int = 600
+    p12_minio_upload_concurrency_limit: int = 8
+    p12_retry_max_attempts: int = 3
+    p12_retry_base_delay_seconds: float = 0.5
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -200,6 +213,37 @@ class Settings:
             ]
             if missing_minio:
                 raise RuntimeError(f"MinIO evidence store requires: {', '.join(missing_minio)}")
+        p12_queue_depth_threshold = int(os.getenv("VULNLAB_P12_QUEUE_DEPTH_THRESHOLD", "1000"))
+        p12_max_pending = int(os.getenv("VULNLAB_P12_MAX_PENDING_EXECUTIONS", "1000"))
+        p12_global_limit = int(os.getenv("VULNLAB_P12_GLOBAL_CONCURRENCY_LIMIT", "32"))
+        p12_tenant_limit = int(os.getenv("VULNLAB_P12_TENANT_CONCURRENCY_LIMIT", "8"))
+        p12_project_limit = int(os.getenv("VULNLAB_P12_PROJECT_CONCURRENCY_LIMIT", "4"))
+        p12_model_limit = int(os.getenv("VULNLAB_P12_MODEL_CONCURRENCY_LIMIT", "8"))
+        p12_sandbox_limit = int(os.getenv("VULNLAB_P12_SANDBOX_CAPACITY_LIMIT", "8"))
+        p12_rate_limit = int(os.getenv("VULNLAB_P12_API_RATE_LIMIT_PER_MINUTE", "600"))
+        p12_minio_upload_limit = int(os.getenv("VULNLAB_P12_MINIO_UPLOAD_CONCURRENCY_LIMIT", "8"))
+        p12_retry_max_attempts = int(os.getenv("VULNLAB_P12_RETRY_MAX_ATTEMPTS", "3"))
+        p12_retry_base_delay = float(os.getenv("VULNLAB_P12_RETRY_BASE_DELAY_SECONDS", "0.5"))
+        if not all(
+            value >= 1
+            for value in (
+                p12_queue_depth_threshold,
+                p12_max_pending,
+                p12_global_limit,
+                p12_tenant_limit,
+                p12_project_limit,
+                p12_model_limit,
+                p12_sandbox_limit,
+                p12_rate_limit,
+                p12_minio_upload_limit,
+                p12_retry_max_attempts,
+            )
+        ):
+            raise RuntimeError("P12 capacity limits must be positive integers")
+        if p12_retry_max_attempts > 20:
+            raise RuntimeError("VULNLAB_P12_RETRY_MAX_ATTEMPTS must be at most 20")
+        if not 0.05 <= p12_retry_base_delay <= 60:
+            raise RuntimeError("VULNLAB_P12_RETRY_BASE_DELAY_SECONDS must be 0.05 to 60")
         if auth_mode == "oidc":
             missing = [
                 name
@@ -318,6 +362,25 @@ class Settings:
             minio_secret_key=minio_secret_key,
             minio_bucket=minio_bucket,
             minio_secure=minio_secure,
+            control_plane_instance_id=os.getenv(
+                "VULNLAB_CONTROL_PLANE_INSTANCE_ID", "control-plane-local"
+            ).strip()
+            or "control-plane-local",
+            worker_instance_id=os.getenv(
+                "VULNLAB_VALIDATION_WORKER_INSTANCE_ID", "validation-worker-local"
+            ).strip()
+            or "validation-worker-local",
+            p12_queue_depth_threshold=p12_queue_depth_threshold,
+            p12_max_pending_executions=p12_max_pending,
+            p12_global_concurrency_limit=p12_global_limit,
+            p12_tenant_concurrency_limit=p12_tenant_limit,
+            p12_project_concurrency_limit=p12_project_limit,
+            p12_model_concurrency_limit=p12_model_limit,
+            p12_sandbox_capacity_limit=p12_sandbox_limit,
+            p12_api_rate_limit_per_minute=p12_rate_limit,
+            p12_minio_upload_concurrency_limit=p12_minio_upload_limit,
+            p12_retry_max_attempts=p12_retry_max_attempts,
+            p12_retry_base_delay_seconds=p12_retry_base_delay,
         )
 
     @property

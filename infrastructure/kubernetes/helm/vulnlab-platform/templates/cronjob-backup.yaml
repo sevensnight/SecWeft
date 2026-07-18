@@ -1,0 +1,58 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-backup
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.backup.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.backup.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "vulnlab.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          serviceAccountName: {{ include "vulnlab.serviceAccountName" . }}
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: "{{ .Values.controlPlane.image.repository }}:{{ .Values.controlPlane.image.tag }}"
+              imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+              command: ["python"]
+              args: ["solve_p12_disaster_recovery.py", "backup", "--runtime"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "vulnlab.fullname" . }}-control-plane
+                - secretRef:
+                    name: {{ include "vulnlab.secretName" . }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir:
+                medium: Memory
+                sizeLimit: 128Mi
+{{- end }}

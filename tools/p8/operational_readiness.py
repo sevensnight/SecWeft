@@ -75,17 +75,22 @@ def check_compose() -> tuple[bool, dict[str, Any]]:
 
 def check_helm() -> tuple[bool, dict[str, Any]]:
     values = _load_yaml(HELM_ROOT / "values.yaml")
+    control_plane = values.get("controlPlane", {})
     templates = "\n".join(
         path.read_text(encoding="utf-8") for path in (HELM_ROOT / "templates").glob("*.yaml")
     )
+    external_stateful_backends = (
+        control_plane.get("repositoryBackend") == "postgres"
+        and control_plane.get("validationQueueBackend") == "nats"
+        and control_plane.get("validationSandboxBackend") == "docker"
+        and control_plane.get("evidenceStoreBackend") == "minio"
+        and control_plane.get("persistence", {}).get("enabled") is False
+    )
     invariants = {
         "network_policy_enabled_by_default": values.get("networkPolicy", {}).get("enabled") is True,
-        "control_plane_single_replica_until_external_state": values.get("controlPlane", {}).get(
-            "replicaCount"
-        )
-        == 1,
-        "legacy_execution_disabled": values.get("controlPlane", {}).get("legacyExecutionEnabled")
-        is False,
+        "control_plane_scaling_requires_external_state": control_plane.get("replicaCount") == 1
+        or (control_plane.get("replicaCount", 0) >= 3 and external_stateful_backends),
+        "legacy_execution_disabled": control_plane.get("legacyExecutionEnabled") is False,
         "service_account_token_not_automounted": "automountServiceAccountToken: false" in templates,
         "read_only_root_filesystem": "readOnlyRootFilesystem: true" in templates,
         "runtime_default_seccomp": "seccompProfile:" in templates and "RuntimeDefault" in templates,

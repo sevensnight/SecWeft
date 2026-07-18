@@ -8,11 +8,38 @@ data:
   VULNLAB_ENV: {{ .Values.controlPlane.environment | quote }}
   VULNLAB_DB_PATH: /data/vulnlab.db
   VULNLAB_WORKSPACE_ROOT: /data/workspaces
+  VULNLAB_AUTH_MODE: {{ .Values.controlPlane.authMode | quote }}
   VULNLAB_EXECUTION_MODE: {{ .Values.controlPlane.executionMode | quote }}
+  VULNLAB_REPOSITORY_BACKEND: {{ .Values.controlPlane.repositoryBackend | quote }}
+  VULNLAB_REPOSITORY_SCHEMA: {{ .Values.controlPlane.repositorySchema | quote }}
+  VULNLAB_DATABASE_POOL_MIN_SIZE: {{ .Values.controlPlane.databasePool.minSize | quote }}
+  VULNLAB_DATABASE_POOL_MAX_SIZE: {{ .Values.controlPlane.databasePool.maxSize | quote }}
+  VULNLAB_DATABASE_POOL_TIMEOUT_SECONDS: {{ .Values.controlPlane.databasePool.timeoutSeconds | quote }}
+  VULNLAB_VALIDATION_QUEUE_BACKEND: {{ .Values.controlPlane.validationQueueBackend | quote }}
+  VULNLAB_NATS_STREAM: {{ .Values.nats.stream | quote }}
+  VULNLAB_NATS_SUBJECT: {{ .Values.nats.subject | quote }}
+  VULNLAB_NATS_DURABLE: {{ .Values.nats.durable | quote }}
+  VULNLAB_NATS_FETCH_TIMEOUT_SECONDS: {{ .Values.nats.fetchTimeoutSeconds | quote }}
+  VULNLAB_VALIDATION_SANDBOX_BACKEND: {{ .Values.controlPlane.validationSandboxBackend | quote }}
+  VULNLAB_VALIDATION_SANDBOX_NETWORK: {{ .Values.controlPlane.validationSandboxNetwork | quote }}
+  VULNLAB_EVIDENCE_STORE_BACKEND: {{ .Values.controlPlane.evidenceStoreBackend | quote }}
+  VULNLAB_MINIO_BUCKET: {{ .Values.minio.bucket | quote }}
+  VULNLAB_MINIO_SECURE: {{ .Values.minio.secure | quote }}
   VULNLAB_LEGACY_EXECUTION_ENABLED: {{ .Values.controlPlane.legacyExecutionEnabled | quote }}
   VULNLAB_ALLOWED_HOSTS: {{ .Values.controlPlane.allowedHosts | quote }}
   VULNLAB_ALLOWED_PORTS: {{ .Values.controlPlane.allowedPorts | quote }}
   VULNLAB_ALLOW_PRIVATE_NETWORKS: "false"
+  VULNLAB_P12_QUEUE_DEPTH_THRESHOLD: {{ .Values.controlPlane.p12.queueDepthThreshold | quote }}
+  VULNLAB_P12_MAX_PENDING_EXECUTIONS: {{ .Values.controlPlane.p12.maxPendingExecutions | quote }}
+  VULNLAB_P12_GLOBAL_CONCURRENCY_LIMIT: {{ .Values.controlPlane.p12.globalConcurrencyLimit | quote }}
+  VULNLAB_P12_TENANT_CONCURRENCY_LIMIT: {{ .Values.controlPlane.p12.tenantConcurrencyLimit | quote }}
+  VULNLAB_P12_PROJECT_CONCURRENCY_LIMIT: {{ .Values.controlPlane.p12.projectConcurrencyLimit | quote }}
+  VULNLAB_P12_MODEL_CONCURRENCY_LIMIT: {{ .Values.controlPlane.p12.modelConcurrencyLimit | quote }}
+  VULNLAB_P12_SANDBOX_CAPACITY_LIMIT: {{ .Values.controlPlane.p12.sandboxCapacityLimit | quote }}
+  VULNLAB_P12_API_RATE_LIMIT_PER_MINUTE: {{ .Values.controlPlane.p12.apiRateLimitPerMinute | quote }}
+  VULNLAB_P12_MINIO_UPLOAD_CONCURRENCY_LIMIT: {{ .Values.controlPlane.p12.minioUploadConcurrencyLimit | quote }}
+  VULNLAB_P12_RETRY_MAX_ATTEMPTS: {{ .Values.controlPlane.p12.retryMaxAttempts | quote }}
+  VULNLAB_P12_RETRY_BASE_DELAY_SECONDS: {{ .Values.controlPlane.p12.retryBaseDelaySeconds | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap

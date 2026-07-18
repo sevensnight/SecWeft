@@ -1505,6 +1505,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/resilience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Return P12 high-availability, scaling, and resilience state */
+        get: operations["getSystemResilience"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/resilience/evidence-consistency/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compare PostgreSQL evidence metadata with object-store inventory */
+        post: operations["runEvidenceConsistencyCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3772,6 +3806,99 @@ export interface components {
             /** Version No */
             version_no: number;
         };
+        /** SystemResilienceResponse */
+        SystemResilienceResponse: {
+            /** Version */
+            version: string;
+            /** Mode */
+            mode: {
+                [key: string]: unknown;
+            };
+            /** Service Instances */
+            service_instances: {
+                [key: string]: unknown;
+            }[];
+            /** Workers */
+            workers: {
+                [key: string]: unknown;
+            }[];
+            /** Queue */
+            queue: {
+                [key: string]: unknown;
+            };
+            /** Fairness */
+            fairness: {
+                [key: string]: unknown;
+            };
+            /** Capacity */
+            capacity: {
+                [key: string]: unknown;
+            };
+            /** Database */
+            database: {
+                [key: string]: unknown;
+            };
+            /** Nats */
+            nats: {
+                [key: string]: unknown;
+            };
+            /** Evidence Consistency */
+            evidence_consistency: {
+                [key: string]: unknown;
+            } | null;
+            /** Backup */
+            backup: {
+                [key: string]: unknown;
+            };
+            /** Disaster Recovery */
+            disaster_recovery: {
+                [key: string]: unknown;
+            };
+            /** Chaos */
+            chaos: {
+                [key: string]: unknown;
+            };
+            /** Boundaries */
+            boundaries: string[];
+        };
+        /** EvidenceConsistencyCheckRequest */
+        EvidenceConsistencyCheckRequest: {
+            /**
+             * Repair
+             * @default false
+             */
+            repair: boolean;
+            /**
+             * Repair Action
+             * @default none
+             * @enum {string}
+             */
+            repair_action: "none" | "recompute_metadata_hash";
+        };
+        /** EvidenceConsistencyReportResponse */
+        EvidenceConsistencyReportResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "healthy" | "inconsistent";
+            /** Summary */
+            summary: {
+                [key: string]: number;
+            };
+            /** Findings */
+            findings: {
+                [key: string]: unknown;
+            }[];
+            /** Repair Action */
+            repair_action: string;
+            /** Created At */
+            created_at: string;
+        };
     };
     responses: {
         /** @description Authentication is missing or invalid */
@@ -3821,6 +3948,15 @@ export interface components {
         };
         /** @description Provider request or token quota has been exceeded */
         TooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Dependency is unavailable or the validation queue is saturated */
+        ServiceUnavailable: {
             headers: {
                 [name: string]: unknown;
             };
@@ -5667,6 +5803,8 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     listValidationExecutions: {
@@ -6528,24 +6666,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationComparisonResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     get_evaluation_comparison_api_v1_evaluation_comparisons__comparison_id__get: {
@@ -6570,24 +6693,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationComparisonResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     create_evaluation_dataset_api_v1_evaluation_datasets_post: {
@@ -6615,24 +6723,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationDatasetDetailResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     get_evaluation_dataset_api_v1_evaluation_datasets__dataset_id__get: {
@@ -6657,24 +6750,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationDatasetDetailResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     create_evaluation_case_api_v1_evaluation_datasets__dataset_id__cases_post: {
@@ -6704,24 +6782,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationCaseResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     list_evaluation_runs_api_v1_evaluation_runs_get: {
@@ -6747,24 +6810,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationRunResponse"][];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     create_evaluation_run_api_v1_evaluation_runs_post: {
@@ -6792,24 +6840,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationRunDetailResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     get_evaluation_run_api_v1_evaluation_runs__run_id__get: {
@@ -6834,24 +6867,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationRunDetailResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     cancel_evaluation_run_api_v1_evaluation_runs__run_id__cancel_post: {
@@ -6877,24 +6895,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationRunResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     list_evaluation_failures_api_v1_evaluation_runs__run_id__failures_get: {
@@ -6919,24 +6922,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationFailureResponse"][];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     list_evaluation_metrics_api_v1_evaluation_runs__run_id__metrics_get: {
@@ -6961,24 +6949,9 @@ export interface operations {
                     "application/json": components["schemas"]["MetricResultResponse"][];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     create_promotion_decision_api_v1_evaluation_runs__run_id__promotion_decisions_post: {
@@ -7008,24 +6981,9 @@ export interface operations {
                     "application/json": components["schemas"]["PromotionDecisionResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     list_evaluation_results_api_v1_evaluation_runs__run_id__results_get: {
@@ -7050,24 +7008,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationResultResponse"][];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     create_evaluation_review_api_v1_evaluation_runs__run_id__reviews_post: {
@@ -7097,24 +7040,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationReviewResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     list_evaluation_suites_api_v1_evaluation_suites_get: {
@@ -7140,24 +7068,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationSuiteResponse"][];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     create_evaluation_suite_api_v1_evaluation_suites_post: {
@@ -7185,24 +7098,9 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationSuiteResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     get_evaluation_suite_api_v1_evaluation_suites__suite_id__get: {
@@ -7227,24 +7125,65 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationSuiteResponse"];
                 };
             };
-            401: {
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getSystemResilience: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description High-availability and runtime resilience state */
+            200: {
                 headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SystemResilienceResponse"];
+                };
             };
-            403: {
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    runEvidenceConsistencyCheck: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceConsistencyCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description Evidence consistency report */
+            200: {
                 headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
                     [name: string]: unknown;
                 };
-                content?: never;
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
+                content: {
+                    "application/json": components["schemas"]["EvidenceConsistencyReportResponse"];
                 };
-                content?: never;
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
 }

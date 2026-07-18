@@ -1,0 +1,31 @@
+{{- if .Values.controlPlane.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-control-plane
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.controlPlane.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "vulnlab.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: control-plane
+{{- end }}
+{{- if and .Values.controlPlane.podDisruptionBudget.enabled .Values.validationWorker.podDisruptionBudget.enabled }}
+---
+{{- end }}
+{{- if and .Values.validationWorker.enabled .Values.validationWorker.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-validation-worker
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.validationWorker.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "vulnlab.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: validation-worker
+{{- end }}

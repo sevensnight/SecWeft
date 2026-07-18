@@ -107,7 +107,7 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
         "PromotionDecisionCreate",
     }
     invariants = {
-        "operation_count_is_p11": value["operation_count"] == 106,
+        "operation_count_keeps_p11_surface": value["operation_count"] >= 106,
         "all_p11_paths_exist": required_paths <= set(paths),
         "all_p11_schemas_exist": required_schemas <= set(schemas),
         "p10_case_paths_remain": "/vulnerability-cases/{case_id}/reports" in paths,

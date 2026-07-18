@@ -13,6 +13,7 @@ from typing import Any
 from .audit import AuditService
 from .config import Settings
 from .evidence import EvidenceService
+from .operational_resilience import OperationalResilienceService
 from .policy import PolicyDenied, PolicyService
 from .repository import ControlPlaneRepository
 from .schemas import EvidenceCreate, PolicyEvaluationRequest, Role
@@ -507,6 +508,14 @@ class ValidationExecutionService:
             raise ValidationExecutionStateError("idempotent validation request is still processing")
 
         decision = self._authorize_create(principal, plan_row, task_row, step)
+        OperationalResilienceService(
+            self.db,
+            self.settings,
+            self.evidence_store,
+        ).capacity_decision(
+            tenant_id=task_row["created_by"],
+            project_id=str(task_row["workflow_name"] or "default"),
+        ).raise_if_blocked()
         execution_id = str(uuid.uuid4())
         queue_id = str(uuid.uuid4())
         message_id = str(uuid.uuid4())
@@ -659,6 +668,14 @@ class ValidationExecutionService:
             raise KeyError("task not found")
         step = self._template_input(json.loads(plan_row["plan_json"]), original["template_id"])
         decision = self._authorize_create(principal, plan_row, task_row, step)
+        OperationalResilienceService(
+            self.db,
+            self.settings,
+            self.evidence_store,
+        ).capacity_decision(
+            tenant_id=task_row["created_by"],
+            project_id=str(task_row["workflow_name"] or "default"),
+        ).raise_if_blocked()
         execution_id = str(uuid.uuid4())
         queue_id = str(uuid.uuid4())
         message_id = str(uuid.uuid4())

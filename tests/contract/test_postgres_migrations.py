@@ -18,6 +18,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0009_p9h_repository_hardening",
         "0010_p10_case_lifecycle",
         "0011_p11_evaluation_governance",
+        "0012_p12_operational_resilience",
     ]
 
 
@@ -185,6 +186,37 @@ def test_p11_evaluation_governance_migration_has_versioned_metrics_and_gates() -
     assert "references evaluation.evaluation_run_variants (tenant_id, id)" in sql
     assert "grant select, insert, update on all tables in schema evaluation to vulnlab_app" in sql
     assert "grant select, insert, update, delete on all tables in schema evaluation" not in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p12_operational_resilience_migration_has_ha_scaling_and_dr_state() -> None:
+    up = MIGRATIONS / "0012_p12_operational_resilience.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists resilience" in sql
+    assert "resilience.capacity_quotas" in sql
+    assert "tenant_concurrency" in sql
+    assert "project_concurrency" in sql
+    assert "global_concurrency" in sql
+    assert "sandbox_capacity" in sql
+    assert "queue_backlog" in sql
+    assert "resilience.service_instances" in sql
+    assert "control_plane" in sql
+    assert "validation_worker" in sql
+    assert "resilience.worker_heartbeats" in sql
+    assert "active_executions integer not null default 0" in sql
+    assert "resilience.evidence_consistency_reports" in sql
+    assert "missing_object" not in sql
+    assert "resilience.backup_restore_drills" in sql
+    assert "rpo_seconds integer" in sql
+    assert "rto_seconds integer" in sql
+    assert "resilience.failure_injection_events" in sql
+    assert "isolated_environment boolean not null default true" in sql
+    assert "force row level security" in sql
+    assert "grant select, insert, update on all tables in schema resilience to vulnlab_app" in sql
+    assert "grant select, insert, update, delete on all tables in schema resilience" not in sql
     assert "host network" not in sql
     assert "docker socket" not in sql
     assert "exploit payload" not in sql

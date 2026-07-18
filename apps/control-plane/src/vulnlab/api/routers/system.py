@@ -5,6 +5,11 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 
 from ... import __version__
+from ...schemas import (
+    EvidenceConsistencyCheckRequest,
+    EvidenceConsistencyReportResponse,
+    SystemResilienceResponse,
+)
 from ...security import Principal
 from ..dependencies import ServicesDep, require
 
@@ -20,6 +25,35 @@ def health(services: ServicesDep) -> dict[str, Any]:
 def ready(services: ServicesDep) -> dict[str, Any]:
     services.db.fetch_one("SELECT 1")
     return {"status": "ready", "database": "ok"}
+
+
+@router.get("/live")
+def live() -> dict[str, Any]:
+    return {"status": "live", "version": __version__}
+
+
+@router.get("/api/v1/system/resilience", response_model=SystemResilienceResponse)
+def resilience(
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("health:read"))],
+) -> dict[str, Any]:
+    return services.operations.snapshot(tenant_id=current.id)
+
+
+@router.post(
+    "/api/v1/system/resilience/evidence-consistency/check",
+    response_model=EvidenceConsistencyReportResponse,
+)
+def evidence_consistency_check(
+    value: EvidenceConsistencyCheckRequest,
+    services: ServicesDep,
+    current: Annotated[Principal, Depends(require("health:read"))],
+) -> dict[str, Any]:
+    return services.operations.evidence_consistency_check(
+        tenant_id=current.id,
+        repair=value.repair,
+        repair_action=value.repair_action,
+    )
 
 
 @router.get("/api/v1/system/requirements")

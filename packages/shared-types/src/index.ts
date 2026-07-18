@@ -6,6 +6,11 @@ export type Task = components['schemas']['Task'];
 export type TaskEvent = components['schemas']['TaskEvent'];
 export type TaskExecution = components['schemas']['TaskExecution'];
 export type SystemRequirements = components['schemas']['SystemRequirements'];
+export type SystemResilience = components['schemas']['SystemResilienceResponse'];
+export type EvidenceConsistencyCheck =
+  components['schemas']['EvidenceConsistencyCheckRequest'];
+export type EvidenceConsistencyReport =
+  components['schemas']['EvidenceConsistencyReportResponse'];
 export type EnterpriseSession = components['schemas']['Session'];
 export type Tenant = components['schemas']['Tenant'];
 export type Organization = components['schemas']['Organization'];

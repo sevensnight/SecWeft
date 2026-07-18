@@ -80,6 +80,11 @@ def _headers(row: Any, payload: dict[str, Any], schema_version: int) -> dict[str
     }
 
 
+def _priority_rank(payload: dict[str, Any]) -> int:
+    priority = str(payload.get("priority", "normal")).lower()
+    return {"critical": 0, "high": 1, "normal": 2, "low": 3}.get(priority, 2)
+
+
 class SQLiteValidationQueue:
     """Durable local adapter used only for deterministic development and tests."""
 
@@ -147,16 +152,33 @@ class SQLiteValidationQueue:
 
     def lease_next(self, worker_id: str) -> QueueLeaseAttempt:
         now = _now()
-        row = self.db.fetch_one(
+        rows = self.db.fetch_all(
             """SELECT * FROM validation_queue_messages
                WHERE available_at<=? AND (
                    status='ready' OR (status='leased' AND locked_until<=?)
                )
-               ORDER BY created_at,id LIMIT 1""",
+               ORDER BY created_at,id LIMIT 50""",
             (now, now),
         )
-        if row is None:
+        if not rows:
             return QueueLeaseAttempt("empty")
+        leased_rows = self.db.fetch_all(
+            "SELECT payload_json FROM validation_queue_messages WHERE status='leased'"
+        )
+        tenant_load: dict[str, int] = {}
+        for leased in leased_rows:
+            payload = _json(leased["payload_json"], {})
+            tenant_id = str(payload.get("tenant_id", ""))
+            tenant_load[tenant_id] = tenant_load.get(tenant_id, 0) + 1
+        row = min(
+            rows,
+            key=lambda candidate: (
+                tenant_load.get(str(_json(candidate["payload_json"], {}).get("tenant_id", "")), 0),
+                _priority_rank(_json(candidate["payload_json"], {})),
+                str(candidate["created_at"]),
+                str(candidate["id"]),
+            ),
+        )
         return self._lease_row(row, worker_id)
 
     def lease_by_message_id(self, message_id: str, worker_id: str) -> QueueLeaseAttempt:

@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "8206565c265c21ee5fb0aa1b71d3d3fc3151667fbb5640e35ba45b8555b0d1a8",
+  "document_sha256": "17ab4ad793a5c1518c394abfb9aed2127a405a16b3f0d278d646c768749cc129",
   "openapi": "3.1.0",
-  "info_version": "1.11.0-p11",
+  "info_version": "1.12.0-p12",
   "operations": [
     {
       "method": "GET",
@@ -1332,6 +1332,46 @@
     },
     {
       "method": "GET",
+      "path": "/system/resilience",
+      "operation_id": "getSystemResilience",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/system/resilience/evidence-consistency/check",
+      "operation_id": "runEvidenceConsistencyCheck",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/task-dead-letters",
       "operation_id": "listTaskDeadLetters",
       "parameters": [
@@ -2199,7 +2239,9 @@
         "403",
         "404",
         "409",
-        "422"
+        "422",
+        "429",
+        "503"
       ],
       "success_media_types": [
         "application/json"
@@ -2704,6 +2746,8 @@
     "EvaluationRunVariantResponse",
     "EvaluationSuiteCreate",
     "EvaluationSuiteResponse",
+    "EvidenceConsistencyCheckRequest",
+    "EvidenceConsistencyReportResponse",
     "EvidenceCreate",
     "EvidenceItem",
     "KnowledgePack",
@@ -2758,6 +2802,7 @@
     "SkillDefinition",
     "SkillDefinitionCreate",
     "SystemRequirements",
+    "SystemResilienceResponse",
     "Task",
     "TaskActionRequest",
     "TaskCreate",

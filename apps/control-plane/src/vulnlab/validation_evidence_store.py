@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -24,6 +25,16 @@ class StoredEvidence:
     local_path: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class EvidenceObjectInfo:
+    object_key: str
+    exists: bool
+    content_sha256: str | None = None
+    size: int | None = None
+    content_type: str | None = None
+    backend: str = "unknown"
+
+
 class EvidenceStore(Protocol):
     def put_json(
         self,
@@ -34,6 +45,10 @@ class EvidenceStore(Protocol):
         evidence_id: str,
         content: str,
     ) -> StoredEvidence: ...
+
+    def inspect_json(self, object_key: str) -> EvidenceObjectInfo: ...
+
+    def list_json_objects(self, prefix: str | None = None) -> list[EvidenceObjectInfo]: ...
 
 
 def _object_key(
@@ -50,6 +65,19 @@ def _object_key(
 class FilesystemEvidenceStore:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+
+    def _path_for_key(self, key: str) -> Path:
+        local_name = hashlib.sha256(key.encode()).hexdigest()
+        return (
+            Path(self.settings.workspace_root)
+            / "validation-evidence"
+            / "blobs"
+            / local_name[:2]
+            / f"{local_name}.json"
+        )
+
+    def _manifest_path_for_key(self, key: str) -> Path:
+        return self._path_for_key(key).with_suffix(".manifest.json")
 
     def put_json(
         self,
@@ -71,19 +99,26 @@ class FilesystemEvidenceStore:
         # Keep the logical object key fully tenant/project/execution scoped, but avoid
         # expanding that long key into the local filesystem path. Windows test runners
         # can otherwise exceed MAX_PATH when pytest's temp directory is already deep.
-        local_name = hashlib.sha256(key.encode()).hexdigest()
-        path = (
-            Path(self.settings.workspace_root)
-            / "validation-evidence"
-            / "blobs"
-            / local_name[:2]
-            / f"{local_name}.json"
-        )
+        path = self._path_for_key(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(encoded)
         verify_digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if verify_digest != digest:
             raise EvidenceStoreError("filesystem evidence SHA-256 verification failed")
+        self._manifest_path_for_key(key).write_text(
+            json.dumps(
+                {
+                    "object_key": key,
+                    "content_sha256": digest,
+                    "size": len(encoded),
+                    "content_type": "application/json",
+                    "backend": "filesystem",
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
         return StoredEvidence(
             artifact_ref=f"minio://validation-evidence/{key}",
             object_key=key,
@@ -93,6 +128,40 @@ class FilesystemEvidenceStore:
             backend="filesystem",
             local_path=str(path),
         )
+
+    def inspect_json(self, object_key: str) -> EvidenceObjectInfo:
+        path = self._path_for_key(object_key)
+        if not path.is_file():
+            return EvidenceObjectInfo(
+                object_key=object_key,
+                exists=False,
+                backend="filesystem",
+            )
+        content = path.read_bytes()
+        return EvidenceObjectInfo(
+            object_key=object_key,
+            exists=True,
+            content_sha256=hashlib.sha256(content).hexdigest(),
+            size=len(content),
+            content_type="application/json",
+            backend="filesystem",
+        )
+
+    def list_json_objects(self, prefix: str | None = None) -> list[EvidenceObjectInfo]:
+        root = Path(self.settings.workspace_root) / "validation-evidence" / "blobs"
+        if not root.is_dir():
+            return []
+        objects: list[EvidenceObjectInfo] = []
+        for manifest in sorted(root.glob("*/*.manifest.json")):
+            try:
+                metadata = json.loads(manifest.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                continue
+            key = str(metadata.get("object_key", ""))
+            if not key or (prefix and not key.startswith(prefix)):
+                continue
+            objects.append(self.inspect_json(key))
+        return objects
 
 
 class MinioEvidenceStore:
@@ -159,6 +228,37 @@ class MinioEvidenceStore:
             content_type="application/json",
             backend="minio",
         )
+
+    def inspect_json(self, object_key: str) -> EvidenceObjectInfo:
+        try:
+            stat = self.client.stat_object(self.settings.minio_bucket, object_key)
+            response = self.client.get_object(self.settings.minio_bucket, object_key)
+        except Exception:
+            return EvidenceObjectInfo(object_key=object_key, exists=False, backend="minio")
+        try:
+            content = response.read()
+        finally:
+            response.close()
+            response.release_conn()
+        return EvidenceObjectInfo(
+            object_key=object_key,
+            exists=True,
+            content_sha256=hashlib.sha256(content).hexdigest(),
+            size=len(content),
+            content_type=stat.content_type or "application/octet-stream",
+            backend="minio",
+        )
+
+    def list_json_objects(self, prefix: str | None = None) -> list[EvidenceObjectInfo]:
+        try:
+            items = self.client.list_objects(
+                self.settings.minio_bucket,
+                prefix=prefix,
+                recursive=True,
+            )
+            return [self.inspect_json(item.object_name) for item in items]
+        except Exception as exc:
+            raise EvidenceStoreError("MinIO evidence inventory failed") from exc
 
 
 def build_evidence_store(settings: Settings) -> EvidenceStore:

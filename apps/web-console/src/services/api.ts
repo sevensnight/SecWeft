@@ -5,6 +5,8 @@ import type {
   EnterpriseRole,
   EnterpriseSession,
   EnterpriseUser,
+  EvidenceConsistencyCheck,
+  EvidenceConsistencyReport,
   EvidenceItem,
   ModelCatalogItem,
   ModelInvocation,
@@ -19,6 +21,7 @@ import type {
   RAGSearchResponse,
   SkillDefinition,
   SystemRequirements,
+  SystemResilience,
   Task,
   TaskEvent,
   TaskExecution,
@@ -69,6 +72,24 @@ function idempotencyKey(prefix: string) {
 export async function getSystemRequirements(): Promise<SystemRequirements> {
   const { data, error, response } = await apiClient.GET('/system/requirements');
   return requireData(data, error, response, '无法读取系统能力');
+}
+
+export async function getSystemResilience(): Promise<SystemResilience> {
+  const { data, error, response } = await apiClient.GET('/system/resilience');
+  return requireData(data, error, response, 'Unable to read resilience status');
+}
+
+export async function runEvidenceConsistencyCheck(
+  value: EvidenceConsistencyCheck = { repair: false, repair_action: 'none' },
+): Promise<EvidenceConsistencyReport> {
+  const { data, error, response } = await apiClient.POST(
+    '/system/resilience/evidence-consistency/check',
+    {
+      params: { header: { 'Idempotency-Key': idempotencyKey('evidence-consistency') } },
+      body: value,
+    },
+  );
+  return requireData(data, error, response, 'Unable to run evidence consistency check');
 }
 
 export async function listTasks(limit = 500): Promise<Task[]> {

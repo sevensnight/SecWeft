@@ -12,6 +12,7 @@ COPY pyproject.toml README.md ./
 COPY apps/control-plane/src ./apps/control-plane/src
 COPY apps/validation-worker ./apps/validation-worker
 COPY solve_module2.py ./
+COPY solve_p12_disaster_recovery.py solve_p12_scale.py solve_p12_chaos.py ./
 RUN pip install --no-cache-dir --no-deps .
 
 RUN adduser -D -u 10001 appuser \

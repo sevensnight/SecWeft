@@ -17,6 +17,12 @@ from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from ..enterprise.errors import EnterpriseError
 from ..model_gateway import ModelGatewayError, ProviderConfigurationError, RateLimitError
 from ..observability import request_logger
+from ..operational_resilience import (
+    OperationalDependencyUnavailable,
+    OperationalQueueSaturated,
+    OperationalQuotaExceeded,
+    OperationalRateLimited,
+)
 from ..orchestrator import TaskStateError
 from ..sandbox import SandboxPolicyError, SandboxRuntimeError
 from ..scope import ScopeViolation
@@ -188,6 +194,35 @@ def install_runtime(app: FastAPI, services: Services) -> None:
     async def model_rate_limit_error(request: Request, exc: RateLimitError) -> JSONResponse:
         return problem(request, status_code=429, detail=str(exc), code="model_rate_limited")
 
+    @app.exception_handler(OperationalRateLimited)
+    async def operational_rate_limited(
+        request: Request, exc: OperationalRateLimited
+    ) -> JSONResponse:
+        return problem(request, status_code=429, detail=str(exc), code="rate_limited")
+
+    @app.exception_handler(OperationalQuotaExceeded)
+    async def operational_quota_exceeded(
+        request: Request, exc: OperationalQuotaExceeded
+    ) -> JSONResponse:
+        return problem(request, status_code=429, detail=str(exc), code="quota_exceeded")
+
+    @app.exception_handler(OperationalQueueSaturated)
+    async def operational_queue_saturated(
+        request: Request, exc: OperationalQueueSaturated
+    ) -> JSONResponse:
+        return problem(request, status_code=503, detail=str(exc), code="queue_saturated")
+
+    @app.exception_handler(OperationalDependencyUnavailable)
+    async def operational_dependency_unavailable(
+        request: Request, exc: OperationalDependencyUnavailable
+    ) -> JSONResponse:
+        return problem(
+            request,
+            status_code=503,
+            detail=str(exc),
+            code="dependency_unavailable",
+        )
+
     @app.exception_handler(ModelGatewayError)
     async def gateway_error(request: Request, exc: ModelGatewayError) -> JSONResponse:
         return problem(request, status_code=503, detail=str(exc), code="model_gateway_unavailable")
@@ -250,9 +285,11 @@ def install_runtime(app: FastAPI, services: Services) -> None:
     async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
         code_by_status = {
             401: "authentication_failed",
+            429: "rate_limited",
             403: "permission_denied",
             404: "resource_not_found",
             409: "conflict",
+            503: "dependency_unavailable",
         }
         detail = exc.detail if isinstance(exc.detail, str) else "request failed"
         return problem(

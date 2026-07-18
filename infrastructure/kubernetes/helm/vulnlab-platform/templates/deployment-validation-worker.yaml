@@ -1,23 +1,24 @@
+{{- if .Values.validationWorker.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "vulnlab.fullname" . }}-control-plane
+  name: {{ include "vulnlab.fullname" . }}-validation-worker
   labels:
     {{- include "vulnlab.labels" . | nindent 4 }}
-    app.kubernetes.io/component: control-plane
+    app.kubernetes.io/component: validation-worker
 spec:
-  {{- if not .Values.controlPlane.autoscaling.enabled }}
-  replicas: {{ .Values.controlPlane.replicaCount }}
+  {{- if not .Values.validationWorker.autoscaling.enabled }}
+  replicas: {{ .Values.validationWorker.replicaCount }}
   {{- end }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: {{ .Values.controlPlane.rollingUpdate.maxUnavailable }}
-      maxSurge: {{ .Values.controlPlane.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.validationWorker.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.validationWorker.rollingUpdate.maxSurge }}
   selector:
     matchLabels:
       {{- include "vulnlab.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: control-plane
+      app.kubernetes.io/component: validation-worker
   template:
     metadata:
       annotations:
@@ -27,11 +28,11 @@ spec:
         {{- end }}
       labels:
         {{- include "vulnlab.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: control-plane
+        app.kubernetes.io/component: validation-worker
     spec:
       serviceAccountName: {{ include "vulnlab.serviceAccountName" . }}
       automountServiceAccountToken: false
-      terminationGracePeriodSeconds: {{ .Values.controlPlane.gracefulShutdownSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.validationWorker.gracefulShutdownSeconds }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -45,31 +46,30 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: control-plane
-          image: "{{ .Values.controlPlane.image.repository }}:{{ .Values.controlPlane.image.tag }}"
+        - name: validation-worker
+          image: "{{ .Values.validationWorker.image.repository }}:{{ .Values.validationWorker.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          ports:
-            - name: http
-              containerPort: 8000
+          command:
+            {{- toYaml .Values.validationWorker.command | nindent 12 }}
+          args:
+            {{- toYaml .Values.validationWorker.args | nindent 12 }}
           envFrom:
             - configMapRef:
                 name: {{ include "vulnlab.fullname" . }}-control-plane
             - secretRef:
                 name: {{ include "vulnlab.secretName" . }}
           env:
-            - name: VULNLAB_CONTROL_PLANE_INSTANCE_ID
+            - name: VULNLAB_VALIDATION_WORKER_INSTANCE_ID
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
           readinessProbe:
-            httpGet:
-              path: /ready
-              port: http
+            exec:
+              command: ["python", "-c", "import os; assert os.getenv('VULNLAB_VALIDATION_WORKER_INSTANCE_ID')"]
             periodSeconds: 10
           livenessProbe:
-            httpGet:
-              path: /live
-              port: http
+            exec:
+              command: ["python", "-c", "import sys; sys.exit(0)"]
             initialDelaySeconds: 15
             periodSeconds: 15
           lifecycle:
@@ -82,7 +82,7 @@ spec:
             capabilities:
               drop: ["ALL"]
           resources:
-            {{- toYaml .Values.controlPlane.resources | nindent 12 }}
+            {{- toYaml .Values.validationWorker.resources | nindent 12 }}
           volumeMounts:
             - name: data
               mountPath: /data
@@ -90,12 +90,8 @@ spec:
               mountPath: /tmp
       volumes:
         - name: data
-          {{- if .Values.controlPlane.persistence.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ default (printf "%s-control-plane" (include "vulnlab.fullname" .)) .Values.controlPlane.persistence.existingClaim }}
-          {{- else }}
-          emptyDir: {}
-          {{- end }}
+          emptyDir:
+            sizeLimit: 1Gi
         - name: tmp
           emptyDir:
             medium: Memory
@@ -108,7 +104,7 @@ spec:
           labelSelector:
             matchLabels:
               {{- include "vulnlab.selectorLabels" . | nindent 14 }}
-              app.kubernetes.io/component: control-plane
+              app.kubernetes.io/component: validation-worker
       {{- end }}
       affinity:
         podAntiAffinity:
@@ -119,7 +115,7 @@ spec:
                 labelSelector:
                   matchLabels:
                     {{- include "vulnlab.selectorLabels" . | nindent 20 }}
-                    app.kubernetes.io/component: control-plane
+                    app.kubernetes.io/component: validation-worker
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -128,3 +124,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

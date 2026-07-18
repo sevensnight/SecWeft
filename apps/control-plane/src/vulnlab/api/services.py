@@ -12,6 +12,7 @@ from ..enterprise import EnterpriseServices, build_enterprise_services
 from ..evaluation_governance import EvaluationGovernanceService
 from ..evidence import EvidenceService
 from ..model_gateway import ModelGateway, ProviderStore
+from ..operational_resilience import OperationalResilienceService
 from ..orchestrator import Orchestrator
 from ..policy import PolicyService
 from ..rag import RAGService
@@ -49,6 +50,7 @@ class Services:
     validation_execution: ValidationExecutionService
     cases: CaseManagementService
     evaluations: EvaluationGovernanceService
+    operations: OperationalResilienceService
     sandbox: SandboxService
     orchestrator: Orchestrator
     enterprise: EnterpriseServices | None = None
@@ -103,6 +105,7 @@ def build_services(settings: Settings) -> Services:
     gateway = ModelGateway(providers, audit)
     cases = CaseManagementService(db, policy, audit, validation_execution)
     evaluations = EvaluationGovernanceService(db, policy, audit, gateway)
+    operations = OperationalResilienceService(db, settings, validation_evidence_store)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
     enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
@@ -127,6 +130,7 @@ def build_services(settings: Settings) -> Services:
         validation_execution=validation_execution,
         cases=cases,
         evaluations=evaluations,
+        operations=operations,
         sandbox=sandbox,
         orchestrator=orchestrator,
         enterprise=enterprise,

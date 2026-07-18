@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.11.0-p11
-  description: P11 contract for AI evaluation governance, versioned ground truth,
-    immutable configuration snapshots, metric regression gates, human review, and
-    promotion decisions, preserving P0-P10 control-plane compatibility.
+  version: 1.12.0-p12
+  description: P12 contract for high availability, horizontal scaling, capacity controls,
+    evidence consistency, backup/restore, and disaster-recovery operations, preserving
+    P0-P11 control-plane compatibility.
 servers:
 - url: /api/v1
 tags:
@@ -1905,6 +1905,10 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /validation-executions:
     get:
       operationId: listValidationExecutions
@@ -2406,8 +2410,7 @@ paths:
       - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/XRequestId'
-      - &id001
-        name: case_id
+      - name: case_id
         in: path
         required: true
         schema:
@@ -2433,7 +2436,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/XRequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Update vulnerability case with optimistic locking
@@ -2465,7 +2472,11 @@ paths:
       - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/XRequestId'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: List case findings
@@ -2489,7 +2500,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/XRequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Create and bind a case finding
@@ -2521,7 +2536,11 @@ paths:
       - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/XRequestId'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: List remediation proposals
@@ -2545,7 +2564,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/XRequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Create remediation proposal
@@ -2652,7 +2675,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/XRequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '202':
           description: Request P9 validation retest
@@ -2684,8 +2711,7 @@ paths:
       - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/XRequestId'
-      - &id002
-        name: retest_id
+      - name: retest_id
         in: path
         required: true
         schema:
@@ -2711,7 +2737,11 @@ paths:
       - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/XRequestId'
-      - *id002
+      - name: retest_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Get before/after validation comparison
@@ -2734,7 +2764,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/XRequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Create human case disposition
@@ -2767,7 +2801,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/XRequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Close a dispositioned vulnerability case
@@ -2800,7 +2838,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/XRequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
-      - *id001
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Generate case report from reviewed evidence
@@ -2845,14 +2887,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationComparisonResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-comparisons/{comparison_id}:
@@ -2877,14 +2916,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationComparisonResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-datasets:
@@ -2910,14 +2946,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationDatasetDetailResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-datasets/{dataset_id}:
@@ -2942,14 +2975,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationDatasetDetailResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-datasets/{dataset_id}/cases:
@@ -2981,14 +3011,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationCaseResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs:
@@ -3014,14 +3041,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationRunDetailResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
     get:
@@ -3060,14 +3084,11 @@ paths:
                   $ref: '#/components/schemas/EvaluationRunResponse'
                 title: Response List Evaluation Runs Api V1 Evaluation Runs Get
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs/{run_id}:
@@ -3092,14 +3113,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationRunDetailResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs/{run_id}/cancel:
@@ -3125,14 +3143,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationRunResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs/{run_id}/failures:
@@ -3161,14 +3176,11 @@ paths:
                 title: Response List Evaluation Failures Api V1 Evaluation Runs  Run
                   Id  Failures Get
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs/{run_id}/metrics:
@@ -3197,14 +3209,11 @@ paths:
                 title: Response List Evaluation Metrics Api V1 Evaluation Runs  Run
                   Id  Metrics Get
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs/{run_id}/promotion-decisions:
@@ -3236,14 +3245,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PromotionDecisionResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs/{run_id}/results:
@@ -3272,14 +3278,11 @@ paths:
                 title: Response List Evaluation Results Api V1 Evaluation Runs  Run
                   Id  Results Get
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-runs/{run_id}/reviews:
@@ -3311,14 +3314,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationReviewResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-suites:
@@ -3344,14 +3344,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationSuiteResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
     get:
@@ -3390,14 +3387,11 @@ paths:
                   $ref: '#/components/schemas/EvaluationSuiteResponse'
                 title: Response List Evaluation Suites Api V1 Evaluation Suites Get
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
   /evaluation-suites/{suite_id}:
@@ -3422,16 +3416,70 @@ paths:
               schema:
                 $ref: '#/components/schemas/EvaluationSuiteResponse'
         '422':
-          ? ''
-          : '#/components/responses/ValidationError'
+          $ref: '#/components/responses/ValidationFailed'
         '401':
-          ? ''
-          : '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          ? ''
-          : '#/components/responses/Forbidden'
+          $ref: '#/components/responses/Forbidden'
       security:
       - BearerAuth: []
+  /system/resilience:
+    get:
+      operationId: getSystemResilience
+      tags:
+      - System
+      summary: Return P12 high-availability, scaling, and resilience state
+      security:
+      - BearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: High-availability and runtime resilience state
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemResilienceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /system/resilience/evidence-consistency/check:
+    post:
+      operationId: runEvidenceConsistencyCheck
+      tags:
+      - System
+      summary: Compare PostgreSQL evidence metadata with object-store inventory
+      security:
+      - BearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceConsistencyCheckRequest'
+      responses:
+        '200':
+          description: Evidence consistency report
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceConsistencyReportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -3554,6 +3602,12 @@ components:
             $ref: '#/components/schemas/Problem'
     TooManyRequests:
       description: Provider request or token quota has been exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServiceUnavailable:
+      description: Dependency is unavailable or the validation queue is saturated
       content:
         application/json:
           schema:
@@ -6586,7 +6640,7 @@ components:
           maxLength: 5000
         severity:
           type: string
-          enum: &id004
+          enum:
           - informational
           - low
           - medium
@@ -6610,7 +6664,7 @@ components:
           - string
           - 'null'
           maxLength: 240
-        metadata: &id003
+        metadata:
           type: object
           additionalProperties: true
     VulnerabilityCasePatch:
@@ -6665,7 +6719,8 @@ components:
           - null
         metadata:
           oneOf:
-          - *id003
+          - type: object
+            additionalProperties: true
           - type: 'null'
     VulnerabilityCase:
       type: object
@@ -6700,7 +6755,12 @@ components:
           type: string
         severity:
           type: string
-          enum: *id004
+          enum:
+          - informational
+          - low
+          - medium
+          - high
+          - critical
         status:
           type: string
           enum:
@@ -6718,19 +6778,23 @@ components:
           - CLOSED
         source:
           type: string
-        external_ref: &id006
+        external_ref:
           type:
           - string
           - 'null'
-        metadata: *id003
+        metadata:
+          type: object
+          additionalProperties: true
         created_by:
           type: string
         updated_by:
           type: string
-        created_at: &id005
+        created_at:
           type: string
           format: date-time
-        updated_at: *id005
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
           minimum: 1
@@ -6756,7 +6820,12 @@ components:
           maxLength: 240
         risk_level:
           type: string
-          enum: *id004
+          enum:
+          - informational
+          - low
+          - medium
+          - high
+          - critical
           default: medium
         status:
           type: string
@@ -6766,14 +6835,22 @@ components:
           - FALSE_POSITIVE
           - INCONCLUSIVE
           default: CANDIDATE
-        validation_execution_id: *id006
-        evidence_id: *id006
+        validation_execution_id:
+          type:
+          - string
+          - 'null'
+        evidence_id:
+          type:
+          - string
+          - 'null'
         project_id:
           type:
           - string
           - 'null'
           maxLength: 120
-        metadata: *id003
+        metadata:
+          type: object
+          additionalProperties: true
     CaseFinding:
       type: object
       additionalProperties: false
@@ -6803,16 +6880,30 @@ components:
           type: string
         project_id:
           type: string
-        validation_execution_id: *id006
-        evidence_id: *id006
+        validation_execution_id:
+          type:
+          - string
+          - 'null'
+        evidence_id:
+          type:
+          - string
+          - 'null'
         title:
           type: string
         description:
           type: string
-        affected_component: *id006
+        affected_component:
+          type:
+          - string
+          - 'null'
         risk_level:
           type: string
-          enum: *id004
+          enum:
+          - informational
+          - low
+          - medium
+          - high
+          - critical
         status:
           type: string
           enum:
@@ -6821,11 +6912,17 @@ components:
           - FALSE_POSITIVE
           - REMEDIATED
           - INCONCLUSIVE
-        metadata: *id003
+        metadata:
+          type: object
+          additionalProperties: true
         created_by:
           type: string
-        created_at: *id005
-        updated_at: *id005
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     RemediationProposalCreate:
@@ -6863,8 +6960,13 @@ components:
           items:
             type: string
           maxItems: 64
-        model_invocation_id: *id006
-        provenance: *id003
+        model_invocation_id:
+          type:
+          - string
+          - 'null'
+        provenance:
+          type: object
+          additionalProperties: true
     RemediationProposal:
       type: object
       additionalProperties: false
@@ -6915,8 +7017,13 @@ components:
           type: array
           items:
             type: string
-        model_invocation_id: *id006
-        provenance: *id003
+        model_invocation_id:
+          type:
+          - string
+          - 'null'
+        provenance:
+          type: object
+          additionalProperties: true
         status:
           type: string
           enum:
@@ -6926,8 +7033,12 @@ components:
           - CHANGES_REQUESTED
         proposed_by:
           type: string
-        created_at: *id005
-        updated_at: *id005
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     RemediationDecisionCreate:
@@ -6990,9 +7101,15 @@ components:
           type: boolean
         decided_by:
           type: string
-        decided_at: *id005
-        created_at: *id005
-        updated_at: *id005
+        decided_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     RemediationImplementationCreate:
@@ -7057,10 +7174,19 @@ components:
           type: string
         implemented_by:
           type: string
-        implemented_at: *id005
-        verification_notes: *id006
-        created_at: *id005
-        updated_at: *id005
+        implemented_at:
+          type: string
+          format: date-time
+        verification_notes:
+          type:
+          - string
+          - 'null'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     RetestRequestCreate:
@@ -7132,9 +7258,15 @@ components:
           type: boolean
         requested_by:
           type: string
-        requested_at: *id005
-        created_at: *id005
-        updated_at: *id005
+        requested_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     ValidationComparison:
@@ -7193,21 +7325,45 @@ components:
           type: string
         retest_status:
           type: string
-        success_condition_diff: *id003
-        key_response_diff: *id003
-        component_version_diff: *id003
-        evidence_sha256: *id003
-        risk_level_change: *id006
-        residual_risk: *id006
-        recommendation: *id006
-        reviewed_by: *id006
+        success_condition_diff:
+          type: object
+          additionalProperties: true
+        key_response_diff:
+          type: object
+          additionalProperties: true
+        component_version_diff:
+          type: object
+          additionalProperties: true
+        evidence_sha256:
+          type: object
+          additionalProperties: true
+        risk_level_change:
+          type:
+          - string
+          - 'null'
+        residual_risk:
+          type:
+          - string
+          - 'null'
+        recommendation:
+          type:
+          - string
+          - 'null'
+        reviewed_by:
+          type:
+          - string
+          - 'null'
         reviewed_at:
           type:
           - string
           - 'null'
           format: date-time
-        created_at: *id005
-        updated_at: *id005
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     CaseDispositionCreate:
@@ -7276,14 +7432,23 @@ components:
           - INCONCLUSIVE
         reason:
           type: string
-        residual_risk: *id006
+        residual_risk:
+          type:
+          - string
+          - 'null'
         human_confirmed:
           type: boolean
         decided_by:
           type: string
-        decided_at: *id005
-        created_at: *id005
-        updated_at: *id005
+        decided_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     CaseCloseRequest:
@@ -7336,12 +7501,20 @@ components:
           type: string
         title:
           type: string
-        report: *id003
+        report:
+          type: object
+          additionalProperties: true
         generated_by:
           type: string
-        generated_at: *id005
-        created_at: *id005
-        updated_at: *id005
+        generated_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         version:
           type: integer
     VulnerabilityCaseDetail:
@@ -7395,7 +7568,9 @@ components:
             $ref: '#/components/schemas/CaseReport'
         audit_events:
           type: array
-          items: *id003
+          items:
+            type: object
+            additionalProperties: true
     EvaluationCaseCreate:
       properties:
         external_id:
@@ -8927,3 +9102,143 @@ components:
       - updated_at
       - version_no
       title: PromotionDecisionResponse
+    SystemResilienceResponse:
+      properties:
+        version:
+          type: string
+          title: Version
+        mode:
+          additionalProperties: true
+          type: object
+          title: Mode
+        service_instances:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Service Instances
+        workers:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Workers
+        queue:
+          additionalProperties: true
+          type: object
+          title: Queue
+        fairness:
+          additionalProperties: true
+          type: object
+          title: Fairness
+        capacity:
+          additionalProperties: true
+          type: object
+          title: Capacity
+        database:
+          additionalProperties: true
+          type: object
+          title: Database
+        nats:
+          additionalProperties: true
+          type: object
+          title: Nats
+        evidence_consistency:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Evidence Consistency
+        backup:
+          additionalProperties: true
+          type: object
+          title: Backup
+        disaster_recovery:
+          additionalProperties: true
+          type: object
+          title: Disaster Recovery
+        chaos:
+          additionalProperties: true
+          type: object
+          title: Chaos
+        boundaries:
+          items:
+            type: string
+          type: array
+          title: Boundaries
+      additionalProperties: false
+      type: object
+      required:
+      - version
+      - mode
+      - service_instances
+      - workers
+      - queue
+      - fairness
+      - capacity
+      - database
+      - nats
+      - evidence_consistency
+      - backup
+      - disaster_recovery
+      - chaos
+      - boundaries
+      title: SystemResilienceResponse
+    EvidenceConsistencyCheckRequest:
+      properties:
+        repair:
+          type: boolean
+          title: Repair
+          default: false
+        repair_action:
+          type: string
+          enum:
+          - none
+          - recompute_metadata_hash
+          title: Repair Action
+          default: none
+      additionalProperties: false
+      type: object
+      title: EvidenceConsistencyCheckRequest
+    EvidenceConsistencyReportResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        status:
+          type: string
+          enum:
+          - healthy
+          - inconsistent
+          title: Status
+        summary:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Summary
+        findings:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Findings
+        repair_action:
+          type: string
+          title: Repair Action
+        created_at:
+          type: string
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - status
+      - summary
+      - findings
+      - repair_action
+      - created_at
+      title: EvidenceConsistencyReportResponse

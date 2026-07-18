@@ -1,0 +1,47 @@
+{{- if .Values.controlPlane.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-control-plane
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "vulnlab.fullname" . }}-control-plane
+  minReplicas: {{ .Values.controlPlane.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.controlPlane.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.controlPlane.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+{{- if and .Values.controlPlane.autoscaling.enabled .Values.validationWorker.autoscaling.enabled }}
+---
+{{- end }}
+{{- if and .Values.validationWorker.enabled .Values.validationWorker.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-validation-worker
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "vulnlab.fullname" . }}-validation-worker
+  minReplicas: {{ .Values.validationWorker.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.validationWorker.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.validationWorker.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

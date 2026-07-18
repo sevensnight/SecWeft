@@ -1,0 +1,60 @@
+{{- if .Values.restore.enabled }}
+{{- if not .Values.restore.backupId }}
+{{- fail "restore.backupId is required when restore.enabled=true" }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "vulnlab.fullname" . }}-restore-{{ .Values.restore.backupId | trunc 24 | trimSuffix "-" }}
+  labels:
+    {{- include "vulnlab.labels" . | nindent 4 }}
+    app.kubernetes.io/component: restore
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        {{- include "vulnlab.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: restore
+    spec:
+      serviceAccountName: {{ include "vulnlab.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: restore
+          image: "{{ .Values.controlPlane.image.repository }}:{{ .Values.controlPlane.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command: ["python"]
+          args:
+            - solve_p12_disaster_recovery.py
+            - restore
+            - --runtime
+            - --backup-id
+            - {{ .Values.restore.backupId | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "vulnlab.fullname" . }}-control-plane
+            - secretRef:
+                name: {{ include "vulnlab.secretName" . }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.restore.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+{{- end }}

@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import type {
-  EvaluationComparison,
   EvaluationFailure,
   EvaluationReviewCreate,
   EvaluationRunVariant,
@@ -44,6 +43,16 @@ function metricValue(value: number) {
   if (Number.isInteger(value)) return value.toString();
   return value.toFixed(value < 1 ? 4 : 2);
 }
+
+type EvaluationReviewFormValue = Pick<
+  EvaluationReviewCreate,
+  'decision' | 'blind' | 'comments'
+>;
+
+type PromotionDecisionFormValue = Pick<
+  PromotionDecisionCreate,
+  'decision' | 'reason' | 'target_environment'
+>;
 
 export function EvaluationRunDetailPage() {
   const { runId } = useParams({ from: '/evaluations/$runId' });
@@ -222,7 +231,7 @@ export function EvaluationRunDetailPage() {
 
           <Card title="Human review and promotion" className="section-gap">
             <Space align="start" wrap>
-              <Form
+              <Form<EvaluationReviewFormValue>
                 layout="vertical"
                 initialValues={{ decision: 'ACCEPTED', blind: true }}
                 onFinish={(value) => review.mutate({
@@ -243,7 +252,7 @@ export function EvaluationRunDetailPage() {
                 </Form.Item>
                 <Button type="primary" htmlType="submit" loading={review.isPending}>Record review</Button>
               </Form>
-              <Form
+              <Form<PromotionDecisionFormValue>
                 layout="vertical"
                 initialValues={{ decision: 'APPROVED', target_environment: 'production' }}
                 onFinish={(value) => promotion.mutate({

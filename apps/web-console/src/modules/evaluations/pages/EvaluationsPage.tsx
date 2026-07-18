@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import type { EvaluationCaseOutput, EvaluationRun, EvaluationRunCreate, EvaluationSuite } from '@vulnlab/shared-types';
-import { App, Button, Card, Space, Table, Tag, Typography } from 'antd';
+import { App, Button, Card, Table, Tag, Typography } from 'antd';
 
 import { queryClient } from '../../../app/query-client';
 import { LoadingState } from '../../../components/LoadingState';
