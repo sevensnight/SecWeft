@@ -17,8 +17,16 @@ from .policy import PolicyDenied, PolicyService
 from .schemas import EvidenceCreate, PolicyEvaluationRequest, Role
 from .scope import ScopeService, ScopeViolation
 from .security import Principal
+from .validation_evidence_store import EvidenceStore, EvidenceStoreError
+from .validation_queue import VALIDATION_QUEUE_SUBJECT, ValidationQueue, ValidationQueueMessage
+from .validation_sandbox import (
+    HttpResponseSandboxRequest,
+    SandboxBackend,
+    ValidationSandboxError,
+    ValidationSandboxResourceExceeded,
+)
 
-QUEUE_SUBJECT = "validation.executions.requested"
+QUEUE_SUBJECT = VALIDATION_QUEUE_SUBJECT
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 TERMINAL_STATUSES = frozenset(
     {
@@ -219,6 +227,9 @@ class ValidationExecutionService:
         evidence: EvidenceService,
         policy: PolicyService,
         audit: AuditService,
+        queue: ValidationQueue,
+        sandbox_backend: SandboxBackend,
+        evidence_store: EvidenceStore,
     ):
         self.db = db
         self.settings = settings
@@ -226,6 +237,9 @@ class ValidationExecutionService:
         self.evidence = evidence
         self.policy = policy
         self.audit = audit
+        self.queue = queue
+        self.sandbox_backend = sandbox_backend
+        self.evidence_store = evidence_store
 
     @staticmethod
     def templates() -> list[dict[str, Any]]:
@@ -373,6 +387,11 @@ class ValidationExecutionService:
         finished_at_sql = ",finished_at=?" if finished_at else ""
         result_sql = ",result_json=?" if result is not None else ""
         policy_sql = ",policy_decision_id=?" if policy_decision_id is not None else ""
+        lease_sql = (
+            ",lease_owner=NULL,lease_token=NULL,lease_expires_at=NULL"
+            if status in TERMINAL_STATUSES
+            else ""
+        )
         params: list[Any] = [status, now]
         if status == "RUNNING":
             params.append(now)
@@ -386,7 +405,7 @@ class ValidationExecutionService:
         with self.db.transaction() as connection:
             connection.execute(
                 f"""UPDATE validation_executions
-                    SET status=?,updated_at=?{started_at_sql}{finished_at_sql}{result_sql}{policy_sql},
+                    SET status=?,updated_at=?{started_at_sql}{finished_at_sql}{result_sql}{policy_sql}{lease_sql},
                         error=COALESCE(?, error)
                     WHERE id=?""",
                 tuple(params),
@@ -428,6 +447,7 @@ class ValidationExecutionService:
         *,
         idempotency_key: str | None,
         template_id: str | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         if not idempotency_key or len(idempotency_key) > 200:
             raise ValidationExecutionStateError(
@@ -474,7 +494,11 @@ class ValidationExecutionService:
         sandbox_id = f"vlsbx-{uuid.uuid4().hex[:20]}"
         approval_id = f"validation-plan:{plan_id}:{plan_row['reviewed_at']}"
         now = _now()
+        queue_subject = self.settings.nats_subject or QUEUE_SUBJECT
         payload = {
+            "schema_version": self.settings.validation_message_schema_version,
+            "message_id": message_id,
+            "queue_message_id": queue_id,
             "execution_id": execution_id,
             "tenant_id": task_row["created_by"],
             "plan_id": plan_id,
@@ -482,6 +506,7 @@ class ValidationExecutionService:
             "template_id": step["template_id"],
             "template_version": step["template_version"],
             "trace_id": trace_id,
+            "request_id": request_id or str(uuid.uuid4()),
             "sandbox_id": sandbox_id,
             "approval_id": approval_id,
             "policy_decision_id": decision["id"],
@@ -517,14 +542,16 @@ class ValidationExecutionService:
             )
             connection.execute(
                 """INSERT INTO validation_queue_messages(
-                   id,execution_id,message_id,subject,status,attempt,max_attempts,available_at,
+                   id,execution_id,message_id,subject,schema_version,status,attempt,
+                   max_attempts,available_at,
                    locked_by,lock_token,locked_until,last_error,payload_json,created_at,updated_at
-                   ) VALUES(?,?,?,?, 'ready',0,3,?,NULL,NULL,NULL,NULL,?,?,?)""",
+                   ) VALUES(?,?,?,?,?,'ready',0,3,?,NULL,NULL,NULL,NULL,?,?,?)""",
                 (
                     queue_id,
                     execution_id,
                     message_id,
-                    QUEUE_SUBJECT,
+                    queue_subject,
+                    self.settings.validation_message_schema_version,
                     now,
                     json.dumps(payload, ensure_ascii=False, sort_keys=True),
                     now,
@@ -537,8 +564,10 @@ class ValidationExecutionService:
                 "QUEUED",
                 {
                     "message_id": message_id,
-                    "subject": QUEUE_SUBJECT,
+                    "subject": queue_subject,
+                    "schema_version": self.settings.validation_message_schema_version,
                     "trace_id": trace_id,
+                    "request_id": payload["request_id"],
                     "sandbox_id": sandbox_id,
                     "approval_id": approval_id,
                     "policy_decision_id": decision["id"],
@@ -586,7 +615,7 @@ class ValidationExecutionService:
                 "sandbox_id": sandbox_id,
                 "approval_id": approval_id,
                 "policy_decision_id": decision["id"],
-                "queue_subject": QUEUE_SUBJECT,
+                "queue_subject": queue_subject,
             },
         )
         return response_snapshot
@@ -617,7 +646,11 @@ class ValidationExecutionService:
         sandbox_id = f"vlsbx-{uuid.uuid4().hex[:20]}"
         approval_id = f"validation-plan:{plan_row['id']}:{plan_row['reviewed_at']}"
         now = _now()
+        queue_subject = self.settings.nats_subject or QUEUE_SUBJECT
         payload = {
+            "schema_version": self.settings.validation_message_schema_version,
+            "message_id": message_id,
+            "queue_message_id": queue_id,
             "execution_id": execution_id,
             "tenant_id": task_row["created_by"],
             "plan_id": plan_row["id"],
@@ -625,6 +658,7 @@ class ValidationExecutionService:
             "template_id": step["template_id"],
             "template_version": step["template_version"],
             "trace_id": trace_id,
+            "request_id": str(uuid.uuid4()),
             "sandbox_id": sandbox_id,
             "approval_id": approval_id,
             "policy_decision_id": decision["id"],
@@ -659,14 +693,16 @@ class ValidationExecutionService:
             )
             connection.execute(
                 """INSERT INTO validation_queue_messages(
-                   id,execution_id,message_id,subject,status,attempt,max_attempts,available_at,
+                   id,execution_id,message_id,subject,schema_version,status,attempt,
+                   max_attempts,available_at,
                    locked_by,lock_token,locked_until,last_error,payload_json,created_at,updated_at
-                   ) VALUES(?,?,?,?, 'ready',0,3,?,NULL,NULL,NULL,NULL,?,?,?)""",
+                   ) VALUES(?,?,?,?,?,'ready',0,3,?,NULL,NULL,NULL,NULL,?,?,?)""",
                 (
                     queue_id,
                     execution_id,
                     message_id,
-                    QUEUE_SUBJECT,
+                    queue_subject,
+                    self.settings.validation_message_schema_version,
                     now,
                     json.dumps(payload, ensure_ascii=False, sort_keys=True),
                     now,
@@ -677,7 +713,13 @@ class ValidationExecutionService:
                 execution_id,
                 "validation_execution.retry_queued",
                 "QUEUED",
-                {"retry_of": original["id"], "message_id": message_id, "trace_id": trace_id},
+                {
+                    "retry_of": original["id"],
+                    "message_id": message_id,
+                    "schema_version": self.settings.validation_message_schema_version,
+                    "trace_id": trace_id,
+                    "request_id": payload["request_id"],
+                },
                 connection,
             )
         self.audit.record(
@@ -780,6 +822,7 @@ class ValidationExecutionService:
             execution_id,
             details={"reason": reason},
         )
+        self.queue.cancel_execution(execution_id)
         return self.get(execution_id)
 
     def retry(self, principal: Principal, execution_id: str) -> dict[str, Any]:
@@ -830,81 +873,114 @@ class ValidationExecutionService:
         )
         return self.get(execution_id)
 
-    def _lease_message(self, worker_id: str) -> dict[str, Any] | None:
+    def _acquire_execution_lease(self, message: ValidationQueueMessage, worker_id: str) -> bool:
         now = _now()
-        token = str(uuid.uuid4())
+        lease_token = message.lock_token or str(uuid.uuid4())
         with self.db.transaction() as connection:
-            row = connection.execute(
-                """SELECT * FROM validation_queue_messages
-                   WHERE status='ready' AND available_at<=?
-                   ORDER BY created_at,id LIMIT 1""",
-                (now,),
-            ).fetchone()
-            if row is None:
-                return None
-            connection.execute(
-                """UPDATE validation_queue_messages
-                   SET status='leased',attempt=attempt+1,locked_by=?,lock_token=?,
-                       locked_until=?,updated_at=?
-                   WHERE id=? AND status='ready'""",
-                (worker_id, token, _future(60), now, row["id"]),
-            )
-            leased = connection.execute(
-                "SELECT * FROM validation_queue_messages WHERE id=?", (row["id"],)
-            ).fetchone()
-        if leased is None:
-            return None
-        return {
-            "id": leased["id"],
-            "execution_id": leased["execution_id"],
-            "message_id": leased["message_id"],
-            "subject": leased["subject"],
-            "attempt": int(leased["attempt"]),
-            "max_attempts": int(leased["max_attempts"]),
-            "payload": _json(leased["payload_json"], {}),
-            "lock_token": leased["lock_token"],
-        }
-
-    def _finish_message(self, queue_id: str, status: str, error: str | None = None) -> None:
-        self.db.execute(
-            """UPDATE validation_queue_messages
-               SET status=?,last_error=?,updated_at=? WHERE id=?""",
-            (status, error, _now(), queue_id),
-        )
+            updated = connection.execute(
+                f"""UPDATE validation_executions
+                    SET lease_owner=?,lease_token=?,lease_expires_at=?,
+                        worker_attempt=worker_attempt+1,updated_at=?
+                    WHERE id=? AND status NOT IN ({",".join("?" for _ in TERMINAL_STATUSES)})
+                      AND (lease_expires_at IS NULL OR lease_expires_at<=? OR lease_token=?)""",
+                (
+                    worker_id,
+                    lease_token,
+                    _future(self.settings.validation_queue_lease_seconds),
+                    now,
+                    message.execution_id,
+                    *sorted(TERMINAL_STATUSES),
+                    now,
+                    lease_token,
+                ),
+            ).rowcount
+            if updated == 1:
+                self._record_event(
+                    message.execution_id,
+                    "validation_execution.lease_acquired",
+                    "QUEUED",
+                    {
+                        "worker_id": worker_id,
+                        "queue_message_id": message.id,
+                        "message_id": message.message_id,
+                        "redelivered": message.redelivered,
+                    },
+                    connection,
+                )
+        return updated == 1
 
     def run_worker_once(self, worker_id: str = "validation-worker") -> dict[str, Any] | None:
-        message = self._lease_message(worker_id)
+        message = self.queue.consume_once(worker_id)
         if message is None:
             return None
-        execution = self.get(message["execution_id"])
+        execution = self.get(message.execution_id)
         if execution["status"] in TERMINAL_STATUSES:
-            self._finish_message(message["id"], "done")
+            self.queue.complete(message.id)
             return execution
+        if not self._acquire_execution_lease(message, worker_id):
+            self.queue.retry(
+                message.id, "execution lease is held by another worker", delay_seconds=1
+            )
+            return self.get(message.execution_id)
         try:
             result = self._execute(message)
         except Exception as exc:  # defensive final catch: the message is not lost.
-            if message["attempt"] >= message["max_attempts"]:
+            if message.attempt >= message.max_attempts:
                 self._set_status(
-                    message["execution_id"],
+                    message.execution_id,
                     "SANDBOX_FAILED",
                     "validation_execution.worker_failed",
                     {"error": type(exc).__name__},
                     error=str(exc),
                 )
-                self._finish_message(message["id"], "dead", str(exc))
+                self.queue.dead(message.id, str(exc))
             else:
-                self.db.execute(
-                    """UPDATE validation_queue_messages
-                       SET status='ready',last_error=?,available_at=?,updated_at=?
-                       WHERE id=?""",
-                    (str(exc), _future(1), _now(), message["id"]),
-                )
-            return self.get(message["execution_id"])
-        self._finish_message(message["id"], "done")
+                self.queue.retry(message.id, str(exc), delay_seconds=1)
+            return self.get(message.execution_id)
+        self.queue.complete(message.id)
         return result
 
-    def _execute(self, message: dict[str, Any]) -> dict[str, Any]:
-        execution = self.get(message["execution_id"])
+    def dispatch_outbox_once(self) -> dict[str, Any] | None:
+        return self.queue.dispatch_outbox_once()
+
+    def _execute(self, message: ValidationQueueMessage) -> dict[str, Any]:
+        if message.schema_version != self.settings.validation_message_schema_version:
+            raise ValidationTemplateError("unsupported validation queue message schema version")
+        execution = self.get(message.execution_id)
+        if (
+            message.payload.get("execution_id") != execution["id"]
+            or message.payload.get("tenant_id") != execution["tenant_id"]
+        ):
+            self._set_status(
+                execution["id"],
+                "SCOPE_INVALID",
+                "validation_execution.message_scope_invalid",
+                {
+                    "message_id": message.message_id,
+                    "queue_message_id": message.id,
+                    "payload_execution_id": message.payload.get("execution_id"),
+                    "payload_tenant_id": message.payload.get("tenant_id"),
+                },
+                error="queue message payload does not match execution tenant/scope",
+            )
+            return self.get(execution["id"])
+        template = TEMPLATES.get(execution["template_id"])
+        if (
+            template is None
+            or not template.enabled
+            or template.version != execution["template_version"]
+        ):
+            self._set_status(
+                execution["id"],
+                "POLICY_REJECTED",
+                "validation_execution.template_rejected",
+                {
+                    "template_id": execution["template_id"],
+                    "template_version": execution["template_version"],
+                },
+                error="validation template version is not registered or enabled",
+            )
+            return self.get(execution["id"])
         principal = self._principal_for_user(execution["created_by"])
         plan_row = self.db.fetch_one(
             "SELECT * FROM validation_plans WHERE id=?", (execution["plan_id"],)
@@ -957,6 +1033,7 @@ class ValidationExecutionService:
             {
                 "sandbox_id": execution["sandbox_id"],
                 "sandbox": TEMPLATES[execution["template_id"]].sandbox,
+                "sandbox_backend": self.sandbox_backend.describe(),
                 "execution_mode": self.settings.execution_mode,
             },
             policy_decision_id=decision["id"],
@@ -988,6 +1065,24 @@ class ValidationExecutionService:
                 error=str(exc) or "execution timed out",
             )
             return self.get(execution["id"])
+        except ValidationSandboxResourceExceeded as exc:
+            self._set_status(
+                execution["id"],
+                "RESOURCE_EXCEEDED",
+                "validation_execution.resource_exceeded",
+                {"template_id": execution["template_id"]},
+                error=str(exc),
+            )
+            return self.get(execution["id"])
+        except ValidationSandboxError as exc:
+            self._set_status(
+                execution["id"],
+                "SANDBOX_FAILED",
+                "validation_execution.sandbox_failed",
+                {"template_id": execution["template_id"]},
+                error=str(exc),
+            )
+            return self.get(execution["id"])
         except ScopeViolation as exc:
             self._set_status(
                 execution["id"],
@@ -1014,7 +1109,18 @@ class ValidationExecutionService:
             "validation_execution.collecting_evidence",
             {"matched": matched},
         )
-        evidence = self._store_evidence(principal, execution, task_row["id"], result)
+        try:
+            evidence = self._store_evidence(principal, execution, task_row["id"], result)
+        except EvidenceStoreError as exc:
+            self._set_status(
+                execution["id"],
+                "EVIDENCE_INCOMPLETE",
+                "validation_execution.evidence_store_failed",
+                {"reason": type(exc).__name__},
+                error=str(exc),
+                result=result,
+            )
+            return self.get(execution["id"])
         if not evidence:
             self._set_status(
                 execution["id"],
@@ -1069,17 +1175,27 @@ class ValidationExecutionService:
         step: dict[str, Any],
         policy_decision_id: str,
     ) -> dict[str, Any]:
+        timeout_seconds = min(
+            self.settings.request_timeout_seconds,
+            TEMPLATES[execution["template_id"]].timeout_seconds,
+        )
+        self.scope.validate(
+            f"http://{step['host']}:{step['port']}",
+            task_row["scope_id"],
+            [int(step["port"])],
+        )
         observed = asyncio.run(
-            self.scope.http_probe(
-                f"http://{step['host']}:{step['port']}",
-                task_row["scope_id"],
-                int(step["port"]),
-                step["method"],
-                step["path"],
-                min(
-                    self.settings.request_timeout_seconds,
-                    TEMPLATES[execution["template_id"]].timeout_seconds,
-                ),
+            self.sandbox_backend.run_http_response(
+                HttpResponseSandboxRequest(
+                    sandbox_id=execution["sandbox_id"],
+                    task_id=task_row["id"],
+                    scope_id=task_row["scope_id"],
+                    host=step["host"],
+                    port=int(step["port"]),
+                    method=step["method"],
+                    path=step["path"],
+                    timeout_seconds=timeout_seconds,
+                )
             )
         )
         expected_status = [int(item) for item in step.get("expected_status", [])]
@@ -1197,12 +1313,13 @@ class ValidationExecutionService:
     ) -> dict[str, Any] | None:
         evidence_id = str(uuid.uuid4())
         artifact_content = json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2)
-        content_sha256 = hashlib.sha256(artifact_content.encode()).hexdigest()
-        artifact_dir = Path(self.settings.workspace_root) / "validation-evidence" / execution["id"]
-        artifact_dir.mkdir(parents=True, exist_ok=True)
-        artifact_file = artifact_dir / f"{evidence_id}.json"
-        artifact_file.write_text(artifact_content, encoding="utf-8")
-        artifact_ref = f"minio://validation-evidence/{execution['id']}/{evidence_id}.json"
+        stored = self.evidence_store.put_json(
+            tenant_id=execution["tenant_id"],
+            project_id=None,
+            execution_id=execution["id"],
+            evidence_id=evidence_id,
+            content=artifact_content,
+        )
         evidence_item = self.evidence.add(
             principal,
             task_id,
@@ -1217,10 +1334,13 @@ class ValidationExecutionService:
                     "execution_id": execution["id"],
                     "trace_id": execution["trace_id"],
                     "sandbox_id": execution["sandbox_id"],
-                    "artifact_ref": artifact_ref,
-                    "local_artifact_path": str(artifact_file),
-                    "content_sha256": content_sha256,
-                    "object_store_mode": "local-compatible",
+                    "artifact_ref": stored.artifact_ref,
+                    "object_key": stored.object_key,
+                    "local_artifact_path": stored.local_path,
+                    "content_sha256": stored.content_sha256,
+                    "object_size": stored.size,
+                    "content_type": stored.content_type,
+                    "object_store_mode": stored.backend,
                 },
             ),
         )
@@ -1231,8 +1351,11 @@ class ValidationExecutionService:
             "approval_id": execution["approval_id"],
             "policy_decision_id": result["policy_decision_id"],
             "evidence_item_id": evidence_item["id"],
-            "local_artifact_path": str(artifact_file),
-            "object_store_mode": "local-compatible",
+            "object_key": stored.object_key,
+            "local_artifact_path": stored.local_path,
+            "object_store_mode": stored.backend,
+            "object_size": stored.size,
+            "content_type": stored.content_type,
         }
         self.db.execute(
             """INSERT INTO validation_execution_evidence(
@@ -1245,8 +1368,8 @@ class ValidationExecutionService:
                 task_id,
                 evidence_item["id"],
                 "HTTP response evidence",
-                artifact_ref,
-                content_sha256,
+                stored.artifact_ref,
+                stored.content_sha256,
                 json.dumps(metadata, ensure_ascii=False, sort_keys=True),
                 created_at,
             ),
@@ -1257,8 +1380,9 @@ class ValidationExecutionService:
             "COLLECTING_EVIDENCE",
             {
                 "evidence_id": evidence_id,
-                "content_sha256": content_sha256,
-                "artifact_ref": artifact_ref,
+                "content_sha256": stored.content_sha256,
+                "artifact_ref": stored.artifact_ref,
+                "object_store_mode": stored.backend,
             },
         )
         return {
@@ -1267,8 +1391,8 @@ class ValidationExecutionService:
             "task_id": task_id,
             "evidence_item_id": evidence_item["id"],
             "title": "HTTP response evidence",
-            "artifact_ref": artifact_ref,
-            "content_sha256": content_sha256,
+            "artifact_ref": stored.artifact_ref,
+            "content_sha256": stored.content_sha256,
             "metadata": metadata,
             "created_at": created_at,
         }

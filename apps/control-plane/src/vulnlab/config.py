@@ -63,6 +63,26 @@ class Settings:
     database_pool_min_size: int = 1
     database_pool_max_size: int = 8
     database_pool_timeout_seconds: float = 10.0
+    validation_queue_backend: str = "sqlite"
+    validation_message_schema_version: int = 1
+    validation_queue_lease_seconds: int = 60
+    nats_url: str | None = None
+    nats_stream: str = "VALIDATION_EXECUTIONS"
+    nats_subject: str = "validation.executions.requested"
+    nats_durable: str = "validation-worker"
+    nats_fetch_timeout_seconds: float = 5.0
+    validation_sandbox_backend: str = "inprocess"
+    validation_sandbox_network: str = "none"
+    validation_sandbox_add_host_gateway: bool = False
+    validation_sandbox_cpu: str = "0.5"
+    validation_sandbox_memory: str = "256m"
+    validation_sandbox_pids_limit: int = 64
+    evidence_store_backend: str = "filesystem"
+    minio_endpoint: str | None = None
+    minio_access_key: str | None = None
+    minio_secret_key: str | None = None
+    minio_bucket: str = "validation-evidence"
+    minio_secure: bool = False
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -99,6 +119,74 @@ class Settings:
         pool_min_size = int(os.getenv("VULNLAB_DATABASE_POOL_MIN_SIZE", "1"))
         pool_max_size = int(os.getenv("VULNLAB_DATABASE_POOL_MAX_SIZE", "8"))
         pool_timeout = float(os.getenv("VULNLAB_DATABASE_POOL_TIMEOUT_SECONDS", "10"))
+        validation_queue_backend = (
+            os.getenv("VULNLAB_VALIDATION_QUEUE_BACKEND", "sqlite").strip().lower()
+        )
+        if validation_queue_backend not in {"sqlite", "nats"}:
+            raise RuntimeError("VULNLAB_VALIDATION_QUEUE_BACKEND must be sqlite or nats")
+        validation_schema_version = int(os.getenv("VULNLAB_VALIDATION_MESSAGE_SCHEMA_VERSION", "1"))
+        if validation_schema_version != 1:
+            raise RuntimeError("VULNLAB_VALIDATION_MESSAGE_SCHEMA_VERSION must be 1")
+        validation_lease_seconds = int(os.getenv("VULNLAB_VALIDATION_QUEUE_LEASE_SECONDS", "60"))
+        if not 5 <= validation_lease_seconds <= 3600:
+            raise RuntimeError("VULNLAB_VALIDATION_QUEUE_LEASE_SECONDS must be 5 to 3600")
+        nats_url = os.getenv("VULNLAB_NATS_URL") or None
+        nats_stream = os.getenv("VULNLAB_NATS_STREAM", "VALIDATION_EXECUTIONS").strip()
+        nats_subject = os.getenv("VULNLAB_NATS_SUBJECT", "validation.executions.requested").strip()
+        nats_durable = os.getenv("VULNLAB_NATS_DURABLE", "validation-worker").strip()
+        nats_fetch_timeout = float(os.getenv("VULNLAB_NATS_FETCH_TIMEOUT_SECONDS", "5"))
+        if validation_queue_backend == "nats":
+            if not nats_url:
+                raise RuntimeError(
+                    "VULNLAB_NATS_URL is required when validation queue backend is nats"
+                )
+            if not nats_stream or not nats_subject or not nats_durable:
+                raise RuntimeError("NATS stream, subject, and durable names must be non-empty")
+            if not 0.1 <= nats_fetch_timeout <= 60:
+                raise RuntimeError("VULNLAB_NATS_FETCH_TIMEOUT_SECONDS must be 0.1 to 60")
+        validation_sandbox_backend = (
+            os.getenv("VULNLAB_VALIDATION_SANDBOX_BACKEND", "inprocess").strip().lower()
+        )
+        if validation_sandbox_backend not in {"inprocess", "docker"}:
+            raise RuntimeError("VULNLAB_VALIDATION_SANDBOX_BACKEND must be inprocess or docker")
+        validation_sandbox_network = os.getenv("VULNLAB_VALIDATION_SANDBOX_NETWORK", "none").strip()
+        if validation_sandbox_network.lower() == "host":
+            raise RuntimeError("Validation Docker sandbox forbids host network")
+        validation_sandbox_add_host_gateway = _bool(
+            os.getenv("VULNLAB_VALIDATION_SANDBOX_ADD_HOST_GATEWAY", "false")
+        )
+        validation_sandbox_cpu = os.getenv("VULNLAB_VALIDATION_SANDBOX_CPU", "0.5").strip()
+        validation_sandbox_memory = os.getenv("VULNLAB_VALIDATION_SANDBOX_MEMORY", "256m").strip()
+        validation_sandbox_pids_limit = int(
+            os.getenv("VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT", "64")
+        )
+        if not validation_sandbox_cpu or not validation_sandbox_memory:
+            raise RuntimeError("Validation sandbox CPU and memory limits must be non-empty")
+        if not 16 <= validation_sandbox_pids_limit <= 512:
+            raise RuntimeError("VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT must be 16 to 512")
+        evidence_store_backend = (
+            os.getenv("VULNLAB_EVIDENCE_STORE_BACKEND", "filesystem").strip().lower()
+        )
+        if evidence_store_backend not in {"filesystem", "minio"}:
+            raise RuntimeError("VULNLAB_EVIDENCE_STORE_BACKEND must be filesystem or minio")
+        minio_endpoint = os.getenv("VULNLAB_MINIO_ENDPOINT") or None
+        minio_access_key = os.getenv("VULNLAB_MINIO_ACCESS_KEY") or None
+        minio_secret_key = os.getenv("VULNLAB_MINIO_SECRET_KEY") or None
+        minio_bucket = os.getenv("VULNLAB_MINIO_BUCKET", "validation-evidence").strip()
+        minio_secure = _bool(os.getenv("VULNLAB_MINIO_SECURE", "false"))
+        if evidence_store_backend == "minio":
+            missing_minio = [
+                name
+                for name, value in (
+                    ("VULNLAB_MINIO_ENDPOINT", minio_endpoint),
+                    ("VULNLAB_MINIO_ACCESS_KEY", minio_access_key),
+                    ("VULNLAB_MINIO_SECRET_KEY", minio_secret_key),
+                    ("VULNLAB_MINIO_BUCKET", minio_bucket),
+                )
+                if not value
+            ]
+            if missing_minio:
+                raise RuntimeError(f"MinIO evidence store requires: {', '.join(missing_minio)}")
         if auth_mode == "oidc":
             missing = [
                 name
@@ -142,6 +230,21 @@ class Settings:
                 raise RuntimeError("Database pool sizes must satisfy 1 <= min <= max <= 64")
             if not 1 <= pool_timeout <= 120:
                 raise RuntimeError("VULNLAB_DATABASE_POOL_TIMEOUT_SECONDS must be 1 to 120")
+        if production and validation_queue_backend != "nats":
+            raise RuntimeError(
+                "Production requires VULNLAB_VALIDATION_QUEUE_BACKEND=nats; "
+                "SQLite validation queue is development/test only"
+            )
+        if production and validation_sandbox_backend != "docker":
+            raise RuntimeError(
+                "Production requires VULNLAB_VALIDATION_SANDBOX_BACKEND=docker; "
+                "in-process validation sandbox is development/test only"
+            )
+        if production and evidence_store_backend != "minio":
+            raise RuntimeError(
+                "Production requires VULNLAB_EVIDENCE_STORE_BACKEND=minio; "
+                "filesystem evidence store is development/test only"
+            )
         ports = tuple(
             int(port) for port in _csv(os.getenv("VULNLAB_ALLOWED_PORTS", "80,443,8000,8080"))
         )
@@ -175,6 +278,26 @@ class Settings:
             database_pool_min_size=pool_min_size,
             database_pool_max_size=pool_max_size,
             database_pool_timeout_seconds=pool_timeout,
+            validation_queue_backend=validation_queue_backend,
+            validation_message_schema_version=validation_schema_version,
+            validation_queue_lease_seconds=validation_lease_seconds,
+            nats_url=nats_url,
+            nats_stream=nats_stream,
+            nats_subject=nats_subject,
+            nats_durable=nats_durable,
+            nats_fetch_timeout_seconds=nats_fetch_timeout,
+            validation_sandbox_backend=validation_sandbox_backend,
+            validation_sandbox_network=validation_sandbox_network,
+            validation_sandbox_add_host_gateway=validation_sandbox_add_host_gateway,
+            validation_sandbox_cpu=validation_sandbox_cpu,
+            validation_sandbox_memory=validation_sandbox_memory,
+            validation_sandbox_pids_limit=validation_sandbox_pids_limit,
+            evidence_store_backend=evidence_store_backend,
+            minio_endpoint=minio_endpoint,
+            minio_access_key=minio_access_key,
+            minio_secret_key=minio_secret_key,
+            minio_bucket=minio_bucket,
+            minio_secure=minio_secure,
         )
 
     @property

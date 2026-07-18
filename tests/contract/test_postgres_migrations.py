@@ -14,6 +14,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0005_p2_model_gateway",
         "0006_p3_agent_orchestration",
         "0007_p9_validation_execution_plane",
+        "0008_p9r_validation_runtime_outbox",
     ]
 
 
@@ -83,6 +84,27 @@ def test_p9_validation_execution_migration_has_queue_evidence_and_statuses() -> 
     assert "execution_timeout" in sql
     assert "content_sha256 char(64) not null" in sql
     assert "idx_validation_queue_ready" in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p9r_runtime_outbox_migration_has_publish_and_lease_fields() -> None:
+    up = MIGRATIONS / "0008_p9r_validation_runtime_outbox.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "validation.executions" in sql
+    assert "lease_owner varchar(160)" in sql
+    assert "lease_token uuid" in sql
+    assert "lease_expires_at timestamptz" in sql
+    assert "worker_attempt integer not null default 0" in sql
+    assert "validation.queue_messages" in sql
+    assert "schema_version integer not null default 1" in sql
+    assert "publish_attempt integer not null default 0" in sql
+    assert "published_at timestamptz" in sql
+    assert "last_publish_error text" in sql
+    assert "idx_validation_queue_outbox_unpublished" in sql
+    assert "idx_validation_execution_lease" in sql
     assert "host network" not in sql
     assert "docker socket" not in sql
     assert "exploit payload" not in sql

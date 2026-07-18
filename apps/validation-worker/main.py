@@ -17,6 +17,16 @@ from vulnlab.config import Settings  # noqa: E402
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the P9 validation execution worker")
     parser.add_argument("--once", action="store_true", help="consume at most one queued message")
+    parser.add_argument(
+        "--dispatch-outbox",
+        action="store_true",
+        help="publish validation outbox messages to the configured transport",
+    )
+    parser.add_argument(
+        "--dispatch-outbox-once",
+        action="store_true",
+        help="publish at most one validation outbox message and exit",
+    )
     parser.add_argument("--worker-id", default="validation-worker", help="stable worker identity")
     parser.add_argument(
         "--idle-sleep", type=float, default=1.0, help="seconds to sleep between empty polls"
@@ -26,13 +36,24 @@ def main() -> int:
     services = build_services(Settings.from_env())
     try:
         while True:
-            result = services.validation_execution.run_worker_once(args.worker_id)
+            if args.dispatch_outbox or args.dispatch_outbox_once:
+                result = services.validation_execution.dispatch_outbox_once()
+                if result is not None:
+                    print(
+                        f"{result['queue_message_id']} {result.get('transport', 'unknown')}",
+                        flush=True,
+                    )
+                if args.dispatch_outbox_once:
+                    return 0
+            else:
+                result = services.validation_execution.run_worker_once(args.worker_id)
+                if result is not None:
+                    print(f"{result['id']} {result['status']}", flush=True)
             if result is not None:
-                print(f"{result['id']} {result['status']}", flush=True)
+                continue
             if args.once:
                 return 0
-            if result is None:
-                time.sleep(max(args.idle_sleep, 0.1))
+            time.sleep(max(args.idle_sleep, 0.1))
     finally:
         services.close()
 

@@ -16,6 +16,23 @@ services:
       VULNLAB_ALLOWED_HOSTS: ${VULNLAB_ALLOWED_HOSTS:-localhost,127.0.0.1,::1,target-vulnerable,target-patched}
       VULNLAB_ALLOWED_PORTS: ${VULNLAB_ALLOWED_PORTS:-80,443,8000,8080}
       VULNLAB_ALLOW_PRIVATE_NETWORKS: ${VULNLAB_ALLOW_PRIVATE_NETWORKS:-false}
+      VULNLAB_VALIDATION_QUEUE_BACKEND: ${VULNLAB_VALIDATION_QUEUE_BACKEND:-sqlite}
+      VULNLAB_NATS_URL: ${VULNLAB_NATS_URL:-}
+      VULNLAB_NATS_STREAM: ${VULNLAB_NATS_STREAM:-VALIDATION_EXECUTIONS}
+      VULNLAB_NATS_SUBJECT: ${VULNLAB_NATS_SUBJECT:-validation.executions.requested}
+      VULNLAB_NATS_DURABLE: ${VULNLAB_NATS_DURABLE:-validation-worker}
+      VULNLAB_VALIDATION_SANDBOX_BACKEND: ${VULNLAB_VALIDATION_SANDBOX_BACKEND:-inprocess}
+      VULNLAB_VALIDATION_SANDBOX_NETWORK: ${VULNLAB_VALIDATION_SANDBOX_NETWORK:-none}
+      VULNLAB_VALIDATION_SANDBOX_ADD_HOST_GATEWAY: ${VULNLAB_VALIDATION_SANDBOX_ADD_HOST_GATEWAY:-false}
+      VULNLAB_VALIDATION_SANDBOX_CPU: ${VULNLAB_VALIDATION_SANDBOX_CPU:-0.5}
+      VULNLAB_VALIDATION_SANDBOX_MEMORY: ${VULNLAB_VALIDATION_SANDBOX_MEMORY:-256m}
+      VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT: ${VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT:-64}
+      VULNLAB_EVIDENCE_STORE_BACKEND: ${VULNLAB_EVIDENCE_STORE_BACKEND:-filesystem}
+      VULNLAB_MINIO_ENDPOINT: ${VULNLAB_MINIO_ENDPOINT:-}
+      VULNLAB_MINIO_ACCESS_KEY: ${VULNLAB_MINIO_ACCESS_KEY:-}
+      VULNLAB_MINIO_SECRET_KEY: ${VULNLAB_MINIO_SECRET_KEY:-}
+      VULNLAB_MINIO_BUCKET: ${VULNLAB_MINIO_BUCKET:-validation-evidence}
+      VULNLAB_MINIO_SECURE: ${VULNLAB_MINIO_SECURE:-false}
     volumes:
       - vulnlab-data:/data
     read_only: true
@@ -28,6 +45,152 @@ services:
     pids_limit: 128
     mem_limit: 1g
     cpus: 1.0
+    restart: unless-stopped
+    networks:
+      - control
+      - lab
+
+  nats:
+    profiles: ["runtime"]
+    image: nats:2.11-alpine
+    command: ["-js", "-sd", "/tmp/nats", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+    networks:
+      - control
+
+  minio:
+    profiles: ["runtime"]
+    image: ${VULNLAB_MINIO_IMAGE:-minio/minio:RELEASE.2025-04-22T22-12-26Z}
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${VULNLAB_MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${VULNLAB_MINIO_SECRET_KEY:-minioadmin-secret}
+    volumes:
+      - minio-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+    restart: unless-stopped
+    networks:
+      - control
+
+  validation-outbox-dispatcher:
+    profiles: ["runtime"]
+    build: .
+    command: ["python", "apps/validation-worker/main.py", "--dispatch-outbox"]
+    environment:
+      VULNLAB_ENV: ${VULNLAB_ENV:-development}
+      VULNLAB_ADMIN_KEY: ${VULNLAB_ADMIN_KEY:?set VULNLAB_ADMIN_KEY in .env}
+      VULNLAB_MASTER_KEY: ${VULNLAB_MASTER_KEY:?set VULNLAB_MASTER_KEY in .env}
+      VULNLAB_DB_PATH: /data/vulnlab.db
+      VULNLAB_WORKSPACE_ROOT: /data/workspaces
+      VULNLAB_EXECUTION_MODE: ${VULNLAB_EXECUTION_MODE:-dry_run}
+      VULNLAB_LEGACY_EXECUTION_ENABLED: ${VULNLAB_LEGACY_EXECUTION_ENABLED:-false}
+      VULNLAB_ALLOWED_HOSTS: ${VULNLAB_ALLOWED_HOSTS:-localhost,127.0.0.1,::1,target-vulnerable,target-patched}
+      VULNLAB_ALLOWED_PORTS: ${VULNLAB_ALLOWED_PORTS:-80,443,8000,8080}
+      VULNLAB_ALLOW_PRIVATE_NETWORKS: ${VULNLAB_ALLOW_PRIVATE_NETWORKS:-false}
+      VULNLAB_VALIDATION_QUEUE_BACKEND: nats
+      VULNLAB_NATS_URL: nats://nats:4222
+      VULNLAB_NATS_STREAM: ${VULNLAB_NATS_STREAM:-VALIDATION_EXECUTIONS}
+      VULNLAB_NATS_SUBJECT: ${VULNLAB_NATS_SUBJECT:-validation.executions.requested}
+      VULNLAB_NATS_DURABLE: ${VULNLAB_NATS_DURABLE:-validation-worker}
+      VULNLAB_VALIDATION_SANDBOX_BACKEND: ${VULNLAB_VALIDATION_SANDBOX_BACKEND:-inprocess}
+      VULNLAB_VALIDATION_SANDBOX_NETWORK: ${VULNLAB_VALIDATION_SANDBOX_NETWORK:-none}
+      VULNLAB_VALIDATION_SANDBOX_ADD_HOST_GATEWAY: ${VULNLAB_VALIDATION_SANDBOX_ADD_HOST_GATEWAY:-false}
+      VULNLAB_VALIDATION_SANDBOX_CPU: ${VULNLAB_VALIDATION_SANDBOX_CPU:-0.5}
+      VULNLAB_VALIDATION_SANDBOX_MEMORY: ${VULNLAB_VALIDATION_SANDBOX_MEMORY:-256m}
+      VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT: ${VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT:-64}
+      VULNLAB_EVIDENCE_STORE_BACKEND: ${VULNLAB_EVIDENCE_STORE_BACKEND:-minio}
+      VULNLAB_MINIO_ENDPOINT: ${VULNLAB_MINIO_ENDPOINT:-minio:9000}
+      VULNLAB_MINIO_ACCESS_KEY: ${VULNLAB_MINIO_ACCESS_KEY:-minioadmin}
+      VULNLAB_MINIO_SECRET_KEY: ${VULNLAB_MINIO_SECRET_KEY:-minioadmin-secret}
+      VULNLAB_MINIO_BUCKET: ${VULNLAB_MINIO_BUCKET:-validation-evidence}
+      VULNLAB_MINIO_SECURE: ${VULNLAB_MINIO_SECURE:-false}
+    volumes:
+      - vulnlab-data:/data
+    depends_on:
+      - nats
+      - minio
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+    restart: unless-stopped
+    networks:
+      - control
+
+  validation-worker:
+    profiles: ["runtime"]
+    build: .
+    command: ["python", "apps/validation-worker/main.py"]
+    environment:
+      VULNLAB_ENV: ${VULNLAB_ENV:-development}
+      VULNLAB_ADMIN_KEY: ${VULNLAB_ADMIN_KEY:?set VULNLAB_ADMIN_KEY in .env}
+      VULNLAB_MASTER_KEY: ${VULNLAB_MASTER_KEY:?set VULNLAB_MASTER_KEY in .env}
+      VULNLAB_DB_PATH: /data/vulnlab.db
+      VULNLAB_WORKSPACE_ROOT: /data/workspaces
+      VULNLAB_EXECUTION_MODE: ${VULNLAB_EXECUTION_MODE:-dry_run}
+      VULNLAB_LEGACY_EXECUTION_ENABLED: ${VULNLAB_LEGACY_EXECUTION_ENABLED:-false}
+      VULNLAB_ALLOWED_HOSTS: ${VULNLAB_ALLOWED_HOSTS:-localhost,127.0.0.1,::1,target-vulnerable,target-patched}
+      VULNLAB_ALLOWED_PORTS: ${VULNLAB_ALLOWED_PORTS:-80,443,8000,8080}
+      VULNLAB_ALLOW_PRIVATE_NETWORKS: ${VULNLAB_ALLOW_PRIVATE_NETWORKS:-false}
+      VULNLAB_VALIDATION_QUEUE_BACKEND: nats
+      VULNLAB_NATS_URL: nats://nats:4222
+      VULNLAB_NATS_STREAM: ${VULNLAB_NATS_STREAM:-VALIDATION_EXECUTIONS}
+      VULNLAB_NATS_SUBJECT: ${VULNLAB_NATS_SUBJECT:-validation.executions.requested}
+      VULNLAB_NATS_DURABLE: ${VULNLAB_NATS_DURABLE:-validation-worker}
+      VULNLAB_VALIDATION_SANDBOX_BACKEND: ${VULNLAB_VALIDATION_SANDBOX_BACKEND:-docker}
+      VULNLAB_VALIDATION_SANDBOX_NETWORK: ${VULNLAB_VALIDATION_SANDBOX_NETWORK:-lab}
+      VULNLAB_VALIDATION_SANDBOX_ADD_HOST_GATEWAY: ${VULNLAB_VALIDATION_SANDBOX_ADD_HOST_GATEWAY:-false}
+      VULNLAB_VALIDATION_SANDBOX_CPU: ${VULNLAB_VALIDATION_SANDBOX_CPU:-0.5}
+      VULNLAB_VALIDATION_SANDBOX_MEMORY: ${VULNLAB_VALIDATION_SANDBOX_MEMORY:-256m}
+      VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT: ${VULNLAB_VALIDATION_SANDBOX_PIDS_LIMIT:-64}
+      VULNLAB_EVIDENCE_STORE_BACKEND: ${VULNLAB_EVIDENCE_STORE_BACKEND:-minio}
+      VULNLAB_MINIO_ENDPOINT: ${VULNLAB_MINIO_ENDPOINT:-minio:9000}
+      VULNLAB_MINIO_ACCESS_KEY: ${VULNLAB_MINIO_ACCESS_KEY:-minioadmin}
+      VULNLAB_MINIO_SECRET_KEY: ${VULNLAB_MINIO_SECRET_KEY:-minioadmin-secret}
+      VULNLAB_MINIO_BUCKET: ${VULNLAB_MINIO_BUCKET:-validation-evidence}
+      VULNLAB_MINIO_SECURE: ${VULNLAB_MINIO_SECURE:-false}
+    volumes:
+      - vulnlab-data:/data
+    depends_on:
+      - nats
+      - minio
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
     restart: unless-stopped
     networks:
       - control
@@ -69,6 +232,7 @@ services:
 
 volumes:
   vulnlab-data:
+  minio-data:
 
 networks:
   control:

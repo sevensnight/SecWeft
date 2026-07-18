@@ -406,6 +406,10 @@ CREATE TABLE IF NOT EXISTS validation_executions (
     reviewed_at TEXT,
     retry_of TEXT REFERENCES validation_executions(id),
     created_by TEXT NOT NULL REFERENCES users(id),
+    lease_owner TEXT,
+    lease_token TEXT,
+    lease_expires_at TEXT,
+    worker_attempt INTEGER NOT NULL DEFAULT 0,
     started_at TEXT,
     finished_at TEXT,
     created_at TEXT NOT NULL,
@@ -438,9 +442,13 @@ CREATE TABLE IF NOT EXISTS validation_queue_messages (
     execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
     message_id TEXT NOT NULL UNIQUE,
     subject TEXT NOT NULL,
+    schema_version INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL CHECK(status IN ('ready','leased','done','cancelled','dead')),
     attempt INTEGER NOT NULL DEFAULT 0,
     max_attempts INTEGER NOT NULL DEFAULT 3,
+    publish_attempt INTEGER NOT NULL DEFAULT 0,
+    published_at TEXT,
+    last_publish_error TEXT,
     available_at TEXT NOT NULL,
     locked_by TEXT,
     lock_token TEXT,
@@ -776,6 +784,10 @@ class Database:
                     reviewed_at TEXT,
                     retry_of TEXT REFERENCES validation_executions(id),
                     created_by TEXT NOT NULL REFERENCES users(id),
+                    lease_owner TEXT,
+                    lease_token TEXT,
+                    lease_expires_at TEXT,
+                    worker_attempt INTEGER NOT NULL DEFAULT 0,
                     started_at TEXT,
                     finished_at TEXT,
                     created_at TEXT NOT NULL,
@@ -811,9 +823,13 @@ class Database:
                     execution_id TEXT NOT NULL REFERENCES validation_executions(id) ON DELETE CASCADE,
                     message_id TEXT NOT NULL UNIQUE,
                     subject TEXT NOT NULL,
+                    schema_version INTEGER NOT NULL DEFAULT 1,
                     status TEXT NOT NULL CHECK(status IN ('ready','leased','done','cancelled','dead')),
                     attempt INTEGER NOT NULL DEFAULT 0,
                     max_attempts INTEGER NOT NULL DEFAULT 3,
+                    publish_attempt INTEGER NOT NULL DEFAULT 0,
+                    published_at TEXT,
+                    last_publish_error TEXT,
                     available_at TEXT NOT NULL,
                     locked_by TEXT,
                     lock_token TEXT,
@@ -824,6 +840,30 @@ class Database:
                     updated_at TEXT NOT NULL
                 )"""
             )
+            validation_execution_columns = self._columns(connection, "validation_executions")
+            validation_execution_additions = {
+                "lease_owner": "TEXT",
+                "lease_token": "TEXT",
+                "lease_expires_at": "TEXT",
+                "worker_attempt": "INTEGER NOT NULL DEFAULT 0",
+            }
+            for name, definition in validation_execution_additions.items():
+                if name not in validation_execution_columns:
+                    connection.execute(
+                        f"ALTER TABLE validation_executions ADD COLUMN {name} {definition}"
+                    )
+            validation_queue_columns = self._columns(connection, "validation_queue_messages")
+            validation_queue_additions = {
+                "schema_version": "INTEGER NOT NULL DEFAULT 1",
+                "publish_attempt": "INTEGER NOT NULL DEFAULT 0",
+                "published_at": "TEXT",
+                "last_publish_error": "TEXT",
+            }
+            for name, definition in validation_queue_additions.items():
+                if name not in validation_queue_columns:
+                    connection.execute(
+                        f"ALTER TABLE validation_queue_messages ADD COLUMN {name} {definition}"
+                    )
             connection.execute(
                 """CREATE INDEX IF NOT EXISTS idx_validation_executions_task
                    ON validation_executions(task_id, created_at DESC)"""
@@ -887,7 +927,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=8")
+            connection.execute("PRAGMA user_version=9")
             connection.commit()
         except Exception:
             connection.rollback()

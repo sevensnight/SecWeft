@@ -35,6 +35,7 @@ def _owned_execution(
 def create_validation_execution(
     plan_id: str,
     value: ValidationExecutionCreate,
+    request: Request,
     services: ServicesDep,
     current: Annotated[Principal, Depends(require("validation:execute"))],
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
@@ -47,6 +48,7 @@ def create_validation_execution(
             plan_id,
             idempotency_key=idempotency_key,
             template_id=value.template_id,
+            request_id=request.state.request_id,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

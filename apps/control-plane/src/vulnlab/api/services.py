@@ -19,7 +19,10 @@ from ..scope import ScopeService
 from ..security import SecurityService
 from ..skills import SkillRegistry
 from ..validation import ValidationPlanService
+from ..validation_evidence_store import EvidenceStore, build_evidence_store
 from ..validation_execution import ValidationExecutionService
+from ..validation_queue import ValidationQueue, build_validation_queue
+from ..validation_sandbox import SandboxBackend, build_sandbox_backend
 
 
 @dataclass(slots=True)
@@ -38,12 +41,18 @@ class Services:
     evidence: EvidenceService
     policy: PolicyService
     validation: ValidationPlanService
+    validation_queue: ValidationQueue
+    validation_sandbox: SandboxBackend
+    validation_evidence_store: EvidenceStore
     validation_execution: ValidationExecutionService
     sandbox: SandboxService
     orchestrator: Orchestrator
     enterprise: EnterpriseServices | None = None
 
     def close(self) -> None:
+        close_queue = getattr(self.validation_queue, "close", None)
+        if close_queue is not None:
+            close_queue()
         if self.enterprise is not None:
             self.enterprise.close()
 
@@ -73,8 +82,19 @@ def build_services(settings: Settings) -> Services:
     evidence = EvidenceService(db, audit)
     policy = PolicyService(db, scope_service, settings, audit)
     validation = ValidationPlanService(db, policy, audit)
+    validation_queue = build_validation_queue(db, settings)
+    validation_sandbox = build_sandbox_backend(settings, scope_service)
+    validation_evidence_store = build_evidence_store(settings)
     validation_execution = ValidationExecutionService(
-        db, settings, scope_service, evidence, policy, audit
+        db,
+        settings,
+        scope_service,
+        evidence,
+        policy,
+        audit,
+        validation_queue,
+        validation_sandbox,
+        validation_evidence_store,
     )
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
@@ -94,6 +114,9 @@ def build_services(settings: Settings) -> Services:
         evidence=evidence,
         policy=policy,
         validation=validation,
+        validation_queue=validation_queue,
+        validation_sandbox=validation_sandbox,
+        validation_evidence_store=validation_evidence_store,
         validation_execution=validation_execution,
         sandbox=sandbox,
         orchestrator=orchestrator,

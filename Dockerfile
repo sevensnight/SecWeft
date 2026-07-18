@@ -10,6 +10,7 @@ COPY requirements.lock ./
 RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 COPY pyproject.toml README.md ./
 COPY apps/control-plane/src ./apps/control-plane/src
+COPY apps/validation-worker ./apps/validation-worker
 COPY solve_module2.py ./
 RUN pip install --no-cache-dir --no-deps .
 
