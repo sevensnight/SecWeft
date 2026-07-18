@@ -90,6 +90,24 @@ const validationRoute = createRoute({
   ),
 });
 
+const casesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/cases',
+  component: lazyRouteComponent(
+    () => import('../modules/cases/pages/CasesPage'),
+    'CasesPage',
+  ),
+});
+
+const caseDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/cases/$caseId',
+  component: lazyRouteComponent(
+    () => import('../modules/cases/pages/CaseDetailPage'),
+    'CaseDetailPage',
+  ),
+});
+
 const sandboxesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sandboxes',
@@ -145,6 +163,8 @@ const routeTree = rootRoute.addChildren([
   knowledgeRoute,
   assetsRoute,
   validationRoute,
+  casesRoute,
+  caseDetailRoute,
   sandboxesRoute,
   policiesRoute,
   auditRoute,

@@ -1040,6 +1040,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vulnerability-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List vulnerability cases */
+        get: operations["listVulnerabilityCases"];
+        put?: never;
+        /** Create a vulnerability case */
+        post: operations["createVulnerabilityCase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vulnerability-cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get vulnerability case detail */
+        get: operations["getVulnerabilityCase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update vulnerability case with optimistic locking */
+        patch: operations["updateVulnerabilityCase"];
+        trace?: never;
+    };
+    "/vulnerability-cases/{case_id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List case findings */
+        get: operations["listCaseFindings"];
+        put?: never;
+        /** Create and bind a case finding */
+        post: operations["createCaseFinding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vulnerability-cases/{case_id}/remediation-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List remediation proposals */
+        get: operations["listRemediationProposals"];
+        put?: never;
+        /** Create remediation proposal */
+        post: operations["createRemediationProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/remediation-proposals/{proposal_id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create human remediation decision */
+        post: operations["decideRemediationProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/remediation-decisions/{decision_id}/implementations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create remediation implementation record */
+        post: operations["createRemediationImplementation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vulnerability-cases/{case_id}/retests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request P9 validation retest */
+        post: operations["createCaseRetest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/retests/{retest_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get retest request */
+        get: operations["getRetest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/retests/{retest_id}/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get before/after validation comparison */
+        get: operations["getRetestComparison"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vulnerability-cases/{case_id}/disposition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create human case disposition */
+        post: operations["createCaseDisposition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vulnerability-cases/{case_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a dispositioned vulnerability case */
+        post: operations["closeVulnerabilityCase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vulnerability-cases/{case_id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate case report from reviewed evidence */
+        post: operations["generateCaseReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2132,6 +2340,332 @@ export interface components {
             roles: string[];
             permissions: string[];
             projects: components["schemas"]["SessionProjectAccess"][];
+        };
+        VulnerabilityCaseCreate: {
+            title: string;
+            summary: string;
+            /**
+             * @default medium
+             * @enum {string}
+             */
+            severity: "informational" | "low" | "medium" | "high" | "critical";
+            /** @default default */
+            project_id: string;
+            /**
+             * @default MANUAL
+             * @enum {string}
+             */
+            source: "VALIDATION" | "MANUAL" | "IMPORT";
+            external_ref?: string | null;
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        VulnerabilityCasePatch: {
+            expected_version: number;
+            title?: string | null;
+            summary?: string | null;
+            /** @enum {string|null} */
+            severity?: "informational" | "low" | "medium" | "high" | "critical" | null;
+            /** @enum {string|null} */
+            status?: "DRAFT" | "TRIAGE" | "VALIDATION_PENDING" | "VALIDATED" | "REMEDIATION_PLANNED" | "REMEDIATION_IN_PROGRESS" | "RETEST_PENDING" | "REMEDIATED" | "ACCEPTED_RISK" | "FALSE_POSITIVE" | "INCONCLUSIVE" | "CLOSED" | null;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        VulnerabilityCase: {
+            /** Format: uuid */
+            id: string;
+            tenant_id: string;
+            project_id: string;
+            title: string;
+            summary: string;
+            /** @enum {string} */
+            severity: "informational" | "low" | "medium" | "high" | "critical";
+            /** @enum {string} */
+            status: "DRAFT" | "TRIAGE" | "VALIDATION_PENDING" | "VALIDATED" | "REMEDIATION_PLANNED" | "REMEDIATION_IN_PROGRESS" | "RETEST_PENDING" | "REMEDIATED" | "ACCEPTED_RISK" | "FALSE_POSITIVE" | "INCONCLUSIVE" | "CLOSED";
+            source: string;
+            external_ref: string | null;
+            metadata: {
+                [key: string]: unknown;
+            };
+            created_by: string;
+            updated_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        CaseFindingCreate: {
+            title: string;
+            description: string;
+            affected_component?: string | null;
+            /**
+             * @default medium
+             * @enum {string}
+             */
+            risk_level: "informational" | "low" | "medium" | "high" | "critical";
+            /**
+             * @default CANDIDATE
+             * @enum {string}
+             */
+            status: "CANDIDATE" | "VALIDATED" | "FALSE_POSITIVE" | "INCONCLUSIVE";
+            validation_execution_id?: string | null;
+            evidence_id?: string | null;
+            project_id?: string | null;
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        CaseFinding: {
+            id: string;
+            case_id: string;
+            tenant_id: string;
+            project_id: string;
+            validation_execution_id: string | null;
+            evidence_id: string | null;
+            title: string;
+            description: string;
+            affected_component: string | null;
+            /** @enum {string} */
+            risk_level: "informational" | "low" | "medium" | "high" | "critical";
+            /** @enum {string} */
+            status: "CANDIDATE" | "VALIDATED" | "FALSE_POSITIVE" | "REMEDIATED" | "INCONCLUSIVE";
+            metadata: {
+                [key: string]: unknown;
+            };
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        RemediationProposalCreate: {
+            /** @enum {string} */
+            source: "AI_GENERATED" | "KNOWLEDGE_BASE" | "VENDOR_ADVISORY" | "MANUAL";
+            title: string;
+            description: string;
+            /**
+             * @default medium
+             * @enum {string}
+             */
+            risk_level: "low" | "medium" | "high";
+            knowledge_refs?: string[];
+            model_invocation_id?: string | null;
+            provenance?: {
+                [key: string]: unknown;
+            };
+        };
+        RemediationProposal: {
+            id: string;
+            case_id: string;
+            tenant_id: string;
+            project_id: string;
+            /** @enum {string} */
+            source: "AI_GENERATED" | "KNOWLEDGE_BASE" | "VENDOR_ADVISORY" | "MANUAL";
+            title: string;
+            description: string;
+            /** @enum {string} */
+            risk_level: "low" | "medium" | "high";
+            knowledge_refs: string[];
+            model_invocation_id: string | null;
+            provenance: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            status: "PROPOSED" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+            proposed_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        RemediationDecisionCreate: {
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+            reason: string;
+            /** @default false */
+            automated: boolean;
+        };
+        RemediationDecision: {
+            id: string;
+            proposal_id: string;
+            case_id: string;
+            tenant_id: string;
+            project_id: string;
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+            reason: string;
+            automated: boolean;
+            decided_by: string;
+            /** Format: date-time */
+            decided_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        RemediationImplementationCreate: {
+            implementation_ref: string;
+            description: string;
+            /** Format: date-time */
+            implemented_at?: string | null;
+            verification_notes?: string | null;
+        };
+        RemediationImplementation: {
+            id: string;
+            decision_id: string;
+            proposal_id: string;
+            case_id: string;
+            tenant_id: string;
+            project_id: string;
+            implementation_ref: string;
+            description: string;
+            implemented_by: string;
+            /** Format: date-time */
+            implemented_at: string;
+            verification_notes: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        RetestRequestCreate: {
+            finding_id: string;
+            original_execution_id: string;
+            remediation_implementation_id: string;
+        };
+        RetestRequest: {
+            id: string;
+            case_id: string;
+            finding_id: string;
+            tenant_id: string;
+            project_id: string;
+            original_execution_id: string;
+            remediation_implementation_id: string;
+            retest_execution_id: string;
+            /** @enum {string} */
+            status: "REQUESTED" | "QUEUED" | "RUNNING" | "COMPLETED" | "CANCELLED" | "INCONCLUSIVE";
+            template_id: string;
+            template_version: string;
+            template_version_changed: boolean;
+            requested_by: string;
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        ValidationComparison: {
+            id: string;
+            retest_id: string;
+            case_id: string;
+            finding_id: string;
+            tenant_id: string;
+            project_id: string;
+            original_execution_id: string;
+            retest_execution_id: string;
+            /** @enum {string} */
+            result: "REMEDIATED" | "PARTIALLY_REMEDIATED" | "NOT_REMEDIATED" | "REGRESSION" | "INCONCLUSIVE";
+            initial_status: string;
+            retest_status: string;
+            success_condition_diff: {
+                [key: string]: unknown;
+            };
+            key_response_diff: {
+                [key: string]: unknown;
+            };
+            component_version_diff: {
+                [key: string]: unknown;
+            };
+            evidence_sha256: {
+                [key: string]: unknown;
+            };
+            risk_level_change: string | null;
+            residual_risk: string | null;
+            recommendation: string | null;
+            reviewed_by: string | null;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        CaseDispositionCreate: {
+            /** @enum {string} */
+            disposition: "REMEDIATED" | "ACCEPTED_RISK" | "FALSE_POSITIVE" | "INCONCLUSIVE";
+            reason: string;
+            residual_risk?: string | null;
+            expected_version: number;
+            /** @constant */
+            human_confirmed: true;
+        };
+        CaseDisposition: {
+            id: string;
+            case_id: string;
+            tenant_id: string;
+            project_id: string;
+            /** @enum {string} */
+            disposition: "REMEDIATED" | "ACCEPTED_RISK" | "FALSE_POSITIVE" | "INCONCLUSIVE";
+            reason: string;
+            residual_risk: string | null;
+            human_confirmed: boolean;
+            decided_by: string;
+            /** Format: date-time */
+            decided_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        CaseCloseRequest: {
+            expected_version: number;
+            reason?: string | null;
+        };
+        CaseReportCreate: {
+            title?: string | null;
+        };
+        CaseReport: {
+            id: string;
+            case_id: string;
+            tenant_id: string;
+            project_id: string;
+            title: string;
+            report: {
+                [key: string]: unknown;
+            };
+            generated_by: string;
+            /** Format: date-time */
+            generated_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            version: number;
+        };
+        VulnerabilityCaseDetail: {
+            case: components["schemas"]["VulnerabilityCase"];
+            findings: components["schemas"]["CaseFinding"][];
+            remediation_proposals: components["schemas"]["RemediationProposal"][];
+            remediation_decisions: components["schemas"]["RemediationDecision"][];
+            remediation_implementations: components["schemas"]["RemediationImplementation"][];
+            retests: components["schemas"]["RetestRequest"][];
+            comparisons: components["schemas"]["ValidationComparison"][];
+            dispositions: components["schemas"]["CaseDisposition"][];
+            reports: components["schemas"]["CaseReport"][];
+            audit_events: {
+                [key: string]: unknown;
+            }[];
         };
     };
     responses: {
@@ -4376,6 +4910,492 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listVulnerabilityCases: {
+        parameters: {
+            query?: {
+                limit?: number;
+                project_id?: string | null;
+                status?: string | null;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List vulnerability cases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VulnerabilityCase"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createVulnerabilityCase: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VulnerabilityCaseCreate"];
+            };
+        };
+        responses: {
+            /** @description Create a vulnerability case */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VulnerabilityCase"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getVulnerabilityCase: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get vulnerability case detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VulnerabilityCaseDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateVulnerabilityCase: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VulnerabilityCasePatch"];
+            };
+        };
+        responses: {
+            /** @description Update vulnerability case with optimistic locking */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VulnerabilityCase"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listCaseFindings: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List case findings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseFinding"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createCaseFinding: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseFindingCreate"];
+            };
+        };
+        responses: {
+            /** @description Create and bind a case finding */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseFinding"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listRemediationProposals: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List remediation proposals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemediationProposal"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createRemediationProposal: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemediationProposalCreate"];
+            };
+        };
+        responses: {
+            /** @description Create remediation proposal */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemediationProposal"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    decideRemediationProposal: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemediationDecisionCreate"];
+            };
+        };
+        responses: {
+            /** @description Create human remediation decision */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemediationDecision"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createRemediationImplementation: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                decision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemediationImplementationCreate"];
+            };
+        };
+        responses: {
+            /** @description Create remediation implementation record */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemediationImplementation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createCaseRetest: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetestRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Request P9 validation retest */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetestRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getRetest: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                retest_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get retest request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetestRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getRetestComparison: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                retest_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get before/after validation comparison */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationComparison"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createCaseDisposition: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseDispositionCreate"];
+            };
+        };
+        responses: {
+            /** @description Create human case disposition */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseDisposition"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    closeVulnerabilityCase: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseCloseRequest"];
+            };
+        };
+        responses: {
+            /** @description Close a dispositioned vulnerability case */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VulnerabilityCase"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    generateCaseReport: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseReportCreate"];
+            };
+        };
+        responses: {
+            /** @description Generate case report from reviewed evidence */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseReport"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
 }

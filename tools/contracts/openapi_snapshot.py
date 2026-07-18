@@ -85,6 +85,18 @@ CRITICAL_PATHS = frozenset(
         "/validation-executions/{execution_id}/reviews",
         "/validation-templates",
         "/validation-templates/{template_id}",
+        "/vulnerability-cases",
+        "/vulnerability-cases/{case_id}",
+        "/vulnerability-cases/{case_id}/findings",
+        "/vulnerability-cases/{case_id}/remediation-proposals",
+        "/remediation-proposals/{proposal_id}/decisions",
+        "/remediation-decisions/{decision_id}/implementations",
+        "/vulnerability-cases/{case_id}/retests",
+        "/retests/{retest_id}",
+        "/retests/{retest_id}/comparison",
+        "/vulnerability-cases/{case_id}/disposition",
+        "/vulnerability-cases/{case_id}/close",
+        "/vulnerability-cases/{case_id}/reports",
         "/policies/evaluate",
         "/audit/events",
     }
@@ -270,8 +282,8 @@ def validate_document(document: dict[str, Any]) -> list[str]:
     operation_count = 0
     for path, method, operation in iter_operations(document):
         operation_count += 1
-        if method not in {"get", "post", "put"}:
-            errors.append(f"P6 contract uses an unsupported method: {method.upper()} {path}")
+        if method not in {"get", "post", "put", "patch"}:
+            errors.append(f"contract uses an unsupported method: {method.upper()} {path}")
         operation_id = operation.get("operationId")
         if not isinstance(operation_id, str) or not operation_id:
             errors.append(f"operationId is required for {method.upper()} {path}")
@@ -291,7 +303,7 @@ def validate_document(document: dict[str, Any]) -> list[str]:
             "BearerAuth": []
         } not in operation.get("security", []):
             errors.append(f"OIDC BearerAuth is missing for {method.upper()} {path}")
-        if method in {"post", "put"} and (
+        if method in {"post", "put", "patch"} and (
             "#/components/parameters/IdempotencyKey" not in _parameter_refs(operation)
         ):
             errors.append(f"Idempotency-Key is missing for {method.upper()} {path}")
@@ -378,6 +390,26 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         "ValidationExecution",
         "ValidationExecutionEvent",
         "ValidationExecutionEvidence",
+        "VulnerabilityCaseCreate",
+        "VulnerabilityCasePatch",
+        "VulnerabilityCase",
+        "VulnerabilityCaseDetail",
+        "CaseFindingCreate",
+        "CaseFinding",
+        "RemediationProposalCreate",
+        "RemediationProposal",
+        "RemediationDecisionCreate",
+        "RemediationDecision",
+        "RemediationImplementationCreate",
+        "RemediationImplementation",
+        "RetestRequestCreate",
+        "RetestRequest",
+        "ValidationComparison",
+        "CaseDispositionCreate",
+        "CaseDisposition",
+        "CaseCloseRequest",
+        "CaseReportCreate",
+        "CaseReport",
         "PolicyEvaluationRequest",
         "PolicyDecision",
         "AuditEvent",

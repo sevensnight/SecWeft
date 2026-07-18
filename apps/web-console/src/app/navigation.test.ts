@@ -12,6 +12,7 @@ describe('P7 navigation', () => {
       '/knowledge',
       '/assets',
       '/validation',
+      '/cases',
       '/sandboxes',
       '/policies',
       '/audit',
@@ -22,6 +23,7 @@ describe('P7 navigation', () => {
 
   it('selects the owning menu entry for nested routes', () => {
     expect(selectNavigationKey('/tasks/abc')).toBe('/tasks');
+    expect(selectNavigationKey('/cases/abc')).toBe('/cases');
     expect(selectNavigationKey('/validation')).toBe('/validation');
     expect(selectNavigationKey('/unknown')).toBe('/');
   });

@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "c9c6a7e065d3e23c2b368bc2b7bc70ab1663ea2a8df0d4d4ed4d6f2ec7623f89",
+  "document_sha256": "0ab71e72abb84136c5c9b5c1afd1bd46397bf607339ac1d83d1a94dd53b08fde",
   "openapi": "3.1.0",
-  "info_version": "1.9.0-p9",
+  "info_version": "1.10.0-p10",
   "operations": [
     {
       "method": "GET",
@@ -691,6 +691,108 @@
         "401",
         "403",
         "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/remediation-decisions/{decision_id}/implementations",
+      "operation_id": "createRemediationImplementation",
+      "parameters": [
+        {
+          "name": "decision_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/remediation-proposals/{proposal_id}/decisions",
+      "operation_id": "decideRemediationProposal",
+      "parameters": [
+        {
+          "name": "proposal_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/retests/{retest_id}",
+      "operation_id": "getRetest",
+      "parameters": [
+        {
+          "name": "retest_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/retests/{retest_id}/comparison",
+      "operation_id": "getRetestComparison",
+      "parameters": [
+        {
+          "name": "retest_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
       ],
       "success_media_types": [
         "application/json"
@@ -1782,6 +1884,327 @@
     },
     {
       "method": "GET",
+      "path": "/vulnerability-cases",
+      "operation_id": "listVulnerabilityCases",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "project_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/vulnerability-cases",
+      "operation_id": "createVulnerabilityCase",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/vulnerability-cases/{case_id}",
+      "operation_id": "getVulnerabilityCase",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/vulnerability-cases/{case_id}",
+      "operation_id": "updateVulnerabilityCase",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/vulnerability-cases/{case_id}/close",
+      "operation_id": "closeVulnerabilityCase",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/vulnerability-cases/{case_id}/disposition",
+      "operation_id": "createCaseDisposition",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/vulnerability-cases/{case_id}/findings",
+      "operation_id": "listCaseFindings",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/vulnerability-cases/{case_id}/findings",
+      "operation_id": "createCaseFinding",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/vulnerability-cases/{case_id}/remediation-proposals",
+      "operation_id": "listRemediationProposals",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/vulnerability-cases/{case_id}/remediation-proposals",
+      "operation_id": "createRemediationProposal",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/vulnerability-cases/{case_id}/reports",
+      "operation_id": "generateCaseReport",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/vulnerability-cases/{case_id}/retests",
+      "operation_id": "createCaseRetest",
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/workflows",
       "operation_id": "listWorkflows",
       "parameters": [
@@ -1827,6 +2250,13 @@
     "AgentDefinitionCreate",
     "AuditEvent",
     "AuditEventPage",
+    "CaseCloseRequest",
+    "CaseDisposition",
+    "CaseDispositionCreate",
+    "CaseFinding",
+    "CaseFindingCreate",
+    "CaseReport",
+    "CaseReportCreate",
     "Checkpoint",
     "ConfigEntry",
     "ConfigEntryUpdate",
@@ -1867,6 +2297,14 @@
     "RAGSearchRequest",
     "RAGSearchResponse",
     "RAGSearchResult",
+    "RemediationDecision",
+    "RemediationDecisionCreate",
+    "RemediationImplementation",
+    "RemediationImplementationCreate",
+    "RemediationProposal",
+    "RemediationProposalCreate",
+    "RetestRequest",
+    "RetestRequestCreate",
     "Role",
     "RoleAssignment",
     "RoleAssignmentCreate",
@@ -1889,6 +2327,7 @@
     "User",
     "UserPage",
     "UserProvisionCreate",
+    "ValidationComparison",
     "ValidationExecution",
     "ValidationExecutionCreate",
     "ValidationExecutionEvent",
@@ -1899,6 +2338,10 @@
     "ValidationPlanReview",
     "ValidationProbeStep",
     "ValidationTemplate",
+    "VulnerabilityCase",
+    "VulnerabilityCaseCreate",
+    "VulnerabilityCaseDetail",
+    "VulnerabilityCasePatch",
     "WorkflowDefinition",
     "WorkflowDefinitionCreate",
     "WorkflowStageDefinition"

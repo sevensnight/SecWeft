@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic acceptance runner for Module 2 P9 controlled validation execution plane."""
+"""Deterministic acceptance runner for Module 2 P10 remediation verification and case management."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from tools.contracts import openapi_snapshot  # noqa: E402
+from tools.contracts import check_migrations, openapi_snapshot  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -32,16 +32,17 @@ class CheckResult:
 
 
 REQUIRED_FILES = (
-    "apps/control-plane/src/vulnlab/validation_execution.py",
-    "apps/control-plane/src/vulnlab/api/routers/validation_executions.py",
-    "apps/validation-worker/main.py",
-    "apps/validation-worker/README.md",
-    "tests/test_p9_validation_executions.py",
-    "docs/architecture/p9-execution-plane.md",
-    "docs/security/sandbox-threat-model.md",
-    "docs/testing/p9-validation-matrix.md",
-    "infrastructure/migrations/0007_p9_validation_execution_plane.up.sql",
-    "infrastructure/migrations/0007_p9_validation_execution_plane.down.sql",
+    "apps/control-plane/src/vulnlab/case_management.py",
+    "apps/control-plane/src/vulnlab/api/routers/cases.py",
+    "tests/test_p10_case_lifecycle.py",
+    "solve_p10_baseline.py",
+    "docs/architecture/p10-case-lifecycle.md",
+    "docs/architecture/p10-remediation-model.md",
+    "docs/testing/p10-validation-matrix.md",
+    "docs/security/p10-human-decision-boundaries.md",
+    "docs/acceptance/p10-acceptance-report.md",
+    "infrastructure/migrations/0010_p10_case_lifecycle.up.sql",
+    "infrastructure/migrations/0010_p10_case_lifecycle.down.sql",
 )
 
 
@@ -71,21 +72,23 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     value = openapi_snapshot.check(runtime=True)
     paths = openapi_snapshot.load_document()["paths"]
     required_paths = {
-        "/validation-plans/{plan_id}/executions",
-        "/validation-executions",
-        "/validation-executions/{execution_id}",
-        "/validation-executions/{execution_id}/cancel",
-        "/validation-executions/{execution_id}/retry",
-        "/validation-executions/{execution_id}/events",
-        "/validation-executions/{execution_id}/events/stream",
-        "/validation-executions/{execution_id}/evidence",
-        "/validation-executions/{execution_id}/reviews",
-        "/validation-templates",
-        "/validation-templates/{template_id}",
+        "/vulnerability-cases",
+        "/vulnerability-cases/{case_id}",
+        "/vulnerability-cases/{case_id}/findings",
+        "/vulnerability-cases/{case_id}/remediation-proposals",
+        "/remediation-proposals/{proposal_id}/decisions",
+        "/remediation-decisions/{decision_id}/implementations",
+        "/vulnerability-cases/{case_id}/retests",
+        "/retests/{retest_id}",
+        "/retests/{retest_id}/comparison",
+        "/vulnerability-cases/{case_id}/disposition",
+        "/vulnerability-cases/{case_id}/close",
+        "/vulnerability-cases/{case_id}/reports",
     }
     invariants = {
-        "operation_count_is_at_least_p9": value["operation_count"] >= 73,
-        "all_p9_paths_exist": required_paths <= set(paths),
+        "operation_count_is_p10": value["operation_count"] == 89,
+        "all_p10_paths_exist": required_paths <= set(paths),
+        "p9_validation_execution_paths_remain": "/validation-plans/{plan_id}/executions" in paths,
         "dangerous_paths_still_absent": all(
             marker not in path.lower()
             for path in paths
@@ -96,38 +99,51 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     return ("PASS" if not errors else "FAIL"), {**value, "invariants": invariants, "errors": errors}
 
 
+def _migration_check() -> tuple[str, dict[str, Any]]:
+    value = check_migrations.check()
+    invariants = {
+        "p10_migration_present": "0010_p10_case_lifecycle" in value["pairs"],
+        "case_tables_are_tenant_safe": value["valid"],
+    }
+    errors = list(value["errors"]) + sorted(name for name, valid in invariants.items() if not valid)
+    return ("PASS" if not errors else "FAIL"), {**value, "invariants": invariants, "errors": errors}
+
+
 def _security_static_check() -> tuple[str, dict[str, Any]]:
-    service = (ROOT / "apps/control-plane/src/vulnlab/validation_execution.py").read_text(
+    service = (ROOT / "apps/control-plane/src/vulnlab/case_management.py").read_text(
         encoding="utf-8"
     )
-    router = (
-        ROOT / "apps/control-plane/src/vulnlab/api/routers/validation_executions.py"
+    validation_service = (
+        ROOT / "apps/control-plane/src/vulnlab/validation_execution.py"
     ).read_text(encoding="utf-8")
-    tests = (ROOT / "tests/test_p9_validation_executions.py").read_text(encoding="utf-8")
-    sandbox_doc = (ROOT / "docs/security/sandbox-threat-model.md").read_text(encoding="utf-8")
+    router = (ROOT / "apps/control-plane/src/vulnlab/api/routers/cases.py").read_text(
+        encoding="utf-8"
+    )
+    tests = (ROOT / "tests/test_p10_case_lifecycle.py").read_text(encoding="utf-8")
     invariants = {
-        "registered_fixed_templates_only": all(
-            marker in service
+        "case_state_machine_defined": "CASE_ALLOWED_TRANSITIONS" in service
+        and "DRAFT" in service
+        and "CLOSED" in service,
+        "retest_reuses_p9_execution_service": "self.validation_execution.create" in service
+        and "validation.retest" in service,
+        "comparison_requires_evidence_sha": "evidence_sha256" in service
+        and "_execution_evidence_sha" in service,
+        "ai_proposal_cannot_auto_approve": "automated remediation decisions cannot approve proposals"
+        in service,
+        "separation_of_duties_high_risk": "separation of duties" in service,
+        "no_arbitrary_shell_added": "shell=True" not in service and "subprocess" not in service,
+        "p9_templates_unchanged": all(
+            marker in validation_service
             for marker in (
                 '"http.response"',
                 '"sbom.dependency-version"',
                 '"local.training-lab"',
             )
         )
-        and "shell.arbitrary" not in service,
-        "no_subprocess_shell": "shell=True" not in service and "subprocess" not in service,
-        "policy_rechecked_by_worker": "self._authorize_create(principal" in service
-        and "validation.execute" in service,
-        "approval_rechecked_by_worker": "APPROVAL_REVOKED" in service
-        and 'plan_row["status"] != "approved"' in service,
-        "scope_violation_status_exists": "SCOPE_INVALID" in service,
-        "idempotency_key_required": "Idempotency-Key is required" in service,
-        "worker_is_durable_queue_backed": "validation_queue_messages" in service
-        and "run_worker_once" in service,
-        "api_requires_execute_permission": 'require("validation:execute")' in router,
-        "arbitrary_shell_negative_test": "argv" in tests and "shell.arbitrary" in tests,
-        "sandbox_threat_model_lists_required_flags": "--cap-drop ALL" in sandbox_doc
-        and "--security-opt no-new-privileges:true" in sandbox_doc,
+        and "shell.arbitrary" not in validation_service,
+        "write_apis_accept_idempotency": "Idempotency-Key" in router,
+        "negative_tests_cover_human_boundaries": "p10-ai-auto-approve" in tests
+        and "p10-invalid-remediated" in tests,
     }
     errors = sorted(name for name, valid in invariants.items() if not valid)
     return ("PASS" if not errors else "FAIL"), {"invariants": invariants, "errors": errors}
@@ -168,19 +184,24 @@ def _command_check(
 def run(full: bool) -> dict[str, Any]:
     python = sys.executable
     checks = [
-        _timed("p9_repository_layout", _layout_check),
-        _timed("p9_openapi_contract_guard", _contract_check),
-        _timed("p9_security_static_guard", _security_static_check),
+        _timed("p10_repository_layout", _layout_check),
+        _timed("p10_openapi_contract_guard", _contract_check),
+        _timed("p10_migration_guard", _migration_check),
+        _timed("p10_security_static_guard", _security_static_check),
         _command_check(
-            "p9_backend_tests",
-            [python, "-m", "pytest", "tests/test_p9_validation_executions.py", "-q"],
+            "p10_backend_case_lifecycle_tests",
+            [python, "-m", "pytest", "tests/test_p10_case_lifecycle.py", "-q"],
         ),
         _command_check(
-            "p9_contract_tests",
+            "p10_contract_tests",
             [python, "-m", "pytest", "tests/contract/test_openapi_contract.py", "-q"],
         ),
         _command_check(
-            "p9_web_typecheck",
+            "p10_migration_tests",
+            [python, "-m", "pytest", "tests/contract/test_postgres_migrations.py", "-q"],
+        ),
+        _command_check(
+            "p10_web_typecheck",
             ["pnpm", "--filter", "@vulnlab/web-console", "typecheck"],
             optional_tool="pnpm",
         ),
@@ -189,6 +210,10 @@ def run(full: bool) -> dict[str, Any]:
         checks.extend(
             [
                 _command_check(
+                    "p9_baseline_compatibility",
+                    [python, "solve_p9_baseline.py"],
+                ),
+                _command_check(
                     "python_compile",
                     [
                         python,
@@ -196,8 +221,7 @@ def run(full: bool) -> dict[str, Any]:
                         "compileall",
                         "-q",
                         "apps/control-plane/src",
-                        "apps/validation-worker",
-                        "solve_p9_baseline.py",
+                        "solve_p10_baseline.py",
                     ],
                 ),
                 _command_check("python_format", [python, "-m", "ruff", "format", "--check", "."]),
@@ -205,11 +229,12 @@ def run(full: bool) -> dict[str, Any]:
                 _command_check("python_tests", [python, "-m", "pytest", "-q"]),
                 _command_check("workspace_typecheck", ["pnpm", "typecheck"], optional_tool="pnpm"),
                 _command_check("workspace_test", ["pnpm", "test"], optional_tool="pnpm"),
+                _command_check("workspace_build", ["pnpm", "build"], optional_tool="pnpm"),
             ]
         )
     failed = [check for check in checks if check.status == "FAIL"]
     return {
-        "phase": "P9",
+        "phase": "P10",
         "valid": not failed,
         "full": full,
         "summary": {
@@ -220,18 +245,16 @@ def run(full: bool) -> dict[str, Any]:
         },
         "checks": [asdict(check) for check in checks],
         "not_executed": {
-            "nats_jetstream_runtime": "Protocol documented; local adapter uses durable SQLite queue.",
-            "docker_runtime_sandbox": "Sandbox threat model and metadata implemented; daemon/image runtime not exercised by default.",
-            "minio_runtime_upload": "Evidence metadata/hash and local-compatible artifact are persisted; true MinIO upload not exercised by default.",
-            "internet_egress_runtime_block": "Requires Docker/network policy runtime test.",
-            "resource_limit_runtime_kill": "Requires Docker runtime test.",
+            "new_validation_templates": "Not applicable; P10 intentionally adds no validation templates.",
+            "arbitrary_poc_execution": "Not applicable; P10 does not add arbitrary PoC upload or shell execution.",
+            "linux_runtime_network_authority": "Covered by P9-H runtime path, not expanded by P10.",
         },
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--full", action="store_true", help="also run broader local quality gates")
+    parser.add_argument("--full", action="store_true", help="also run broader compatibility gates")
     args = parser.parse_args()
     result = run(args.full)
     print(json.dumps(result, ensure_ascii=False, indent=2))

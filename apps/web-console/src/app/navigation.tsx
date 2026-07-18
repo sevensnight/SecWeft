@@ -35,6 +35,7 @@ export const P7_NAVIGATION: NavigationEntry[] = [
   { key: '/knowledge', labelKey: 'knowledge', icon: <BookOutlined /> },
   { key: '/assets', labelKey: 'assets', icon: <DatabaseOutlined /> },
   { key: '/validation', labelKey: 'validation', icon: <BugOutlined /> },
+  { key: '/cases', labelKey: 'cases', icon: <FileTextOutlined /> },
   { key: '/sandboxes', labelKey: 'sandboxes', icon: <ControlOutlined /> },
   { key: '/policies', labelKey: 'policies', icon: <SafetyCertificateOutlined /> },
   { key: '/audit', labelKey: 'audit', icon: <AuditOutlined /> },

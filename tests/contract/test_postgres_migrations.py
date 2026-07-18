@@ -16,6 +16,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0007_p9_validation_execution_plane",
         "0008_p9r_validation_runtime_outbox",
         "0009_p9h_repository_hardening",
+        "0010_p10_case_lifecycle",
     ]
 
 
@@ -124,6 +125,33 @@ def test_p9h_repository_hardening_migration_declares_adapter_contracts() -> None
     assert "idempotency_key_concurrency" in sql
     assert "timezone_aware_timestamps" in sql
     assert "required_behaviors jsonb not null" in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p10_case_lifecycle_migration_has_remediation_retest_and_comparison() -> None:
+    up = MIGRATIONS / "0010_p10_case_lifecycle.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists case_mgmt" in sql
+    assert "case_mgmt.vulnerability_cases" in sql
+    assert "case_mgmt.case_findings" in sql
+    assert "case_mgmt.remediation_proposals" in sql
+    assert "case_mgmt.remediation_decisions" in sql
+    assert "case_mgmt.remediation_implementations" in sql
+    assert "case_mgmt.retest_requests" in sql
+    assert "case_mgmt.validation_comparisons" in sql
+    assert "case_mgmt.case_dispositions" in sql
+    assert "case_mgmt.case_reports" in sql
+    assert "ai_generated" in sql
+    assert "validation.retest" not in sql
+    assert "remediated" in sql
+    assert "inconclusive" in sql
+    assert "references validation.executions (tenant_id, id)" in sql
+    assert "references case_mgmt.vulnerability_cases (tenant_id, id)" in sql
+    assert "grant select, insert, update on all tables in schema case_mgmt to vulnlab_app" in sql
+    assert "grant select, insert, update, delete on all tables in schema case_mgmt" not in sql
     assert "host network" not in sql
     assert "docker socket" not in sql
     assert "exploit payload" not in sql

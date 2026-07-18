@@ -548,6 +548,296 @@ class ValidationExecutionEvidenceResponse(APIModel):
     created_at: datetime
 
 
+Severity = Literal["informational", "low", "medium", "high", "critical"]
+CaseStatus = Literal[
+    "DRAFT",
+    "TRIAGE",
+    "VALIDATION_PENDING",
+    "VALIDATED",
+    "REMEDIATION_PLANNED",
+    "REMEDIATION_IN_PROGRESS",
+    "RETEST_PENDING",
+    "REMEDIATED",
+    "ACCEPTED_RISK",
+    "FALSE_POSITIVE",
+    "INCONCLUSIVE",
+    "CLOSED",
+]
+
+
+class VulnerabilityCaseCreate(APIModel):
+    title: str = Field(min_length=3, max_length=240)
+    summary: str = Field(min_length=3, max_length=5000)
+    severity: Severity = "medium"
+    project_id: str = Field(default="default", min_length=1, max_length=120)
+    source: Literal["VALIDATION", "MANUAL", "IMPORT"] = "MANUAL"
+    external_ref: str | None = Field(default=None, max_length=240)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class VulnerabilityCasePatch(APIModel):
+    expected_version: int = Field(ge=1)
+    title: str | None = Field(default=None, min_length=3, max_length=240)
+    summary: str | None = Field(default=None, min_length=3, max_length=5000)
+    severity: Severity | None = None
+    status: CaseStatus | None = None
+    metadata: dict[str, Any] | None = None
+
+    @model_validator(mode="after")
+    def at_least_one_case_change(self) -> VulnerabilityCasePatch:
+        if (
+            self.title is None
+            and self.summary is None
+            and self.severity is None
+            and self.status is None
+            and self.metadata is None
+        ):
+            raise ValueError("at least one case field must be changed")
+        return self
+
+
+class VulnerabilityCaseResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    title: str
+    summary: str
+    severity: Severity
+    status: CaseStatus
+    source: str
+    external_ref: str | None
+    metadata: dict[str, Any]
+    created_by: str
+    updated_by: str
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class CaseFindingCreate(APIModel):
+    title: str = Field(min_length=3, max_length=240)
+    description: str = Field(min_length=3, max_length=5000)
+    affected_component: str | None = Field(default=None, max_length=240)
+    risk_level: Severity = "medium"
+    status: Literal["CANDIDATE", "VALIDATED", "FALSE_POSITIVE", "INCONCLUSIVE"] = "CANDIDATE"
+    validation_execution_id: str | None = None
+    evidence_id: str | None = None
+    project_id: str | None = Field(default=None, max_length=120)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CaseFindingResponse(APIModel):
+    id: str
+    case_id: str
+    tenant_id: str
+    project_id: str
+    validation_execution_id: str | None
+    evidence_id: str | None
+    title: str
+    description: str
+    affected_component: str | None
+    risk_level: Severity
+    status: Literal["CANDIDATE", "VALIDATED", "FALSE_POSITIVE", "REMEDIATED", "INCONCLUSIVE"]
+    metadata: dict[str, Any]
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class RemediationProposalCreate(APIModel):
+    source: Literal["AI_GENERATED", "KNOWLEDGE_BASE", "VENDOR_ADVISORY", "MANUAL"]
+    title: str = Field(min_length=3, max_length=240)
+    description: str = Field(min_length=3, max_length=10000)
+    risk_level: Literal["low", "medium", "high"] = "medium"
+    knowledge_refs: list[str] = Field(default_factory=list, max_length=64)
+    model_invocation_id: str | None = None
+    provenance: dict[str, Any] = Field(default_factory=dict)
+
+
+class RemediationProposalResponse(APIModel):
+    id: str
+    case_id: str
+    tenant_id: str
+    project_id: str
+    source: Literal["AI_GENERATED", "KNOWLEDGE_BASE", "VENDOR_ADVISORY", "MANUAL"]
+    title: str
+    description: str
+    risk_level: Literal["low", "medium", "high"]
+    knowledge_refs: list[str]
+    model_invocation_id: str | None
+    provenance: dict[str, Any]
+    status: Literal["PROPOSED", "APPROVED", "REJECTED", "CHANGES_REQUESTED"]
+    proposed_by: str
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class RemediationDecisionCreate(APIModel):
+    decision: Literal["APPROVED", "REJECTED", "CHANGES_REQUESTED"]
+    reason: str = Field(min_length=3, max_length=2000)
+    automated: bool = False
+
+
+class RemediationDecisionResponse(APIModel):
+    id: str
+    proposal_id: str
+    case_id: str
+    tenant_id: str
+    project_id: str
+    decision: Literal["APPROVED", "REJECTED", "CHANGES_REQUESTED"]
+    reason: str
+    automated: bool
+    decided_by: str
+    decided_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class RemediationImplementationCreate(APIModel):
+    implementation_ref: str = Field(min_length=3, max_length=500)
+    description: str = Field(min_length=3, max_length=5000)
+    implemented_at: datetime | None = None
+    verification_notes: str | None = Field(default=None, max_length=5000)
+
+
+class RemediationImplementationResponse(APIModel):
+    id: str
+    decision_id: str
+    proposal_id: str
+    case_id: str
+    tenant_id: str
+    project_id: str
+    implementation_ref: str
+    description: str
+    implemented_by: str
+    implemented_at: datetime
+    verification_notes: str | None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class RetestRequestCreate(APIModel):
+    finding_id: str
+    original_execution_id: str
+    remediation_implementation_id: str
+
+
+class RetestRequestResponse(APIModel):
+    id: str
+    case_id: str
+    finding_id: str
+    tenant_id: str
+    project_id: str
+    original_execution_id: str
+    remediation_implementation_id: str
+    retest_execution_id: str
+    status: Literal["REQUESTED", "QUEUED", "RUNNING", "COMPLETED", "CANCELLED", "INCONCLUSIVE"]
+    template_id: str
+    template_version: str
+    template_version_changed: bool
+    requested_by: str
+    requested_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class ValidationComparisonResponse(APIModel):
+    id: str
+    retest_id: str
+    case_id: str
+    finding_id: str
+    tenant_id: str
+    project_id: str
+    original_execution_id: str
+    retest_execution_id: str
+    result: Literal[
+        "REMEDIATED",
+        "PARTIALLY_REMEDIATED",
+        "NOT_REMEDIATED",
+        "REGRESSION",
+        "INCONCLUSIVE",
+    ]
+    initial_status: str
+    retest_status: str
+    success_condition_diff: dict[str, Any]
+    key_response_diff: dict[str, Any]
+    component_version_diff: dict[str, Any]
+    evidence_sha256: dict[str, Any]
+    risk_level_change: str | None
+    residual_risk: str | None
+    recommendation: str | None
+    reviewed_by: str | None
+    reviewed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class CaseDispositionCreate(APIModel):
+    disposition: Literal["REMEDIATED", "ACCEPTED_RISK", "FALSE_POSITIVE", "INCONCLUSIVE"]
+    reason: str = Field(min_length=3, max_length=3000)
+    residual_risk: str | None = Field(default=None, max_length=3000)
+    expected_version: int = Field(ge=1)
+    human_confirmed: Literal[True] = True
+
+
+class CaseDispositionResponse(APIModel):
+    id: str
+    case_id: str
+    tenant_id: str
+    project_id: str
+    disposition: Literal["REMEDIATED", "ACCEPTED_RISK", "FALSE_POSITIVE", "INCONCLUSIVE"]
+    reason: str
+    residual_risk: str | None
+    human_confirmed: bool
+    decided_by: str
+    decided_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class CaseReportCreate(APIModel):
+    title: str | None = Field(default=None, max_length=240)
+
+
+class CaseCloseRequest(APIModel):
+    expected_version: int = Field(ge=1)
+    reason: str | None = Field(default=None, max_length=1000)
+
+
+class CaseReportResponse(APIModel):
+    id: str
+    case_id: str
+    tenant_id: str
+    project_id: str
+    title: str
+    report: dict[str, Any]
+    generated_by: str
+    generated_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class VulnerabilityCaseDetailResponse(APIModel):
+    case: VulnerabilityCaseResponse
+    findings: list[CaseFindingResponse]
+    remediation_proposals: list[RemediationProposalResponse]
+    remediation_decisions: list[RemediationDecisionResponse]
+    remediation_implementations: list[RemediationImplementationResponse]
+    retests: list[RetestRequestResponse]
+    comparisons: list[ValidationComparisonResponse]
+    dispositions: list[CaseDispositionResponse]
+    reports: list[CaseReportResponse]
+    audit_events: list[dict[str, Any]]
+
+
 class SandboxRequest(APIModel):
     task_id: str | None = None
     argv: list[str] = Field(min_length=1, max_length=32)
@@ -630,6 +920,17 @@ class PolicyEvaluationRequest(APIModel):
         "asset.probe",
         "sandbox.run",
         "validation.execute",
+        "case.create",
+        "case.update",
+        "case.confirm",
+        "case.disposition",
+        "remediation.propose",
+        "remediation.approve",
+        "remediation.implement",
+        "validation.retest",
+        "comparison.review",
+        "case.close",
+        "report.generate",
         "task.execute",
         "context.restore",
         "rag.search",

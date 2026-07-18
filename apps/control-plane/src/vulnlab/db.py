@@ -459,6 +459,180 @@ CREATE TABLE IF NOT EXISTS validation_queue_messages (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS vulnerability_cases (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    severity TEXT NOT NULL CHECK(severity IN ('informational','low','medium','high','critical')),
+    status TEXT NOT NULL CHECK(status IN (
+        'DRAFT','TRIAGE','VALIDATION_PENDING','VALIDATED',
+        'REMEDIATION_PLANNED','REMEDIATION_IN_PROGRESS',
+        'RETEST_PENDING','REMEDIATED','ACCEPTED_RISK',
+        'FALSE_POSITIVE','INCONCLUSIVE','CLOSED'
+    )),
+    source TEXT NOT NULL DEFAULT 'MANUAL',
+    external_ref TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    updated_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS case_findings (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    validation_execution_id TEXT REFERENCES validation_executions(id),
+    evidence_id TEXT REFERENCES validation_execution_evidence(id),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    affected_component TEXT,
+    risk_level TEXT NOT NULL CHECK(risk_level IN ('informational','low','medium','high','critical')),
+    status TEXT NOT NULL CHECK(status IN ('CANDIDATE','VALIDATED','FALSE_POSITIVE','REMEDIATED','INCONCLUSIVE')),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS remediation_proposals (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    source TEXT NOT NULL CHECK(source IN ('AI_GENERATED','KNOWLEDGE_BASE','VENDOR_ADVISORY','MANUAL')),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    risk_level TEXT NOT NULL CHECK(risk_level IN ('low','medium','high')),
+    knowledge_refs_json TEXT NOT NULL DEFAULT '[]',
+    model_invocation_id TEXT REFERENCES model_invocations(id),
+    provenance_json TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL CHECK(status IN ('PROPOSED','APPROVED','REJECTED','CHANGES_REQUESTED')),
+    proposed_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS remediation_decisions (
+    id TEXT PRIMARY KEY,
+    proposal_id TEXT NOT NULL REFERENCES remediation_proposals(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    decision TEXT NOT NULL CHECK(decision IN ('APPROVED','REJECTED','CHANGES_REQUESTED')),
+    reason TEXT NOT NULL,
+    automated INTEGER NOT NULL DEFAULT 0,
+    decided_by TEXT NOT NULL REFERENCES users(id),
+    decided_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS remediation_implementations (
+    id TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL REFERENCES remediation_decisions(id) ON DELETE CASCADE,
+    proposal_id TEXT NOT NULL REFERENCES remediation_proposals(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    implementation_ref TEXT NOT NULL,
+    description TEXT NOT NULL,
+    implemented_by TEXT NOT NULL REFERENCES users(id),
+    implemented_at TEXT NOT NULL,
+    verification_notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS retest_requests (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    finding_id TEXT NOT NULL REFERENCES case_findings(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    original_execution_id TEXT NOT NULL REFERENCES validation_executions(id),
+    remediation_implementation_id TEXT NOT NULL REFERENCES remediation_implementations(id),
+    retest_execution_id TEXT NOT NULL REFERENCES validation_executions(id),
+    status TEXT NOT NULL CHECK(status IN ('REQUESTED','QUEUED','RUNNING','COMPLETED','CANCELLED','INCONCLUSIVE')),
+    template_id TEXT NOT NULL,
+    template_version TEXT NOT NULL,
+    template_version_changed INTEGER NOT NULL DEFAULT 0,
+    requested_by TEXT NOT NULL REFERENCES users(id),
+    requested_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, case_id, finding_id, remediation_implementation_id, original_execution_id)
+);
+
+CREATE TABLE IF NOT EXISTS validation_comparisons (
+    id TEXT PRIMARY KEY,
+    retest_id TEXT NOT NULL REFERENCES retest_requests(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    finding_id TEXT NOT NULL REFERENCES case_findings(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    original_execution_id TEXT NOT NULL REFERENCES validation_executions(id),
+    retest_execution_id TEXT NOT NULL REFERENCES validation_executions(id),
+    result TEXT NOT NULL CHECK(result IN (
+        'REMEDIATED','PARTIALLY_REMEDIATED','NOT_REMEDIATED','REGRESSION','INCONCLUSIVE'
+    )),
+    initial_status TEXT NOT NULL,
+    retest_status TEXT NOT NULL,
+    success_condition_diff_json TEXT NOT NULL DEFAULT '{}',
+    key_response_diff_json TEXT NOT NULL DEFAULT '{}',
+    component_version_diff_json TEXT NOT NULL DEFAULT '{}',
+    evidence_sha256_json TEXT NOT NULL DEFAULT '{}',
+    risk_level_change TEXT,
+    residual_risk TEXT,
+    recommendation TEXT,
+    reviewed_by TEXT REFERENCES users(id),
+    reviewed_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, retest_id)
+);
+
+CREATE TABLE IF NOT EXISTS case_dispositions (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    disposition TEXT NOT NULL CHECK(disposition IN ('REMEDIATED','ACCEPTED_RISK','FALSE_POSITIVE','INCONCLUSIVE')),
+    reason TEXT NOT NULL,
+    residual_risk TEXT,
+    human_confirmed INTEGER NOT NULL DEFAULT 1,
+    decided_by TEXT NOT NULL REFERENCES users(id),
+    decided_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS case_reports (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES vulnerability_cases(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    report_json TEXT NOT NULL,
+    generated_by TEXT NOT NULL REFERENCES users(id),
+    generated_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS sandbox_runs (
     id TEXT PRIMARY KEY,
     task_id TEXT REFERENCES tasks(id),
@@ -524,6 +698,26 @@ CREATE INDEX IF NOT EXISTS idx_validation_execution_evidence_execution
     ON validation_execution_evidence(execution_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_validation_queue_ready
     ON validation_queue_messages(status, available_at);
+CREATE INDEX IF NOT EXISTS idx_cases_tenant_project_status
+    ON vulnerability_cases(tenant_id, project_id, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_case_findings_case
+    ON case_findings(case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_case_findings_execution
+    ON case_findings(validation_execution_id);
+CREATE INDEX IF NOT EXISTS idx_remediation_proposals_case
+    ON remediation_proposals(case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_remediation_decisions_proposal
+    ON remediation_decisions(proposal_id, decided_at DESC);
+CREATE INDEX IF NOT EXISTS idx_remediation_implementations_case
+    ON remediation_implementations(case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_retest_requests_case
+    ON retest_requests(case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_validation_comparisons_case
+    ON validation_comparisons(case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_case_dispositions_case
+    ON case_dispositions(case_id, decided_at DESC);
+CREATE INDEX IF NOT EXISTS idx_case_reports_case
+    ON case_reports(case_id, generated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
@@ -927,7 +1121,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=9")
+            connection.execute("PRAGMA user_version=10")
             connection.commit()
         except Exception:
             connection.rollback()

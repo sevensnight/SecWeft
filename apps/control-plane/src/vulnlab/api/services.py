@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from .. import __version__
 from ..agent_registry import AgentRegistry
 from ..audit import AuditService
+from ..case_management import CaseManagementService
 from ..config import Settings
 from ..context import ContextService
 from ..enterprise import EnterpriseServices, build_enterprise_services
@@ -45,6 +46,7 @@ class Services:
     validation_sandbox: SandboxBackend
     validation_evidence_store: EvidenceStore
     validation_execution: ValidationExecutionService
+    cases: CaseManagementService
     sandbox: SandboxService
     orchestrator: Orchestrator
     enterprise: EnterpriseServices | None = None
@@ -96,6 +98,7 @@ def build_services(settings: Settings) -> Services:
         validation_sandbox,
         validation_evidence_store,
     )
+    cases = CaseManagementService(db, policy, audit, validation_execution)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
     enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
@@ -118,6 +121,7 @@ def build_services(settings: Settings) -> Services:
         validation_sandbox=validation_sandbox,
         validation_evidence_store=validation_evidence_store,
         validation_execution=validation_execution,
+        cases=cases,
         sandbox=sandbox,
         orchestrator=orchestrator,
         enterprise=enterprise,

@@ -26,7 +26,7 @@ def test_checked_in_openapi_matches_reviewed_semantic_snapshot() -> None:
 def test_checked_in_p1_operations_exist_in_runtime() -> None:
     result = check(runtime=True)
     assert result["valid"], result["errors"]
-    assert result["operation_count"] == 73
+    assert result["operation_count"] == 89
 
 
 def test_sse_contract_is_resumable_and_uses_event_stream_media_type() -> None:
@@ -103,7 +103,7 @@ def test_p3_signed_contract_dispatches_tasks_without_sync_run_operation() -> Non
         for path_item in document["paths"].values()
         for method in path_item
         if method.lower() in {"get", "post", "put", "patch", "delete"}
-    } == {"get", "post", "put"}
+    } == {"get", "post", "put", "patch"}
     assert "post" in document["paths"]["/tasks"]
     assert "post" in document["paths"]["/tasks/{task_id}/executions"]
     for path in {
