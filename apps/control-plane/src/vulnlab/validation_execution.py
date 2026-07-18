@@ -1274,7 +1274,7 @@ class ValidationExecutionService:
         self, execution: dict[str, Any], policy_decision_id: str
     ) -> dict[str, Any]:
         package_path = REPOSITORY_ROOT / "package.json"
-        package_json = json.loads(package_path.read_text(encoding="utf-8"))
+        package_json = json.loads(package_path.read_text(encoding="utf-8-sig"))
         manifests = [
             self._file_digest("package.json"),
             self._file_digest("pnpm-lock.yaml"),

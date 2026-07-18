@@ -248,7 +248,7 @@ def run(*, runtime: bool, target: str | None, namespace: str, all_targets: bool)
     claimed = runtime_claimed(runtime, checks)
     return {
         "phase": "P12-chaos",
-        "version": "2.12.1-p12r",
+        "version": "2.13.0-p13",
         "runtime": runtime,
         "runtime_not_claimed": not claimed,
         "started_at": started_at,

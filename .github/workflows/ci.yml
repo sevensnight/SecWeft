@@ -11,6 +11,11 @@ on:
         required: false
         default: false
         type: boolean
+      confirm_isolated_runtime:
+        description: Type RUN_P12_ISOLATED_RUNTIME to allow the destructive isolated runtime job
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -265,22 +270,73 @@ jobs:
     timeout-minutes: 90
     env:
       ENVIRONMENT: test
+      P12_RUNTIME_ACCEPTANCE: "true"
       P12R_RUNTIME_ENV: isolated
+      P12R_RUNTIME_NAMESPACE: vulnlab
       P12R_TEST_CLUSTER_MARKER: isolated-runtime
       CHAOS_ENABLED: "true"
       VULNLAB_P12_CHAOS_ACK: isolated-chaos
       VULNLAB_P12_DR_MODE: isolated
       VULNLAB_P12_DR_CONFIRM: isolated-restore
+      DATABASE_URL: postgresql://vulnlab@postgres.vulnlab.svc.cluster.local:5432/vulnlab
+      VULNLAB_MINIO_ENDPOINT: http://minio.vulnlab.svc.cluster.local:9000
+      VULNLAB_ALLOWED_HOSTS: localhost,127.0.0.1,vulnlab.local
+      IMAGE_TAG: p12r-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: pip
           cache-dependency-path: requirements-dev.lock
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: pnpm
       - uses: azure/setup-helm@v4
         with:
           version: v3.17.3
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.2
+      - name: Confirm isolated runtime dispatch
+        run: |
+          mkdir -p work/p12r/artifacts work/p12r/private work/p12r/artifacts/pod-logs work/p12r/artifacts/p9-p12-baseline-results
+          python - <<'PY'
+          import json
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          status = {
+              "status": "READINESS_COMPLETE",
+              "runtime": True,
+              "runtime_not_claimed": True,
+              "updated_at": datetime.now(UTC).isoformat(),
+          }
+          Path("work/p12r/artifacts/runtime-status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
+          PY
+          if [ "${{ inputs.confirm_isolated_runtime }}" != "RUN_P12_ISOLATED_RUNTIME" ]; then
+            python - <<'PY'
+          import json
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          status = {
+              "status": "RUNTIME_BLOCKED",
+              "runtime": True,
+              "runtime_not_claimed": True,
+              "reason": "confirm_isolated_runtime input mismatch",
+              "updated_at": datetime.now(UTC).isoformat(),
+          }
+          Path("work/p12r/artifacts/runtime-status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
+          PY
+            echo "confirm_isolated_runtime must equal RUN_P12_ISOLATED_RUNTIME"
+            exit 1
+          fi
       - name: Install kind
         run: |
           curl -fsSLo kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
@@ -288,6 +344,7 @@ jobs:
           sudo mv kind /usr/local/bin/kind
       - run: python -m pip install --require-hashes -r requirements-dev.lock
       - run: python -m pip install --no-deps -e .
+      - run: pnpm install --frozen-lockfile
       - name: Require caller-provided runtime values
         run: |
           if [ -z "${P12R_RUNTIME_VALUES_B64:-}" ]; then
@@ -301,19 +358,76 @@ jobs:
         run: |
           kind create cluster --name vulnlab-p12r
           kubectl cluster-info
+          kubectl label node --all vulnlab.openai.local/p12-runtime=isolated --overwrite
+          kubectl create namespace vulnlab
+          kubectl label namespace vulnlab vulnlab.openai.local/p12-runtime=isolated --overwrite
+      - name: Build and load runtime images
+        run: |
+          docker build -t "vulnlab/control-plane:${IMAGE_TAG}" .
+          docker build -f apps/api-gateway/Dockerfile -t "vulnlab/api-gateway:${IMAGE_TAG}" .
+          docker build -f apps/web-console/Dockerfile -t "vulnlab/web-console:${IMAGE_TAG}" .
+          docker build -f lab/Dockerfile -t "vulnlab/local-training-lab:${IMAGE_TAG}" lab
+          kind load docker-image "vulnlab/control-plane:${IMAGE_TAG}" --name vulnlab-p12r
+          kind load docker-image "vulnlab/api-gateway:${IMAGE_TAG}" --name vulnlab-p12r
+          kind load docker-image "vulnlab/web-console:${IMAGE_TAG}" --name vulnlab-p12r
+          kind load docker-image "vulnlab/local-training-lab:${IMAGE_TAG}" --name vulnlab-p12r
       - name: Write runtime values
         run: |
-          mkdir -p work/p12r
-          printf '%s' "$P12R_RUNTIME_VALUES_B64" | base64 -d > work/p12r/runtime-values.yaml
+          printf '%s' "$P12R_RUNTIME_VALUES_B64" | base64 -d > work/p12r/private/runtime-values.yaml
+          cat >> work/p12r/private/runtime-values.yaml <<EOF
+          gateway:
+            image:
+              repository: vulnlab/api-gateway
+              tag: ${IMAGE_TAG}
+          webConsole:
+            image:
+              repository: vulnlab/web-console
+              tag: ${IMAGE_TAG}
+          controlPlane:
+            image:
+              repository: vulnlab/control-plane
+              tag: ${IMAGE_TAG}
+          validationWorker:
+            image:
+              repository: vulnlab/control-plane
+              tag: ${IMAGE_TAG}
+          EOF
         env:
           P12R_RUNTIME_VALUES_B64: ${{ secrets.P12R_RUNTIME_VALUES_B64 }}
+      - name: Capture environment fingerprint
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.p12.runtime_acceptance import environment_fingerprint
+
+          Path("work/p12r/artifacts/environment-fingerprint.json").write_text(
+              json.dumps(environment_fingerprint(), ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          PY
+      - name: Mark runtime running
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          status = {
+              "status": "RUNTIME_RUNNING",
+              "runtime": True,
+              "runtime_not_claimed": True,
+              "updated_at": datetime.now(UTC).isoformat(),
+          }
+          Path("work/p12r/artifacts/runtime-status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
+          PY
       - name: Run P12-R scale runtime acceptance
         run: |
           python solve_p12_scale.py --runtime --namespace vulnlab --release p12 \
-            --values work/p12r/runtime-values.yaml \
-            --report-json work/p12r/scale-runtime.json
+            --values work/p12r/private/runtime-values.yaml \
+            --report-json work/p12r/artifacts/scale-runtime-result.json
       - name: Run P12-R DR runtime backup
-        run: python solve_p12_disaster_recovery.py backup --runtime --report-json work/p12r/dr-backup-runtime.json
+        run: python solve_p12_disaster_recovery.py backup --runtime --report-json work/p12r/artifacts/dr-backup-result.json
       - name: Run P12-R DR runtime restore
         run: |
           backup_id=$(python - <<'PY'
@@ -326,17 +440,85 @@ jobs:
           PY
           )
           python solve_p12_disaster_recovery.py restore --runtime --backup-id "$backup_id" \
-            --report-json work/p12r/dr-restore-runtime.json
+            --report-json work/p12r/artifacts/dr-restore-result.json
+      - name: Capture DR RPO/RTO and evidence consistency reports
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          artifacts = Path("work/p12r/artifacts")
+          backup = json.loads((artifacts / "dr-backup-result.json").read_text(encoding="utf-8"))
+          restore = json.loads((artifacts / "dr-restore-result.json").read_text(encoding="utf-8"))
+          payload = {
+              "status": "RUNTIME_ACCEPTED" if backup.get("valid") and restore.get("valid") else "RUNTIME_FAILED",
+              "runtime": True,
+              "runtime_not_claimed": not (backup.get("runtime_not_claimed") is False and restore.get("runtime_not_claimed") is False),
+              "captured_at": datetime.now(UTC).isoformat(),
+              "backup_summary": backup.get("summary"),
+              "restore_summary": restore.get("summary"),
+              "backup_checks": [check.get("name") for check in backup.get("checks", [])],
+              "restore_checks": [check.get("name") for check in restore.get("checks", [])],
+          }
+          (artifacts / "rpo-rto-result.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+          (artifacts / "evidence-consistency-result.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
       - name: Run P12-R chaos runtime acceptance
-        run: python solve_p12_chaos.py --runtime --all --report-json work/p12r/chaos-runtime.json
+        run: python solve_p12_chaos.py --runtime --all --report-json work/p12r/artifacts/chaos-runtime-result.json
+      - name: Rerun P9-P12 deterministic baselines after runtime
+        run: |
+          python solve_p9_baseline.py > work/p12r/artifacts/p9-p12-baseline-results/p9.txt
+          python solve_p10_baseline.py > work/p12r/artifacts/p9-p12-baseline-results/p10.txt
+          python solve_p11_baseline.py > work/p12r/artifacts/p9-p12-baseline-results/p11.txt
+          python solve_p12_baseline.py --full > work/p12r/artifacts/p9-p12-baseline-results/p12.txt
+      - name: Mark runtime accepted
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          artifacts = Path("work/p12r/artifacts")
+          reports = [
+              artifacts / "scale-runtime-result.json",
+              artifacts / "dr-backup-result.json",
+              artifacts / "dr-restore-result.json",
+              artifacts / "chaos-runtime-result.json",
+          ]
+          payloads = [json.loads(path.read_text(encoding="utf-8")) for path in reports]
+          accepted = all(item.get("valid") is True and item.get("runtime_not_claimed") is False for item in payloads)
+          status = {
+              "status": "RUNTIME_ACCEPTED" if accepted else "RUNTIME_FAILED",
+              "runtime": True,
+              "runtime_not_claimed": not accepted,
+              "updated_at": datetime.now(UTC).isoformat(),
+              "reports": [str(path) for path in reports],
+          }
+          artifacts.joinpath("runtime-status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
+          if not accepted:
+              raise SystemExit("P12-R runtime reports did not all claim authoritative runtime success")
+          PY
+      - name: Collect Kubernetes runtime diagnostics
+        if: always()
+        run: |
+          helm status p12 -n vulnlab > work/p12r/artifacts/helm-status.txt 2>&1 || true
+          kubectl get all -A -o wide > work/p12r/artifacts/pod-status.txt 2>&1 || true
+          kubectl get events -A --sort-by=.lastTimestamp > work/p12r/artifacts/kubectl-events.txt 2>&1 || true
+          for pod in $(kubectl get pods -n vulnlab -o name 2>/dev/null | sed 's#pod/##'); do
+            kubectl logs -n vulnlab "$pod" --all-containers=true --tail=500 > "work/p12r/artifacts/pod-logs/${pod}.log" 2>&1 || true
+          done
       - name: Upload P12-R runtime reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p12r-runtime-reports
-          path: work/p12r/*.json
+          path: work/p12r/artifacts/**
           if-no-files-found: warn
           retention-days: 30
+      - name: Destroy isolated kind cluster
+        if: always()
+        run: kind delete cluster --name vulnlab-p12r || true
 
   delivery-static:
     name: Delivery manifests and scripts

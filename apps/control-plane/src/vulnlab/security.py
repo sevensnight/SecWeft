@@ -26,6 +26,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "case:read",
             "evaluation:read",
             "report:read",
+            "release:read",
         }
     ),
     Role.ANALYST: frozenset(
@@ -60,6 +61,12 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "evaluation:compare",
             "report:read",
             "report:generate",
+            "release:read",
+            "release:artifact:register",
+            "release:candidate:create",
+            "release:gate:evaluate",
+            "release:exception:request",
+            "release:compliance:generate",
         }
     ),
     Role.OPERATOR: frozenset(
@@ -105,6 +112,16 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "evaluation:review",
             "report:read",
             "report:generate",
+            "release:read",
+            "release:artifact:register",
+            "release:candidate:create",
+            "release:gate:evaluate",
+            "release:exception:request",
+            "release:approve",
+            "release:promote",
+            "release:rollback",
+            "release:drift:review",
+            "release:compliance:generate",
         }
     ),
     Role.ADMIN: frozenset({"*"}),

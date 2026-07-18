@@ -1355,6 +1355,366 @@ class KnowledgePackRequest(APIModel):
     classifications: list[Literal["public", "internal", "restricted"]] | None = None
 
 
+ReleaseEnvironment = Literal["development", "integration", "staging", "production"]
+ReleaseGateStatus = Literal["passed", "failed", "warning"]
+
+
+class SBOMDocumentCreate(APIModel):
+    format: str = Field(min_length=2, max_length=80)
+    generator: str = Field(min_length=2, max_length=160)
+    generated_at: datetime
+    artifact_digest: str = Field(min_length=16, max_length=256)
+    document_digest: str = Field(min_length=16, max_length=256)
+    component_count: int = Field(default=0, ge=0)
+    license_summary: dict[str, Any] = Field(default_factory=dict)
+    vulnerability_summary: dict[str, Any] = Field(default_factory=dict)
+    document_ref: str = Field(default="", max_length=2048)
+
+
+class ProvenanceStatementCreate(APIModel):
+    subject_digest: str = Field(min_length=16, max_length=256)
+    source_repository: str = Field(min_length=1, max_length=500)
+    source_commit: str = Field(min_length=7, max_length=80)
+    builder_workflow: str = Field(min_length=1, max_length=500)
+    statement_digest: str = Field(min_length=16, max_length=256)
+    predicate_type: str = Field(min_length=1, max_length=200)
+    verified: bool = False
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SignatureRecordCreate(APIModel):
+    signature_digest: str = Field(min_length=16, max_length=256)
+    signature_identity: str = Field(min_length=1, max_length=500)
+    certificate_issuer: str = Field(min_length=1, max_length=500)
+    verified: bool = False
+    verification_error: str = Field(default="", max_length=1000)
+
+
+class SecurityScanResultCreate(APIModel):
+    scanner: str = Field(min_length=1, max_length=160)
+    severity_summary: dict[str, Any] = Field(default_factory=dict)
+    critical_count: int = Field(default=0, ge=0)
+    high_count: int = Field(default=0, ge=0)
+    unresolved_critical: bool = False
+    scan_digest: str = Field(min_length=16, max_length=256)
+
+
+class LicenseScanResultCreate(APIModel):
+    scanner: str = Field(min_length=1, max_length=160)
+    license_summary: dict[str, Any] = Field(default_factory=dict)
+    prohibited_licenses: list[str] = Field(default_factory=list, max_length=256)
+    passed: bool = False
+    scan_digest: str = Field(min_length=16, max_length=256)
+
+
+class ReleaseArtifactCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=80)
+    project_id: str = Field(default="default", min_length=1, max_length=120)
+    name: str = Field(min_length=1, max_length=200)
+    artifact_type: Literal[
+        "container", "helm_chart", "python_package", "node_package", "release_package"
+    ]
+    digest: str = Field(min_length=16, max_length=256)
+    repository: str = Field(default="", max_length=500)
+    source_commit: str = Field(min_length=7, max_length=80)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    sbom: SBOMDocumentCreate | None = None
+    provenance: ProvenanceStatementCreate | None = None
+    signature: SignatureRecordCreate | None = None
+    security_scan: SecurityScanResultCreate | None = None
+    license_scan: LicenseScanResultCreate | None = None
+
+    @model_validator(mode="after")
+    def immutable_digest_identity(self) -> ReleaseArtifactCreate:
+        lowered = self.digest.lower()
+        mutable_markers = (":latest", ":main", ":production", ":prod")
+        if self.artifact_type == "container":
+            if "@sha256:" not in lowered:
+                raise ValueError("container artifact identity must use repo@sha256 digest")
+            image_ref = lowered.split("@sha256:", 1)[0]
+            if image_ref.endswith(mutable_markers):
+                raise ValueError("mutable tags cannot be used as deployment identity")
+        elif not (lowered.startswith("sha256:") or "@sha256:" in lowered):
+            raise ValueError("artifact digest must be sha256 based")
+        return self
+
+
+class ReleaseArtifactResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    name: str
+    artifact_type: str
+    digest: str
+    repository: str
+    source_commit: str
+    metadata: dict[str, Any]
+    created_by: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class SBOMDocumentResponse(APIModel):
+    id: str
+    artifact_id: str
+    format: str
+    generator: str
+    generated_at: str
+    artifact_digest: str
+    document_digest: str
+    component_count: int
+    license_summary: dict[str, Any]
+    vulnerability_summary: dict[str, Any]
+    document_ref: str
+    created_at: str
+    version: int
+
+
+class ProvenanceStatementResponse(APIModel):
+    id: str
+    artifact_id: str
+    subject_digest: str
+    source_repository: str
+    source_commit: str
+    builder_workflow: str
+    statement_digest: str
+    predicate_type: str
+    verified: bool
+    metadata: dict[str, Any]
+    created_at: str
+    version: int
+
+
+class SignatureRecordResponse(APIModel):
+    id: str
+    artifact_id: str
+    signature_digest: str
+    signature_identity: str
+    certificate_issuer: str
+    verified: bool
+    verification_error: str
+    created_at: str
+    version: int
+
+
+class SecurityScanResultResponse(APIModel):
+    id: str
+    artifact_id: str
+    scanner: str
+    severity_summary: dict[str, Any]
+    critical_count: int
+    high_count: int
+    unresolved_critical: bool
+    scan_digest: str
+    created_at: str
+    version: int
+
+
+class LicenseScanResultResponse(APIModel):
+    id: str
+    artifact_id: str
+    scanner: str
+    license_summary: dict[str, Any]
+    prohibited_licenses: list[str]
+    passed: bool
+    scan_digest: str
+    created_at: str
+    version: int
+
+
+class ReleaseArtifactDetailResponse(ReleaseArtifactResponse):
+    sbom_documents: list[SBOMDocumentResponse]
+    provenance_statements: list[ProvenanceStatementResponse]
+    signature_records: list[SignatureRecordResponse]
+    security_scans: list[SecurityScanResultResponse]
+    license_scans: list[LicenseScanResultResponse]
+
+
+class ReleaseCandidateCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=80)
+    project_id: str = Field(default="default", min_length=1, max_length=120)
+    name: str = Field(min_length=1, max_length=200)
+    artifact_id: str = Field(min_length=1, max_length=120)
+    configuration_hash: str = Field(min_length=16, max_length=128)
+    migration_set: list[str] = Field(default_factory=list, max_length=128)
+    helm_chart_digest: str = Field(min_length=16, max_length=256)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReleaseCandidateResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    name: str
+    artifact_id: str
+    source_commit: str
+    image_digest: str
+    sbom_digest: str
+    provenance_digest: str
+    signature_digest: str
+    configuration_hash: str
+    migration_set: list[str]
+    helm_chart_digest: str
+    status: str
+    freeze_hash: str
+    metadata: dict[str, Any]
+    created_by: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class ReleaseGateEvaluationRequest(APIModel):
+    environment: ReleaseEnvironment = "staging"
+
+
+class ReleaseGateResultResponse(APIModel):
+    id: str
+    candidate_id: str
+    gate_id: str
+    environment: ReleaseEnvironment
+    status: ReleaseGateStatus
+    reason: str
+    evidence: dict[str, Any]
+    evaluated_by: str
+    policy_decision_id: str | None
+    created_at: str
+    version: int
+
+
+class ReleaseApprovalCreate(APIModel):
+    environment: ReleaseEnvironment
+    decision: Literal["approved", "rejected"] = "approved"
+    reason: str = Field(default="", max_length=1000)
+    expected_version: int | None = Field(default=None, ge=1)
+
+
+class ReleaseApprovalResponse(APIModel):
+    id: str
+    candidate_id: str
+    environment: ReleaseEnvironment
+    decision: str
+    reason: str
+    approved_by: str
+    created_at: str
+    version: int
+
+
+class ReleaseExceptionCreate(APIModel):
+    gate_id: str = Field(min_length=1, max_length=120)
+    reason: str = Field(min_length=3, max_length=2000)
+    risk: Literal["low", "medium", "high", "critical"]
+    scope: str = Field(min_length=1, max_length=500)
+    expires_at: datetime
+    compensating_controls: list[str] = Field(default_factory=list, min_length=1, max_length=32)
+    approve: bool = False
+
+
+class ReleaseExceptionResponse(APIModel):
+    id: str
+    candidate_id: str
+    gate_id: str
+    reason: str
+    risk: str
+    scope: str
+    requested_by: str
+    approved_by: str | None
+    expires_at: str
+    compensating_controls: list[str]
+    status: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class EnvironmentPromotionCreate(APIModel):
+    environment: ReleaseEnvironment
+    canary_percentage: int = Field(default=100, ge=0, le=100)
+    health: dict[str, Any] = Field(default_factory=dict)
+    expected_version: int | None = Field(default=None, ge=1)
+
+
+class EnvironmentPromotionResponse(APIModel):
+    id: str
+    candidate_id: str
+    environment: ReleaseEnvironment
+    status: str
+    promoted_by: str
+    policy_decision_id: str | None
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class DeploymentRecordResponse(APIModel):
+    id: str
+    promotion_id: str
+    candidate_id: str
+    environment: ReleaseEnvironment
+    image_digest: str
+    canary_percentage: int
+    status: str
+    health: dict[str, Any]
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class EnvironmentPromotionResultResponse(EnvironmentPromotionResponse):
+    deployment: DeploymentRecordResponse
+
+
+class RollbackCreate(APIModel):
+    reason: str = Field(min_length=3, max_length=2000)
+    approved_by: str | None = Field(default=None, max_length=120)
+
+
+class RollbackRecordResponse(APIModel):
+    id: str
+    deployment_id: str
+    candidate_id: str
+    environment: ReleaseEnvironment
+    reason: str
+    requested_by: str
+    approved_by: str | None
+    status: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class DriftDetectionResultResponse(APIModel):
+    id: str
+    deployment_id: str
+    status: str
+    drift_types: list[str]
+    expected: dict[str, Any]
+    actual: dict[str, Any]
+    reviewed_by: str | None
+    created_at: str
+    version: int
+
+
+class CompliancePackageResponse(APIModel):
+    id: str
+    candidate_id: str
+    package_digest: str
+    contents: dict[str, Any]
+    generated_by: str
+    created_at: str
+    version: int
+
+
+class ReleaseCandidateDetailResponse(ReleaseCandidateResponse):
+    artifact: ReleaseArtifactDetailResponse
+    gates: list[ReleaseGateResultResponse]
+    approvals: list[ReleaseApprovalResponse]
+    exceptions: list[ReleaseExceptionResponse]
+    promotions: list[EnvironmentPromotionResponse]
+    deployments: list[DeploymentRecordResponse]
+
+
 class PolicyEvaluationRequest(APIModel):
     action: Literal[
         "asset.probe",
@@ -1380,6 +1740,19 @@ class PolicyEvaluationRequest(APIModel):
         "evaluation.promote",
         "evaluation.rollback",
         "metric.definition.manage",
+        "release.artifact.register",
+        "release.candidate.create",
+        "release.gate.evaluate",
+        "release.exception.request",
+        "release.exception.approve",
+        "release.approve",
+        "release.promote.development",
+        "release.promote.integration",
+        "release.promote.staging",
+        "release.promote.production",
+        "release.rollback",
+        "release.drift.review",
+        "release.compliance.generate",
         "task.execute",
         "context.restore",
         "rag.search",

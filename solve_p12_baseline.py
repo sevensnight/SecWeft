@@ -88,7 +88,7 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
         "responses"
     ]
     invariants = {
-        "operation_count_is_p12": value["operation_count"] == 108,
+        "operation_count_preserves_p12_surface": value["operation_count"] >= 108,
         "system_resilience_path_exists": "/system/resilience" in paths,
         "evidence_consistency_path_exists": "/system/resilience/evidence-consistency/check"
         in paths,
@@ -317,7 +317,7 @@ def run(full: bool) -> dict[str, Any]:
     }
     return {
         "phase": "P12",
-        "version": "2.12.1-p12r",
+        "version": "2.13.0-p13",
         "valid": summary["failed"] == 0 and summary["skipped"] == 0,
         "summary": summary,
         "checks": [asdict(check) for check in checks],

@@ -1,9 +1,10 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.12.1-p12r
-  description: P12-R contract revision for resilience runtime acceptance gates and
-    reporting, preserving the P12 API surface and P0-P11 compatibility.
+  version: 1.13.0-p13
+  description: P13 contract revision for release governance, supply-chain evidence,
+    immutable artifact promotion, drift, rollback, and compliance packages while preserving
+    P0-P12 compatibility.
 servers:
 - url: /api/v1
 tags:
@@ -21,6 +22,7 @@ tags:
 - name: Validation
 - name: Audit
 - name: Evaluations
+- name: Releases
 security:
 - ApiKeyAuth: []
 paths:
@@ -3479,6 +3481,634 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+  /release-artifacts:
+    post:
+      tags:
+      - Releases
+      summary: Register Release Artifact
+      operationId: registerReleaseArtifact
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseArtifactCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseArtifactDetailResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+    get:
+      tags:
+      - Releases
+      summary: List Release Artifacts
+      operationId: listReleaseArtifacts
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseArtifactResponse'
+                title: Response List Release Artifacts Api V1 Release Artifacts Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-artifacts/{artifact_id}:
+    get:
+      tags:
+      - Releases
+      summary: Get Release Artifact
+      operationId: getReleaseArtifact
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: artifact_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Artifact Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseArtifactDetailResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates:
+    post:
+      tags:
+      - Releases
+      summary: Create Release Candidate
+      operationId: createReleaseCandidate
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseCandidateCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseCandidateDetailResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+    get:
+      tags:
+      - Releases
+      summary: List Release Candidates
+      operationId: listReleaseCandidates
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseCandidateResponse'
+                title: Response List Release Candidates Api V1 Release Candidates
+                  Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates/{candidate_id}:
+    get:
+      tags:
+      - Releases
+      summary: Get Release Candidate
+      operationId: getReleaseCandidate
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseCandidateDetailResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates/{candidate_id}/evaluate:
+    post:
+      tags:
+      - Releases
+      summary: Evaluate Release Candidate
+      operationId: evaluateReleaseCandidate
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseGateEvaluationRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseGateResultResponse'
+                title: Response Evaluate Release Candidate Api V1 Release Candidates  Candidate
+                  Id  Evaluate Post
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates/{candidate_id}/gates:
+    get:
+      tags:
+      - Releases
+      summary: List Release Candidate Gates
+      operationId: listReleaseCandidateGates
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseGateResultResponse'
+                title: Response List Release Candidate Gates Api V1 Release Candidates  Candidate
+                  Id  Gates Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates/{candidate_id}/approvals:
+    post:
+      tags:
+      - Releases
+      summary: Approve Release Candidate
+      operationId: approveReleaseCandidate
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseApprovalCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseApprovalResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates/{candidate_id}/exceptions:
+    post:
+      tags:
+      - Releases
+      summary: Request Release Exception
+      operationId: requestReleaseException
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseExceptionCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseExceptionResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates/{candidate_id}/promotions:
+    post:
+      tags:
+      - Releases
+      summary: Promote Release Candidate
+      operationId: promoteReleaseCandidate
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnvironmentPromotionCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvironmentPromotionResultResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /deployments/{deployment_id}:
+    get:
+      tags:
+      - Releases
+      summary: Get Deployment Record
+      operationId: getDeploymentRecord
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentRecordResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /deployments/{deployment_id}/rollback:
+    post:
+      tags:
+      - Releases
+      summary: Rollback Deployment Record
+      operationId: rollbackDeploymentRecord
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RollbackCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RollbackRecordResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /deployments/{deployment_id}/drift:
+    get:
+      tags:
+      - Releases
+      summary: Detect Deployment Drift
+      operationId: detectDeploymentDrift
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriftDetectionResultResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /release-candidates/{candidate_id}/compliance-package:
+    post:
+      tags:
+      - Releases
+      summary: Generate Release Compliance Package
+      operationId: generateReleaseCompliancePackage
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompliancePackageResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -9241,3 +9871,1590 @@ components:
       - repair_action
       - created_at
       title: EvidenceConsistencyReportResponse
+    CompliancePackageResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        package_digest:
+          type: string
+          title: Package Digest
+        contents:
+          additionalProperties: true
+          type: object
+          title: Contents
+        generated_by:
+          type: string
+          title: Generated By
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - candidate_id
+      - package_digest
+      - contents
+      - generated_by
+      - created_at
+      - version
+      title: CompliancePackageResponse
+    DeploymentRecordResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        promotion_id:
+          type: string
+          title: Promotion Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        image_digest:
+          type: string
+          title: Image Digest
+        canary_percentage:
+          type: integer
+          title: Canary Percentage
+        status:
+          type: string
+          title: Status
+        health:
+          additionalProperties: true
+          type: object
+          title: Health
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - promotion_id
+      - candidate_id
+      - environment
+      - image_digest
+      - canary_percentage
+      - status
+      - health
+      - created_at
+      - updated_at
+      - version
+      title: DeploymentRecordResponse
+    DriftDetectionResultResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        deployment_id:
+          type: string
+          title: Deployment Id
+        status:
+          type: string
+          title: Status
+        drift_types:
+          items:
+            type: string
+          type: array
+          title: Drift Types
+        expected:
+          additionalProperties: true
+          type: object
+          title: Expected
+        actual:
+          additionalProperties: true
+          type: object
+          title: Actual
+        reviewed_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewed By
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - deployment_id
+      - status
+      - drift_types
+      - expected
+      - actual
+      - reviewed_by
+      - created_at
+      - version
+      title: DriftDetectionResultResponse
+    EnvironmentPromotionCreate:
+      properties:
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        canary_percentage:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Canary Percentage
+          default: 100
+        health:
+          additionalProperties: true
+          type: object
+          title: Health
+        expected_version:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Expected Version
+      additionalProperties: false
+      type: object
+      required:
+      - environment
+      title: EnvironmentPromotionCreate
+    EnvironmentPromotionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        status:
+          type: string
+          title: Status
+        promoted_by:
+          type: string
+          title: Promoted By
+        policy_decision_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Policy Decision Id
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - candidate_id
+      - environment
+      - status
+      - promoted_by
+      - policy_decision_id
+      - created_at
+      - updated_at
+      - version
+      title: EnvironmentPromotionResponse
+    EnvironmentPromotionResultResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        status:
+          type: string
+          title: Status
+        promoted_by:
+          type: string
+          title: Promoted By
+        policy_decision_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Policy Decision Id
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+        deployment:
+          $ref: '#/components/schemas/DeploymentRecordResponse'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - candidate_id
+      - environment
+      - status
+      - promoted_by
+      - policy_decision_id
+      - created_at
+      - updated_at
+      - version
+      - deployment
+      title: EnvironmentPromotionResultResponse
+    LicenseScanResultCreate:
+      properties:
+        scanner:
+          type: string
+          maxLength: 160
+          minLength: 1
+          title: Scanner
+        license_summary:
+          additionalProperties: true
+          type: object
+          title: License Summary
+        prohibited_licenses:
+          items:
+            type: string
+          type: array
+          maxItems: 256
+          title: Prohibited Licenses
+        passed:
+          type: boolean
+          title: Passed
+          default: false
+        scan_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Scan Digest
+      additionalProperties: false
+      type: object
+      required:
+      - scanner
+      - scan_digest
+      title: LicenseScanResultCreate
+    LicenseScanResultResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        scanner:
+          type: string
+          title: Scanner
+        license_summary:
+          additionalProperties: true
+          type: object
+          title: License Summary
+        prohibited_licenses:
+          items:
+            type: string
+          type: array
+          title: Prohibited Licenses
+        passed:
+          type: boolean
+          title: Passed
+        scan_digest:
+          type: string
+          title: Scan Digest
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - artifact_id
+      - scanner
+      - license_summary
+      - prohibited_licenses
+      - passed
+      - scan_digest
+      - created_at
+      - version
+      title: LicenseScanResultResponse
+    ProvenanceStatementCreate:
+      properties:
+        subject_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Subject Digest
+        source_repository:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Source Repository
+        source_commit:
+          type: string
+          maxLength: 80
+          minLength: 7
+          title: Source Commit
+        builder_workflow:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Builder Workflow
+        statement_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Statement Digest
+        predicate_type:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Predicate Type
+        verified:
+          type: boolean
+          title: Verified
+          default: false
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - subject_digest
+      - source_repository
+      - source_commit
+      - builder_workflow
+      - statement_digest
+      - predicate_type
+      title: ProvenanceStatementCreate
+    ProvenanceStatementResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        subject_digest:
+          type: string
+          title: Subject Digest
+        source_repository:
+          type: string
+          title: Source Repository
+        source_commit:
+          type: string
+          title: Source Commit
+        builder_workflow:
+          type: string
+          title: Builder Workflow
+        statement_digest:
+          type: string
+          title: Statement Digest
+        predicate_type:
+          type: string
+          title: Predicate Type
+        verified:
+          type: boolean
+          title: Verified
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - artifact_id
+      - subject_digest
+      - source_repository
+      - source_commit
+      - builder_workflow
+      - statement_digest
+      - predicate_type
+      - verified
+      - metadata
+      - created_at
+      - version
+      title: ProvenanceStatementResponse
+    ReleaseApprovalCreate:
+      properties:
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        decision:
+          type: string
+          enum:
+          - approved
+          - rejected
+          title: Decision
+          default: approved
+        reason:
+          type: string
+          maxLength: 1000
+          title: Reason
+          default: ''
+        expected_version:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Expected Version
+      additionalProperties: false
+      type: object
+      required:
+      - environment
+      title: ReleaseApprovalCreate
+    ReleaseApprovalResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        decision:
+          type: string
+          title: Decision
+        reason:
+          type: string
+          title: Reason
+        approved_by:
+          type: string
+          title: Approved By
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - candidate_id
+      - environment
+      - decision
+      - reason
+      - approved_by
+      - created_at
+      - version
+      title: ReleaseApprovalResponse
+    ReleaseArtifactCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: default
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        artifact_type:
+          type: string
+          enum:
+          - container
+          - helm_chart
+          - python_package
+          - node_package
+          - release_package
+          title: Artifact Type
+        digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Digest
+        repository:
+          type: string
+          maxLength: 500
+          title: Repository
+          default: ''
+        source_commit:
+          type: string
+          maxLength: 80
+          minLength: 7
+          title: Source Commit
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        sbom:
+          anyOf:
+          - $ref: '#/components/schemas/SBOMDocumentCreate'
+          - type: 'null'
+        provenance:
+          anyOf:
+          - $ref: '#/components/schemas/ProvenanceStatementCreate'
+          - type: 'null'
+        signature:
+          anyOf:
+          - $ref: '#/components/schemas/SignatureRecordCreate'
+          - type: 'null'
+        security_scan:
+          anyOf:
+          - $ref: '#/components/schemas/SecurityScanResultCreate'
+          - type: 'null'
+        license_scan:
+          anyOf:
+          - $ref: '#/components/schemas/LicenseScanResultCreate'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - artifact_type
+      - digest
+      - source_commit
+      title: ReleaseArtifactCreate
+    ReleaseArtifactDetailResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        artifact_type:
+          type: string
+          title: Artifact Type
+        digest:
+          type: string
+          title: Digest
+        repository:
+          type: string
+          title: Repository
+        source_commit:
+          type: string
+          title: Source Commit
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+        sbom_documents:
+          items:
+            $ref: '#/components/schemas/SBOMDocumentResponse'
+          type: array
+          title: Sbom Documents
+        provenance_statements:
+          items:
+            $ref: '#/components/schemas/ProvenanceStatementResponse'
+          type: array
+          title: Provenance Statements
+        signature_records:
+          items:
+            $ref: '#/components/schemas/SignatureRecordResponse'
+          type: array
+          title: Signature Records
+        security_scans:
+          items:
+            $ref: '#/components/schemas/SecurityScanResultResponse'
+          type: array
+          title: Security Scans
+        license_scans:
+          items:
+            $ref: '#/components/schemas/LicenseScanResultResponse'
+          type: array
+          title: License Scans
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - name
+      - artifact_type
+      - digest
+      - repository
+      - source_commit
+      - metadata
+      - created_by
+      - created_at
+      - updated_at
+      - version
+      - sbom_documents
+      - provenance_statements
+      - signature_records
+      - security_scans
+      - license_scans
+      title: ReleaseArtifactDetailResponse
+    ReleaseArtifactResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        artifact_type:
+          type: string
+          title: Artifact Type
+        digest:
+          type: string
+          title: Digest
+        repository:
+          type: string
+          title: Repository
+        source_commit:
+          type: string
+          title: Source Commit
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - name
+      - artifact_type
+      - digest
+      - repository
+      - source_commit
+      - metadata
+      - created_by
+      - created_at
+      - updated_at
+      - version
+      title: ReleaseArtifactResponse
+    ReleaseCandidateCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: default
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        artifact_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Artifact Id
+        configuration_hash:
+          type: string
+          maxLength: 128
+          minLength: 16
+          title: Configuration Hash
+        migration_set:
+          items:
+            type: string
+          type: array
+          maxItems: 128
+          title: Migration Set
+        helm_chart_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Helm Chart Digest
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - artifact_id
+      - configuration_hash
+      - helm_chart_digest
+      title: ReleaseCandidateCreate
+    ReleaseCandidateDetailResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        artifact_id:
+          type: string
+          title: Artifact Id
+        source_commit:
+          type: string
+          title: Source Commit
+        image_digest:
+          type: string
+          title: Image Digest
+        sbom_digest:
+          type: string
+          title: Sbom Digest
+        provenance_digest:
+          type: string
+          title: Provenance Digest
+        signature_digest:
+          type: string
+          title: Signature Digest
+        configuration_hash:
+          type: string
+          title: Configuration Hash
+        migration_set:
+          items:
+            type: string
+          type: array
+          title: Migration Set
+        helm_chart_digest:
+          type: string
+          title: Helm Chart Digest
+        status:
+          type: string
+          title: Status
+        freeze_hash:
+          type: string
+          title: Freeze Hash
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+        artifact:
+          $ref: '#/components/schemas/ReleaseArtifactDetailResponse'
+        gates:
+          items:
+            $ref: '#/components/schemas/ReleaseGateResultResponse'
+          type: array
+          title: Gates
+        approvals:
+          items:
+            $ref: '#/components/schemas/ReleaseApprovalResponse'
+          type: array
+          title: Approvals
+        exceptions:
+          items:
+            $ref: '#/components/schemas/ReleaseExceptionResponse'
+          type: array
+          title: Exceptions
+        promotions:
+          items:
+            $ref: '#/components/schemas/EnvironmentPromotionResponse'
+          type: array
+          title: Promotions
+        deployments:
+          items:
+            $ref: '#/components/schemas/DeploymentRecordResponse'
+          type: array
+          title: Deployments
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - name
+      - artifact_id
+      - source_commit
+      - image_digest
+      - sbom_digest
+      - provenance_digest
+      - signature_digest
+      - configuration_hash
+      - migration_set
+      - helm_chart_digest
+      - status
+      - freeze_hash
+      - metadata
+      - created_by
+      - created_at
+      - updated_at
+      - version
+      - artifact
+      - gates
+      - approvals
+      - exceptions
+      - promotions
+      - deployments
+      title: ReleaseCandidateDetailResponse
+    ReleaseCandidateResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        artifact_id:
+          type: string
+          title: Artifact Id
+        source_commit:
+          type: string
+          title: Source Commit
+        image_digest:
+          type: string
+          title: Image Digest
+        sbom_digest:
+          type: string
+          title: Sbom Digest
+        provenance_digest:
+          type: string
+          title: Provenance Digest
+        signature_digest:
+          type: string
+          title: Signature Digest
+        configuration_hash:
+          type: string
+          title: Configuration Hash
+        migration_set:
+          items:
+            type: string
+          type: array
+          title: Migration Set
+        helm_chart_digest:
+          type: string
+          title: Helm Chart Digest
+        status:
+          type: string
+          title: Status
+        freeze_hash:
+          type: string
+          title: Freeze Hash
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - name
+      - artifact_id
+      - source_commit
+      - image_digest
+      - sbom_digest
+      - provenance_digest
+      - signature_digest
+      - configuration_hash
+      - migration_set
+      - helm_chart_digest
+      - status
+      - freeze_hash
+      - metadata
+      - created_by
+      - created_at
+      - updated_at
+      - version
+      title: ReleaseCandidateResponse
+    ReleaseExceptionCreate:
+      properties:
+        gate_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Gate Id
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 3
+          title: Reason
+        risk:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - critical
+          title: Risk
+        scope:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Scope
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        compensating_controls:
+          items:
+            type: string
+          type: array
+          maxItems: 32
+          minItems: 1
+          title: Compensating Controls
+        approve:
+          type: boolean
+          title: Approve
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - gate_id
+      - reason
+      - risk
+      - scope
+      - expires_at
+      title: ReleaseExceptionCreate
+    ReleaseExceptionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        gate_id:
+          type: string
+          title: Gate Id
+        reason:
+          type: string
+          title: Reason
+        risk:
+          type: string
+          title: Risk
+        scope:
+          type: string
+          title: Scope
+        requested_by:
+          type: string
+          title: Requested By
+        approved_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approved By
+        expires_at:
+          type: string
+          title: Expires At
+        compensating_controls:
+          items:
+            type: string
+          type: array
+          title: Compensating Controls
+        status:
+          type: string
+          title: Status
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - candidate_id
+      - gate_id
+      - reason
+      - risk
+      - scope
+      - requested_by
+      - approved_by
+      - expires_at
+      - compensating_controls
+      - status
+      - created_at
+      - updated_at
+      - version
+      title: ReleaseExceptionResponse
+    ReleaseGateEvaluationRequest:
+      properties:
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+          default: staging
+      additionalProperties: false
+      type: object
+      title: ReleaseGateEvaluationRequest
+    ReleaseGateResultResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        gate_id:
+          type: string
+          title: Gate Id
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        status:
+          type: string
+          enum:
+          - passed
+          - failed
+          - warning
+          title: Status
+        reason:
+          type: string
+          title: Reason
+        evidence:
+          additionalProperties: true
+          type: object
+          title: Evidence
+        evaluated_by:
+          type: string
+          title: Evaluated By
+        policy_decision_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Policy Decision Id
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - candidate_id
+      - gate_id
+      - environment
+      - status
+      - reason
+      - evidence
+      - evaluated_by
+      - policy_decision_id
+      - created_at
+      - version
+      title: ReleaseGateResultResponse
+    RollbackCreate:
+      properties:
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 3
+          title: Reason
+        approved_by:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Approved By
+      additionalProperties: false
+      type: object
+      required:
+      - reason
+      title: RollbackCreate
+    RollbackRecordResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        deployment_id:
+          type: string
+          title: Deployment Id
+        candidate_id:
+          type: string
+          title: Candidate Id
+        environment:
+          type: string
+          enum:
+          - development
+          - integration
+          - staging
+          - production
+          title: Environment
+        reason:
+          type: string
+          title: Reason
+        requested_by:
+          type: string
+          title: Requested By
+        approved_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approved By
+        status:
+          type: string
+          title: Status
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - deployment_id
+      - candidate_id
+      - environment
+      - reason
+      - requested_by
+      - approved_by
+      - status
+      - created_at
+      - updated_at
+      - version
+      title: RollbackRecordResponse
+    SBOMDocumentCreate:
+      properties:
+        format:
+          type: string
+          maxLength: 80
+          minLength: 2
+          title: Format
+        generator:
+          type: string
+          maxLength: 160
+          minLength: 2
+          title: Generator
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        artifact_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Artifact Digest
+        document_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Document Digest
+        component_count:
+          type: integer
+          minimum: 0.0
+          title: Component Count
+          default: 0
+        license_summary:
+          additionalProperties: true
+          type: object
+          title: License Summary
+        vulnerability_summary:
+          additionalProperties: true
+          type: object
+          title: Vulnerability Summary
+        document_ref:
+          type: string
+          maxLength: 2048
+          title: Document Ref
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - format
+      - generator
+      - generated_at
+      - artifact_digest
+      - document_digest
+      title: SBOMDocumentCreate
+    SBOMDocumentResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        format:
+          type: string
+          title: Format
+        generator:
+          type: string
+          title: Generator
+        generated_at:
+          type: string
+          title: Generated At
+        artifact_digest:
+          type: string
+          title: Artifact Digest
+        document_digest:
+          type: string
+          title: Document Digest
+        component_count:
+          type: integer
+          title: Component Count
+        license_summary:
+          additionalProperties: true
+          type: object
+          title: License Summary
+        vulnerability_summary:
+          additionalProperties: true
+          type: object
+          title: Vulnerability Summary
+        document_ref:
+          type: string
+          title: Document Ref
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - artifact_id
+      - format
+      - generator
+      - generated_at
+      - artifact_digest
+      - document_digest
+      - component_count
+      - license_summary
+      - vulnerability_summary
+      - document_ref
+      - created_at
+      - version
+      title: SBOMDocumentResponse
+    SecurityScanResultCreate:
+      properties:
+        scanner:
+          type: string
+          maxLength: 160
+          minLength: 1
+          title: Scanner
+        severity_summary:
+          additionalProperties: true
+          type: object
+          title: Severity Summary
+        critical_count:
+          type: integer
+          minimum: 0.0
+          title: Critical Count
+          default: 0
+        high_count:
+          type: integer
+          minimum: 0.0
+          title: High Count
+          default: 0
+        unresolved_critical:
+          type: boolean
+          title: Unresolved Critical
+          default: false
+        scan_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Scan Digest
+      additionalProperties: false
+      type: object
+      required:
+      - scanner
+      - scan_digest
+      title: SecurityScanResultCreate
+    SecurityScanResultResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        scanner:
+          type: string
+          title: Scanner
+        severity_summary:
+          additionalProperties: true
+          type: object
+          title: Severity Summary
+        critical_count:
+          type: integer
+          title: Critical Count
+        high_count:
+          type: integer
+          title: High Count
+        unresolved_critical:
+          type: boolean
+          title: Unresolved Critical
+        scan_digest:
+          type: string
+          title: Scan Digest
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - artifact_id
+      - scanner
+      - severity_summary
+      - critical_count
+      - high_count
+      - unresolved_critical
+      - scan_digest
+      - created_at
+      - version
+      title: SecurityScanResultResponse
+    SignatureRecordCreate:
+      properties:
+        signature_digest:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Signature Digest
+        signature_identity:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Signature Identity
+        certificate_issuer:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Certificate Issuer
+        verified:
+          type: boolean
+          title: Verified
+          default: false
+        verification_error:
+          type: string
+          maxLength: 1000
+          title: Verification Error
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - signature_digest
+      - signature_identity
+      - certificate_issuer
+      title: SignatureRecordCreate
+    SignatureRecordResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        signature_digest:
+          type: string
+          title: Signature Digest
+        signature_identity:
+          type: string
+          title: Signature Identity
+        certificate_issuer:
+          type: string
+          title: Certificate Issuer
+        verified:
+          type: boolean
+          title: Verified
+        verification_error:
+          type: string
+          title: Verification Error
+        created_at:
+          type: string
+          title: Created At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - artifact_id
+      - signature_digest
+      - signature_identity
+      - certificate_issuer
+      - verified
+      - verification_error
+      - created_at
+      - version
+      title: SignatureRecordResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

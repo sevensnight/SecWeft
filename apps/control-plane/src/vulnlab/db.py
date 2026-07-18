@@ -677,7 +677,6 @@ CREATE INDEX IF NOT EXISTS idx_task_dead_letters_task ON task_dead_letters(task_
 CREATE INDEX IF NOT EXISTS idx_agents_name ON agents(name, version);
 CREATE INDEX IF NOT EXISTS idx_workflows_name ON workflows(name, version);
 CREATE INDEX IF NOT EXISTS idx_memory_task ON memory_messages(task_id);
-CREATE INDEX IF NOT EXISTS idx_memory_task_sequence ON memory_messages(task_id, sequence_no);
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_rag_classification ON rag_documents(classification);
 CREATE INDEX IF NOT EXISTS idx_rag_chunks_document ON rag_chunks(document_id, chunk_index);
@@ -1033,6 +1032,249 @@ CREATE TABLE IF NOT EXISTS operational_failure_injection_events (
     version INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS release_artifacts (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    artifact_type TEXT NOT NULL CHECK(artifact_type IN ('container','helm_chart','python_package','node_package','release_package')),
+    digest TEXT NOT NULL,
+    repository TEXT NOT NULL DEFAULT '',
+    source_commit TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, digest)
+);
+
+CREATE TABLE IF NOT EXISTS release_sbom_documents (
+    id TEXT PRIMARY KEY,
+    artifact_id TEXT NOT NULL REFERENCES release_artifacts(id) ON DELETE RESTRICT,
+    format TEXT NOT NULL,
+    generator TEXT NOT NULL,
+    generated_at TEXT NOT NULL,
+    artifact_digest TEXT NOT NULL,
+    document_digest TEXT NOT NULL,
+    component_count INTEGER NOT NULL DEFAULT 0,
+    license_summary_json TEXT NOT NULL DEFAULT '{}',
+    vulnerability_summary_json TEXT NOT NULL DEFAULT '{}',
+    document_ref TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(artifact_id, document_digest)
+);
+
+CREATE TABLE IF NOT EXISTS release_provenance_statements (
+    id TEXT PRIMARY KEY,
+    artifact_id TEXT NOT NULL REFERENCES release_artifacts(id) ON DELETE RESTRICT,
+    subject_digest TEXT NOT NULL,
+    source_repository TEXT NOT NULL,
+    source_commit TEXT NOT NULL,
+    builder_workflow TEXT NOT NULL,
+    statement_digest TEXT NOT NULL,
+    predicate_type TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 0 CHECK(verified IN (0,1)),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(artifact_id, statement_digest)
+);
+
+CREATE TABLE IF NOT EXISTS release_signature_records (
+    id TEXT PRIMARY KEY,
+    artifact_id TEXT NOT NULL REFERENCES release_artifacts(id) ON DELETE RESTRICT,
+    signature_digest TEXT NOT NULL,
+    signature_identity TEXT NOT NULL,
+    certificate_issuer TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 0 CHECK(verified IN (0,1)),
+    verification_error TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(artifact_id, signature_digest)
+);
+
+CREATE TABLE IF NOT EXISTS release_security_scan_results (
+    id TEXT PRIMARY KEY,
+    artifact_id TEXT NOT NULL REFERENCES release_artifacts(id) ON DELETE RESTRICT,
+    scanner TEXT NOT NULL,
+    severity_summary_json TEXT NOT NULL DEFAULT '{}',
+    critical_count INTEGER NOT NULL DEFAULT 0,
+    high_count INTEGER NOT NULL DEFAULT 0,
+    unresolved_critical INTEGER NOT NULL DEFAULT 0 CHECK(unresolved_critical IN (0,1)),
+    scan_digest TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(artifact_id, scan_digest)
+);
+
+CREATE TABLE IF NOT EXISTS release_license_scan_results (
+    id TEXT PRIMARY KEY,
+    artifact_id TEXT NOT NULL REFERENCES release_artifacts(id) ON DELETE RESTRICT,
+    scanner TEXT NOT NULL,
+    license_summary_json TEXT NOT NULL DEFAULT '{}',
+    prohibited_licenses_json TEXT NOT NULL DEFAULT '[]',
+    passed INTEGER NOT NULL DEFAULT 0 CHECK(passed IN (0,1)),
+    scan_digest TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(artifact_id, scan_digest)
+);
+
+CREATE TABLE IF NOT EXISTS release_candidates (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    artifact_id TEXT NOT NULL REFERENCES release_artifacts(id) ON DELETE RESTRICT,
+    source_commit TEXT NOT NULL,
+    image_digest TEXT NOT NULL,
+    sbom_digest TEXT NOT NULL,
+    provenance_digest TEXT NOT NULL,
+    signature_digest TEXT NOT NULL,
+    configuration_hash TEXT NOT NULL,
+    migration_set_json TEXT NOT NULL DEFAULT '[]',
+    helm_chart_digest TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('created','frozen','evaluated','approved','promoting','deployed','blocked','rolled_back')),
+    freeze_hash TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, name),
+    UNIQUE(tenant_id, freeze_hash)
+);
+
+CREATE TABLE IF NOT EXISTS release_gate_results (
+    id TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    gate_id TEXT NOT NULL,
+    environment TEXT NOT NULL CHECK(environment IN ('development','integration','staging','production')),
+    status TEXT NOT NULL CHECK(status IN ('passed','failed','warning')),
+    reason TEXT NOT NULL,
+    evidence_json TEXT NOT NULL DEFAULT '{}',
+    evaluated_by TEXT NOT NULL REFERENCES users(id),
+    policy_decision_id TEXT REFERENCES policy_decisions(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(candidate_id, gate_id, environment)
+);
+
+CREATE TABLE IF NOT EXISTS release_approvals (
+    id TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    environment TEXT NOT NULL CHECK(environment IN ('development','integration','staging','production')),
+    decision TEXT NOT NULL CHECK(decision IN ('approved','rejected')),
+    reason TEXT NOT NULL DEFAULT '',
+    approved_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS release_exceptions (
+    id TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    gate_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    risk TEXT NOT NULL CHECK(risk IN ('low','medium','high','critical')),
+    scope TEXT NOT NULL,
+    requested_by TEXT NOT NULL REFERENCES users(id),
+    approved_by TEXT REFERENCES users(id),
+    expires_at TEXT NOT NULL,
+    compensating_controls_json TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL CHECK(status IN ('requested','approved','expired','rejected')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS release_environment_promotions (
+    id TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    environment TEXT NOT NULL CHECK(environment IN ('development','integration','staging','production')),
+    status TEXT NOT NULL CHECK(status IN ('requested','deployed','blocked','failed')),
+    promoted_by TEXT NOT NULL REFERENCES users(id),
+    policy_decision_id TEXT REFERENCES policy_decisions(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(candidate_id, environment)
+);
+
+CREATE TABLE IF NOT EXISTS release_deployment_records (
+    id TEXT PRIMARY KEY,
+    promotion_id TEXT NOT NULL REFERENCES release_environment_promotions(id) ON DELETE RESTRICT,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    environment TEXT NOT NULL CHECK(environment IN ('development','integration','staging','production')),
+    image_digest TEXT NOT NULL,
+    canary_percentage INTEGER NOT NULL DEFAULT 100 CHECK(canary_percentage BETWEEN 0 AND 100),
+    status TEXT NOT NULL CHECK(status IN ('deployed','failed','rollback_recommended','rolled_back')),
+    health_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS release_rollback_records (
+    id TEXT PRIMARY KEY,
+    deployment_id TEXT NOT NULL REFERENCES release_deployment_records(id) ON DELETE RESTRICT,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    environment TEXT NOT NULL CHECK(environment IN ('development','integration','staging','production')),
+    reason TEXT NOT NULL,
+    requested_by TEXT NOT NULL REFERENCES users(id),
+    approved_by TEXT REFERENCES users(id),
+    status TEXT NOT NULL CHECK(status IN ('requested','approved','completed','rejected')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS release_configuration_snapshots (
+    id TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    environment TEXT NOT NULL CHECK(environment IN ('development','integration','staging','production')),
+    approved_snapshot_json TEXT NOT NULL DEFAULT '{}',
+    snapshot_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(candidate_id, environment)
+);
+
+CREATE TABLE IF NOT EXISTS release_drift_detection_results (
+    id TEXT PRIMARY KEY,
+    deployment_id TEXT NOT NULL REFERENCES release_deployment_records(id) ON DELETE RESTRICT,
+    status TEXT NOT NULL CHECK(status IN ('healthy','drift_detected','unknown')),
+    drift_types_json TEXT NOT NULL DEFAULT '[]',
+    expected_json TEXT NOT NULL DEFAULT '{}',
+    actual_json TEXT NOT NULL DEFAULT '{}',
+    reviewed_by TEXT REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS release_compliance_evidence_packages (
+    id TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL REFERENCES release_candidates(id) ON DELETE RESTRICT,
+    package_digest TEXT NOT NULL,
+    contents_json TEXT NOT NULL DEFAULT '{}',
+    generated_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(candidate_id, package_digest)
+);
+
 CREATE INDEX IF NOT EXISTS idx_evaluation_suites_tenant_project
     ON evaluation_suites(tenant_id, project_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_evaluation_datasets_suite
@@ -1063,6 +1305,24 @@ CREATE INDEX IF NOT EXISTS idx_operational_drills
     ON operational_backup_restore_drills(tenant_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_operational_failure_events
     ON operational_failure_injection_events(tenant_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_release_artifacts_tenant_project
+    ON release_artifacts(tenant_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_release_candidates_tenant_project
+    ON release_candidates(tenant_id, project_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_release_candidates_artifact
+    ON release_candidates(artifact_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_release_gate_results_candidate
+    ON release_gate_results(candidate_id, environment, gate_id);
+CREATE INDEX IF NOT EXISTS idx_release_exceptions_candidate
+    ON release_exceptions(candidate_id, gate_id, status);
+CREATE INDEX IF NOT EXISTS idx_release_promotions_candidate
+    ON release_environment_promotions(candidate_id, environment);
+CREATE INDEX IF NOT EXISTS idx_release_deployments_candidate
+    ON release_deployment_records(candidate_id, environment, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_release_drift_deployment
+    ON release_drift_detection_results(deployment_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_release_compliance_candidate
+    ON release_compliance_evidence_packages(candidate_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time

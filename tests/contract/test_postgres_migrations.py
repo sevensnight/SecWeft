@@ -19,6 +19,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0010_p10_case_lifecycle",
         "0011_p11_evaluation_governance",
         "0012_p12_operational_resilience",
+        "0013_p13_release_governance",
     ]
 
 
@@ -217,6 +218,36 @@ def test_p12_operational_resilience_migration_has_ha_scaling_and_dr_state() -> N
     assert "force row level security" in sql
     assert "grant select, insert, update on all tables in schema resilience to vulnlab_app" in sql
     assert "grant select, insert, update, delete on all tables in schema resilience" not in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p13_release_governance_migration_has_supply_chain_and_release_state() -> None:
+    up = MIGRATIONS / "0013_p13_release_governance.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists release" in sql
+    assert "release.artifacts" in sql
+    assert "release.candidates" in sql
+    assert "release.gate_results" in sql
+    assert "release.approvals" in sql
+    assert "release.exceptions" in sql
+    assert "release.environment_promotions" in sql
+    assert "release.deployment_records" in sql
+    assert "release.rollback_records" in sql
+    assert "release.drift_detection_results" in sql
+    assert "release.compliance_evidence_packages" in sql
+    assert "sbom" in sql
+    assert "provenance" in sql
+    assert "signature" in sql
+    assert "artifact_digest varchar(256) not null" in sql
+    assert "image_digest varchar(256) not null" in sql
+    assert "source_commit varchar(80) not null" in sql
+    assert "version bigint not null default 1" in sql
+    assert "force row level security" in sql
+    assert "grant select, insert, update on all tables in schema release to vulnlab_app" in sql
+    assert "grant select, insert, update, delete on all tables in schema release" not in sql
     assert "host network" not in sql
     assert "docker socket" not in sql
     assert "exploit payload" not in sql

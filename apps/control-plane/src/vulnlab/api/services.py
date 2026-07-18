@@ -16,6 +16,7 @@ from ..operational_resilience import OperationalResilienceService
 from ..orchestrator import Orchestrator
 from ..policy import PolicyService
 from ..rag import RAGService
+from ..release_governance import ReleaseGovernanceService
 from ..repository import ControlPlaneRepository, build_control_plane_repository
 from ..sandbox import SandboxService
 from ..scope import ScopeService
@@ -50,6 +51,7 @@ class Services:
     validation_execution: ValidationExecutionService
     cases: CaseManagementService
     evaluations: EvaluationGovernanceService
+    releases: ReleaseGovernanceService
     operations: OperationalResilienceService
     sandbox: SandboxService
     orchestrator: Orchestrator
@@ -105,6 +107,7 @@ def build_services(settings: Settings) -> Services:
     gateway = ModelGateway(providers, audit)
     cases = CaseManagementService(db, policy, audit, validation_execution)
     evaluations = EvaluationGovernanceService(db, policy, audit, gateway)
+    releases = ReleaseGovernanceService(db, policy, audit)
     operations = OperationalResilienceService(db, settings, validation_evidence_store)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
@@ -130,6 +133,7 @@ def build_services(settings: Settings) -> Services:
         validation_execution=validation_execution,
         cases=cases,
         evaluations=evaluations,
+        releases=releases,
         operations=operations,
         sandbox=sandbox,
         orchestrator=orchestrator,

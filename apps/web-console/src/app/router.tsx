@@ -126,6 +126,24 @@ const evaluationRunDetailRoute = createRoute({
   ),
 });
 
+const releasesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/releases',
+  component: lazyRouteComponent(
+    () => import('../modules/releases/pages/ReleasesPage'),
+    'ReleasesPage',
+  ),
+});
+
+const releaseCandidateDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/releases/$candidateId',
+  component: lazyRouteComponent(
+    () => import('../modules/releases/pages/ReleaseCandidateDetailPage'),
+    'ReleaseCandidateDetailPage',
+  ),
+});
+
 const sandboxesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sandboxes',
@@ -185,6 +203,8 @@ const routeTree = rootRoute.addChildren([
   caseDetailRoute,
   evaluationsRoute,
   evaluationRunDetailRoute,
+  releasesRoute,
+  releaseCandidateDetailRoute,
   sandboxesRoute,
   policiesRoute,
   auditRoute,

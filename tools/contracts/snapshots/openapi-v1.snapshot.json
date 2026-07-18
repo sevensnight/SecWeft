@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "17482b588d03ac47a2c1831abc478915832af179dead450dc5339af5bad2df24",
+  "document_sha256": "f6af7446fe2bfccf30db799e440293572a62e3e0f634541670a868dc2fd12691",
   "openapi": "3.1.0",
-  "info_version": "1.12.1-p12r",
+  "info_version": "1.13.0-p13",
   "operations": [
     {
       "method": "GET",
@@ -124,6 +124,81 @@
         "401",
         "403",
         "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/deployments/{deployment_id}",
+      "operation_id": "getDeploymentRecord",
+      "parameters": [
+        {
+          "name": "deployment_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/deployments/{deployment_id}/drift",
+      "operation_id": "detectDeploymentDrift",
+      "parameters": [
+        {
+          "name": "deployment_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/deployments/{deployment_id}/rollback",
+      "operation_id": "rollbackDeploymentRecord",
+      "parameters": [
+        {
+          "name": "deployment_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
         "422"
       ],
       "success_media_types": [
@@ -1110,6 +1185,315 @@
       ],
       "responses": [
         "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/release-artifacts",
+      "operation_id": "listReleaseArtifacts",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/release-artifacts",
+      "operation_id": "registerReleaseArtifact",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/release-artifacts/{artifact_id}",
+      "operation_id": "getReleaseArtifact",
+      "parameters": [
+        {
+          "name": "artifact_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/release-candidates",
+      "operation_id": "listReleaseCandidates",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/release-candidates",
+      "operation_id": "createReleaseCandidate",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/release-candidates/{candidate_id}",
+      "operation_id": "getReleaseCandidate",
+      "parameters": [
+        {
+          "name": "candidate_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/release-candidates/{candidate_id}/approvals",
+      "operation_id": "approveReleaseCandidate",
+      "parameters": [
+        {
+          "name": "candidate_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/release-candidates/{candidate_id}/compliance-package",
+      "operation_id": "generateReleaseCompliancePackage",
+      "parameters": [
+        {
+          "name": "candidate_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/release-candidates/{candidate_id}/evaluate",
+      "operation_id": "evaluateReleaseCandidate",
+      "parameters": [
+        {
+          "name": "candidate_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/release-candidates/{candidate_id}/exceptions",
+      "operation_id": "requestReleaseException",
+      "parameters": [
+        {
+          "name": "candidate_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/release-candidates/{candidate_id}/gates",
+      "operation_id": "listReleaseCandidateGates",
+      "parameters": [
+        {
+          "name": "candidate_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/release-candidates/{candidate_id}/promotions",
+      "operation_id": "promoteReleaseCandidate",
+      "parameters": [
+        {
+          "name": "candidate_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
         "401",
         "403",
         "422"
@@ -2722,12 +3106,18 @@
     "CaseReport",
     "CaseReportCreate",
     "Checkpoint",
+    "CompliancePackageResponse",
     "ConfigEntry",
     "ConfigEntryUpdate",
     "ContextMessage",
     "ContextMessageCreate",
     "ContextRestore",
+    "DeploymentRecordResponse",
+    "DriftDetectionResultResponse",
     "EffectiveConfig",
+    "EnvironmentPromotionCreate",
+    "EnvironmentPromotionResponse",
+    "EnvironmentPromotionResultResponse",
     "EvaluationCaseCreate",
     "EvaluationCaseOutput",
     "EvaluationCaseResponse",
@@ -2750,8 +3140,11 @@
     "EvidenceConsistencyReportResponse",
     "EvidenceCreate",
     "EvidenceItem",
+    "HTTPValidationError",
     "KnowledgePack",
     "KnowledgePackRequest",
+    "LicenseScanResultCreate",
+    "LicenseScanResultResponse",
     "MetricResultResponse",
     "ModelCatalogItem",
     "ModelChatMessage",
@@ -2777,6 +3170,8 @@
     "ProjectPage",
     "PromotionDecisionCreate",
     "PromotionDecisionResponse",
+    "ProvenanceStatementCreate",
+    "ProvenanceStatementResponse",
     "RAGChunk",
     "RAGCitation",
     "RAGDocument",
@@ -2784,6 +3179,18 @@
     "RAGSearchRequest",
     "RAGSearchResponse",
     "RAGSearchResult",
+    "ReleaseApprovalCreate",
+    "ReleaseApprovalResponse",
+    "ReleaseArtifactCreate",
+    "ReleaseArtifactDetailResponse",
+    "ReleaseArtifactResponse",
+    "ReleaseCandidateCreate",
+    "ReleaseCandidateDetailResponse",
+    "ReleaseCandidateResponse",
+    "ReleaseExceptionCreate",
+    "ReleaseExceptionResponse",
+    "ReleaseGateEvaluationRequest",
+    "ReleaseGateResultResponse",
     "RemediationDecision",
     "RemediationDecisionCreate",
     "RemediationImplementation",
@@ -2797,8 +3204,16 @@
     "RoleAssignmentCreate",
     "RoleAssignmentRevoke",
     "RolePage",
+    "RollbackCreate",
+    "RollbackRecordResponse",
+    "SBOMDocumentCreate",
+    "SBOMDocumentResponse",
+    "SecurityScanResultCreate",
+    "SecurityScanResultResponse",
     "Session",
     "SessionProjectAccess",
+    "SignatureRecordCreate",
+    "SignatureRecordResponse",
     "SkillDefinition",
     "SkillDefinitionCreate",
     "SystemRequirements",
@@ -2816,6 +3231,7 @@
     "UserPage",
     "UserProvisionCreate",
     "ValidationComparison",
+    "ValidationError",
     "ValidationExecution",
     "ValidationExecutionCreate",
     "ValidationExecutionEvent",

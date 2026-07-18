@@ -14,8 +14,23 @@ from .schemas import PolicyEvaluationRequest
 from .scope import ScopeService, ScopeViolation
 from .security import Principal, redact
 
-POLICY_VERSION = "p5-default-policy-v1"
+POLICY_VERSION = "p13-release-governance-policy-v1"
 SHELL_META = re.compile(r"[;&|<>`$]")
+RELEASE_POLICY_ACTIONS = (
+    "release.artifact.register",
+    "release.candidate.create",
+    "release.gate.evaluate",
+    "release.exception.request",
+    "release.exception.approve",
+    "release.approve",
+    "release.promote.development",
+    "release.promote.integration",
+    "release.promote.staging",
+    "release.promote.production",
+    "release.rollback",
+    "release.drift.review",
+    "release.compliance.generate",
+)
 
 
 class PolicyDenied(PermissionError):
@@ -39,6 +54,7 @@ class PolicyService:
     def policy_hash() -> str:
         rules = {
             "version": POLICY_VERSION,
+            "release_actions": RELEASE_POLICY_ACTIONS,
             "rules": [
                 "destructive actions are denied",
                 "legacy execution actions are denied when legacy execution is disabled",
@@ -47,6 +63,9 @@ class PolicyService:
                 "scope-bound actions must pass current scope validation",
                 "sandbox argv must not contain shell metacharacters",
                 "policy decisions do not grant capabilities",
+                "release artifacts must use immutable digest identities",
+                "production promotion requires authoritative runtime acceptance and separation of duties",
+                "release exceptions require explicit expiry and compensating controls",
             ],
         }
         encoded = json.dumps(rules, sort_keys=True, separators=(",", ":")).encode()

@@ -60,10 +60,53 @@ The authoritative runtime environment must provide:
 Required markers:
 
 - `ENVIRONMENT=test`
+- `P12_RUNTIME_ACCEPTANCE=true`
 - `P12R_RUNTIME_ENV=isolated`
+- `P12R_RUNTIME_NAMESPACE=vulnlab`
 - `P12R_TEST_CLUSTER_MARKER=isolated-runtime`
+- active Kubernetes context prefixed with `kind-` or `k3d-`
+- Kubernetes nodes labeled `vulnlab.openai.local/p12-runtime=isolated`
+- non-production database and MinIO endpoints
 - `CHAOS_ENABLED=true` for chaos only
 - `VULNLAB_P12_CHAOS_ACK=isolated-chaos` for chaos only
+
+## GitHub Actions isolated runtime workflow
+
+The authoritative workflow is manual-only:
+
+```text
+workflow_dispatch:
+  p12r_runtime=true
+  confirm_isolated_runtime=RUN_P12_ISOLATED_RUNTIME
+```
+
+The job uses Ubuntu 24.04, Docker, kind, kubectl, Helm, Python 3.11, Node.js, and pnpm. It creates an isolated kind cluster, builds project images, loads them into kind, writes private runtime Helm values outside the artifact directory, runs P12 scale/DR/chaos runtime entry points, reruns P9-P12 deterministic baselines, collects Kubernetes diagnostics, uploads sanitized artifacts, and destroys kind in an `always()` cleanup step.
+
+Required sanitized artifacts:
+
+- `scale-runtime-result.json`
+- `dr-backup-result.json`
+- `dr-restore-result.json`
+- `chaos-runtime-result.json`
+- `environment-fingerprint.json`
+- `rpo-rto-result.json`
+- `evidence-consistency-result.json`
+- `helm-status.txt`
+- `kubectl-events.txt`
+- `pod-logs/`
+- `p9-p12-baseline-results/`
+
+Private Helm values remain under `work/p12r/private/` and are not uploaded.
+
+Status semantics:
+
+- `READINESS_COMPLETE`: deterministic readiness exists.
+- `RUNTIME_BLOCKED`: destructive isolated runtime confirmation or guard is missing.
+- `RUNTIME_RUNNING`: isolated runtime job has started.
+- `RUNTIME_FAILED`: a real runtime step failed.
+- `RUNTIME_ACCEPTED`: all runtime reports have `valid=true`, `runtime=true`, and `runtime_not_claimed=false`.
+
+Only the isolated Linux workflow may produce `RUNTIME_ACCEPTED`.
 
 ## Runtime commands
 

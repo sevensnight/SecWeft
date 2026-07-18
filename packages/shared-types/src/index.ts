@@ -86,3 +86,25 @@ export type EvaluationReviewCreate = components['schemas']['EvaluationReviewCrea
 export type EvaluationReview = components['schemas']['EvaluationReviewResponse'];
 export type PromotionDecisionCreate = components['schemas']['PromotionDecisionCreate'];
 export type PromotionDecision = components['schemas']['PromotionDecisionResponse'];
+export type ReleaseArtifactCreate = components['schemas']['ReleaseArtifactCreate'];
+export type ReleaseArtifact = components['schemas']['ReleaseArtifactResponse'];
+export type ReleaseArtifactDetail = components['schemas']['ReleaseArtifactDetailResponse'];
+export type ReleaseCandidateCreate = components['schemas']['ReleaseCandidateCreate'];
+export type ReleaseCandidate = components['schemas']['ReleaseCandidateResponse'];
+export type ReleaseCandidateDetail = components['schemas']['ReleaseCandidateDetailResponse'];
+export type ReleaseGateEvaluationRequest =
+  components['schemas']['ReleaseGateEvaluationRequest'];
+export type ReleaseGateResult = components['schemas']['ReleaseGateResultResponse'];
+export type ReleaseApprovalCreate = components['schemas']['ReleaseApprovalCreate'];
+export type ReleaseApproval = components['schemas']['ReleaseApprovalResponse'];
+export type ReleaseExceptionCreate = components['schemas']['ReleaseExceptionCreate'];
+export type ReleaseException = components['schemas']['ReleaseExceptionResponse'];
+export type EnvironmentPromotionCreate =
+  components['schemas']['EnvironmentPromotionCreate'];
+export type EnvironmentPromotionResult =
+  components['schemas']['EnvironmentPromotionResultResponse'];
+export type DeploymentRecord = components['schemas']['DeploymentRecordResponse'];
+export type RollbackCreate = components['schemas']['RollbackCreate'];
+export type RollbackRecord = components['schemas']['RollbackRecordResponse'];
+export type DriftDetectionResult = components['schemas']['DriftDetectionResultResponse'];
+export type CompliancePackage = components['schemas']['CompliancePackageResponse'];

@@ -1539,6 +1539,229 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/release-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Release Artifacts */
+        get: operations["listReleaseArtifacts"];
+        put?: never;
+        /** Register Release Artifact */
+        post: operations["registerReleaseArtifact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-artifacts/{artifact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Release Artifact */
+        get: operations["getReleaseArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Release Candidates */
+        get: operations["listReleaseCandidates"];
+        put?: never;
+        /** Create Release Candidate */
+        post: operations["createReleaseCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates/{candidate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Release Candidate */
+        get: operations["getReleaseCandidate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates/{candidate_id}/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate Release Candidate */
+        post: operations["evaluateReleaseCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates/{candidate_id}/gates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Release Candidate Gates */
+        get: operations["listReleaseCandidateGates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates/{candidate_id}/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Release Candidate */
+        post: operations["approveReleaseCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates/{candidate_id}/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Release Exception */
+        post: operations["requestReleaseException"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates/{candidate_id}/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote Release Candidate */
+        post: operations["promoteReleaseCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/{deployment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Deployment Record */
+        get: operations["getDeploymentRecord"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/{deployment_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback Deployment Record */
+        post: operations["rollbackDeploymentRecord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/{deployment_id}/drift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detect Deployment Drift */
+        get: operations["detectDeploymentDrift"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/release-candidates/{candidate_id}/compliance-package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate Release Compliance Package */
+        post: operations["generateReleaseCompliancePackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3898,6 +4121,833 @@ export interface components {
             repair_action: string;
             /** Created At */
             created_at: string;
+        };
+        /** CompliancePackageResponse */
+        CompliancePackageResponse: {
+            /** Id */
+            id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /** Package Digest */
+            package_digest: string;
+            /** Contents */
+            contents: {
+                [key: string]: unknown;
+            };
+            /** Generated By */
+            generated_by: string;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** DeploymentRecordResponse */
+        DeploymentRecordResponse: {
+            /** Id */
+            id: string;
+            /** Promotion Id */
+            promotion_id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /** Image Digest */
+            image_digest: string;
+            /** Canary Percentage */
+            canary_percentage: number;
+            /** Status */
+            status: string;
+            /** Health */
+            health: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** DriftDetectionResultResponse */
+        DriftDetectionResultResponse: {
+            /** Id */
+            id: string;
+            /** Deployment Id */
+            deployment_id: string;
+            /** Status */
+            status: string;
+            /** Drift Types */
+            drift_types: string[];
+            /** Expected */
+            expected: {
+                [key: string]: unknown;
+            };
+            /** Actual */
+            actual: {
+                [key: string]: unknown;
+            };
+            /** Reviewed By */
+            reviewed_by: string | null;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** EnvironmentPromotionCreate */
+        EnvironmentPromotionCreate: {
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /**
+             * Canary Percentage
+             * @default 100
+             */
+            canary_percentage: number;
+            /** Health */
+            health?: {
+                [key: string]: unknown;
+            };
+            /** Expected Version */
+            expected_version?: number | null;
+        };
+        /** EnvironmentPromotionResponse */
+        EnvironmentPromotionResponse: {
+            /** Id */
+            id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /** Status */
+            status: string;
+            /** Promoted By */
+            promoted_by: string;
+            /** Policy Decision Id */
+            policy_decision_id: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** EnvironmentPromotionResultResponse */
+        EnvironmentPromotionResultResponse: {
+            /** Id */
+            id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /** Status */
+            status: string;
+            /** Promoted By */
+            promoted_by: string;
+            /** Policy Decision Id */
+            policy_decision_id: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+            deployment: components["schemas"]["DeploymentRecordResponse"];
+        };
+        /** LicenseScanResultCreate */
+        LicenseScanResultCreate: {
+            /** Scanner */
+            scanner: string;
+            /** License Summary */
+            license_summary?: {
+                [key: string]: unknown;
+            };
+            /** Prohibited Licenses */
+            prohibited_licenses?: string[];
+            /**
+             * Passed
+             * @default false
+             */
+            passed: boolean;
+            /** Scan Digest */
+            scan_digest: string;
+        };
+        /** LicenseScanResultResponse */
+        LicenseScanResultResponse: {
+            /** Id */
+            id: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Scanner */
+            scanner: string;
+            /** License Summary */
+            license_summary: {
+                [key: string]: unknown;
+            };
+            /** Prohibited Licenses */
+            prohibited_licenses: string[];
+            /** Passed */
+            passed: boolean;
+            /** Scan Digest */
+            scan_digest: string;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ProvenanceStatementCreate */
+        ProvenanceStatementCreate: {
+            /** Subject Digest */
+            subject_digest: string;
+            /** Source Repository */
+            source_repository: string;
+            /** Source Commit */
+            source_commit: string;
+            /** Builder Workflow */
+            builder_workflow: string;
+            /** Statement Digest */
+            statement_digest: string;
+            /** Predicate Type */
+            predicate_type: string;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** ProvenanceStatementResponse */
+        ProvenanceStatementResponse: {
+            /** Id */
+            id: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Subject Digest */
+            subject_digest: string;
+            /** Source Repository */
+            source_repository: string;
+            /** Source Commit */
+            source_commit: string;
+            /** Builder Workflow */
+            builder_workflow: string;
+            /** Statement Digest */
+            statement_digest: string;
+            /** Predicate Type */
+            predicate_type: string;
+            /** Verified */
+            verified: boolean;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ReleaseApprovalCreate */
+        ReleaseApprovalCreate: {
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /**
+             * Decision
+             * @default approved
+             * @enum {string}
+             */
+            decision: "approved" | "rejected";
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /** Expected Version */
+            expected_version?: number | null;
+        };
+        /** ReleaseApprovalResponse */
+        ReleaseApprovalResponse: {
+            /** Id */
+            id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /** Decision */
+            decision: string;
+            /** Reason */
+            reason: string;
+            /** Approved By */
+            approved_by: string;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ReleaseArtifactCreate */
+        ReleaseArtifactCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default default
+             */
+            project_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Artifact Type
+             * @enum {string}
+             */
+            artifact_type: "container" | "helm_chart" | "python_package" | "node_package" | "release_package";
+            /** Digest */
+            digest: string;
+            /**
+             * Repository
+             * @default
+             */
+            repository: string;
+            /** Source Commit */
+            source_commit: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            sbom?: components["schemas"]["SBOMDocumentCreate"] | null;
+            provenance?: components["schemas"]["ProvenanceStatementCreate"] | null;
+            signature?: components["schemas"]["SignatureRecordCreate"] | null;
+            security_scan?: components["schemas"]["SecurityScanResultCreate"] | null;
+            license_scan?: components["schemas"]["LicenseScanResultCreate"] | null;
+        };
+        /** ReleaseArtifactDetailResponse */
+        ReleaseArtifactDetailResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Name */
+            name: string;
+            /** Artifact Type */
+            artifact_type: string;
+            /** Digest */
+            digest: string;
+            /** Repository */
+            repository: string;
+            /** Source Commit */
+            source_commit: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+            /** Sbom Documents */
+            sbom_documents: components["schemas"]["SBOMDocumentResponse"][];
+            /** Provenance Statements */
+            provenance_statements: components["schemas"]["ProvenanceStatementResponse"][];
+            /** Signature Records */
+            signature_records: components["schemas"]["SignatureRecordResponse"][];
+            /** Security Scans */
+            security_scans: components["schemas"]["SecurityScanResultResponse"][];
+            /** License Scans */
+            license_scans: components["schemas"]["LicenseScanResultResponse"][];
+        };
+        /** ReleaseArtifactResponse */
+        ReleaseArtifactResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Name */
+            name: string;
+            /** Artifact Type */
+            artifact_type: string;
+            /** Digest */
+            digest: string;
+            /** Repository */
+            repository: string;
+            /** Source Commit */
+            source_commit: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ReleaseCandidateCreate */
+        ReleaseCandidateCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default default
+             */
+            project_id: string;
+            /** Name */
+            name: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Configuration Hash */
+            configuration_hash: string;
+            /** Migration Set */
+            migration_set?: string[];
+            /** Helm Chart Digest */
+            helm_chart_digest: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** ReleaseCandidateDetailResponse */
+        ReleaseCandidateDetailResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Name */
+            name: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Source Commit */
+            source_commit: string;
+            /** Image Digest */
+            image_digest: string;
+            /** Sbom Digest */
+            sbom_digest: string;
+            /** Provenance Digest */
+            provenance_digest: string;
+            /** Signature Digest */
+            signature_digest: string;
+            /** Configuration Hash */
+            configuration_hash: string;
+            /** Migration Set */
+            migration_set: string[];
+            /** Helm Chart Digest */
+            helm_chart_digest: string;
+            /** Status */
+            status: string;
+            /** Freeze Hash */
+            freeze_hash: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+            artifact: components["schemas"]["ReleaseArtifactDetailResponse"];
+            /** Gates */
+            gates: components["schemas"]["ReleaseGateResultResponse"][];
+            /** Approvals */
+            approvals: components["schemas"]["ReleaseApprovalResponse"][];
+            /** Exceptions */
+            exceptions: components["schemas"]["ReleaseExceptionResponse"][];
+            /** Promotions */
+            promotions: components["schemas"]["EnvironmentPromotionResponse"][];
+            /** Deployments */
+            deployments: components["schemas"]["DeploymentRecordResponse"][];
+        };
+        /** ReleaseCandidateResponse */
+        ReleaseCandidateResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Name */
+            name: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Source Commit */
+            source_commit: string;
+            /** Image Digest */
+            image_digest: string;
+            /** Sbom Digest */
+            sbom_digest: string;
+            /** Provenance Digest */
+            provenance_digest: string;
+            /** Signature Digest */
+            signature_digest: string;
+            /** Configuration Hash */
+            configuration_hash: string;
+            /** Migration Set */
+            migration_set: string[];
+            /** Helm Chart Digest */
+            helm_chart_digest: string;
+            /** Status */
+            status: string;
+            /** Freeze Hash */
+            freeze_hash: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ReleaseExceptionCreate */
+        ReleaseExceptionCreate: {
+            /** Gate Id */
+            gate_id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Risk
+             * @enum {string}
+             */
+            risk: "low" | "medium" | "high" | "critical";
+            /** Scope */
+            scope: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Compensating Controls */
+            compensating_controls?: string[];
+            /**
+             * Approve
+             * @default false
+             */
+            approve: boolean;
+        };
+        /** ReleaseExceptionResponse */
+        ReleaseExceptionResponse: {
+            /** Id */
+            id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /** Gate Id */
+            gate_id: string;
+            /** Reason */
+            reason: string;
+            /** Risk */
+            risk: string;
+            /** Scope */
+            scope: string;
+            /** Requested By */
+            requested_by: string;
+            /** Approved By */
+            approved_by: string | null;
+            /** Expires At */
+            expires_at: string;
+            /** Compensating Controls */
+            compensating_controls: string[];
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ReleaseGateEvaluationRequest */
+        ReleaseGateEvaluationRequest: {
+            /**
+             * Environment
+             * @default staging
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+        };
+        /** ReleaseGateResultResponse */
+        ReleaseGateResultResponse: {
+            /** Id */
+            id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /** Gate Id */
+            gate_id: string;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "passed" | "failed" | "warning";
+            /** Reason */
+            reason: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /** Evaluated By */
+            evaluated_by: string;
+            /** Policy Decision Id */
+            policy_decision_id: string | null;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** RollbackCreate */
+        RollbackCreate: {
+            /** Reason */
+            reason: string;
+            /** Approved By */
+            approved_by?: string | null;
+        };
+        /** RollbackRecordResponse */
+        RollbackRecordResponse: {
+            /** Id */
+            id: string;
+            /** Deployment Id */
+            deployment_id: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "development" | "integration" | "staging" | "production";
+            /** Reason */
+            reason: string;
+            /** Requested By */
+            requested_by: string;
+            /** Approved By */
+            approved_by: string | null;
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** SBOMDocumentCreate */
+        SBOMDocumentCreate: {
+            /** Format */
+            format: string;
+            /** Generator */
+            generator: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Artifact Digest */
+            artifact_digest: string;
+            /** Document Digest */
+            document_digest: string;
+            /**
+             * Component Count
+             * @default 0
+             */
+            component_count: number;
+            /** License Summary */
+            license_summary?: {
+                [key: string]: unknown;
+            };
+            /** Vulnerability Summary */
+            vulnerability_summary?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Document Ref
+             * @default
+             */
+            document_ref: string;
+        };
+        /** SBOMDocumentResponse */
+        SBOMDocumentResponse: {
+            /** Id */
+            id: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Format */
+            format: string;
+            /** Generator */
+            generator: string;
+            /** Generated At */
+            generated_at: string;
+            /** Artifact Digest */
+            artifact_digest: string;
+            /** Document Digest */
+            document_digest: string;
+            /** Component Count */
+            component_count: number;
+            /** License Summary */
+            license_summary: {
+                [key: string]: unknown;
+            };
+            /** Vulnerability Summary */
+            vulnerability_summary: {
+                [key: string]: unknown;
+            };
+            /** Document Ref */
+            document_ref: string;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** SecurityScanResultCreate */
+        SecurityScanResultCreate: {
+            /** Scanner */
+            scanner: string;
+            /** Severity Summary */
+            severity_summary?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Critical Count
+             * @default 0
+             */
+            critical_count: number;
+            /**
+             * High Count
+             * @default 0
+             */
+            high_count: number;
+            /**
+             * Unresolved Critical
+             * @default false
+             */
+            unresolved_critical: boolean;
+            /** Scan Digest */
+            scan_digest: string;
+        };
+        /** SecurityScanResultResponse */
+        SecurityScanResultResponse: {
+            /** Id */
+            id: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Scanner */
+            scanner: string;
+            /** Severity Summary */
+            severity_summary: {
+                [key: string]: unknown;
+            };
+            /** Critical Count */
+            critical_count: number;
+            /** High Count */
+            high_count: number;
+            /** Unresolved Critical */
+            unresolved_critical: boolean;
+            /** Scan Digest */
+            scan_digest: string;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** SignatureRecordCreate */
+        SignatureRecordCreate: {
+            /** Signature Digest */
+            signature_digest: string;
+            /** Signature Identity */
+            signature_identity: string;
+            /** Certificate Issuer */
+            certificate_issuer: string;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
+            /**
+             * Verification Error
+             * @default
+             */
+            verification_error: string;
+        };
+        /** SignatureRecordResponse */
+        SignatureRecordResponse: {
+            /** Id */
+            id: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /** Signature Digest */
+            signature_digest: string;
+            /** Signature Identity */
+            signature_identity: string;
+            /** Certificate Issuer */
+            certificate_issuer: string;
+            /** Verified */
+            verified: boolean;
+            /** Verification Error */
+            verification_error: string;
+            /** Created At */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: {
@@ -7184,6 +8234,580 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listReleaseArtifacts: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseArtifactResponse"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    registerReleaseArtifact: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseArtifactCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseArtifactDetailResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getReleaseArtifact: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseArtifactDetailResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listReleaseCandidates: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseCandidateResponse"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createReleaseCandidate: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseCandidateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseCandidateDetailResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getReleaseCandidate: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseCandidateDetailResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluateReleaseCandidate: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseGateEvaluationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseGateResultResponse"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listReleaseCandidateGates: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseGateResultResponse"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approveReleaseCandidate: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseApprovalCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseApprovalResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    requestReleaseException: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseExceptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseExceptionResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promoteReleaseCandidate: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvironmentPromotionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvironmentPromotionResultResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getDeploymentRecord: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                deployment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentRecordResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rollbackDeploymentRecord: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                deployment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RollbackCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollbackRecordResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detectDeploymentDrift: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                deployment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriftDetectionResultResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generateReleaseCompliancePackage: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompliancePackageResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
 }
