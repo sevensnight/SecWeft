@@ -3,10 +3,16 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import socket
+import subprocess
+import time
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from uuid import uuid4
 
 import jwt
+import psycopg
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
@@ -15,13 +21,113 @@ from vulnlab.config import Settings
 from vulnlab.enterprise.auth import OidcTokenVerifier
 from vulnlab.enterprise.repository import EnterpriseRepository
 
-pytestmark = pytest.mark.skipif(
-    not os.getenv("P1_POSTGRES_APP_DSN"),
-    reason="P1_POSTGRES_APP_DSN is required for PostgreSQL API integration tests",
-)
-
 ISSUER = "https://identity.example.test/realms/vulnlab"
 AUDIENCE = "vulnlab-control-plane"
+ROOT = Path(__file__).resolve().parents[2]
+MIGRATIONS = ROOT / "infrastructure" / "migrations"
+DEFAULT_POSTGRES_IMAGE = "postgres:17.4-alpine"
+
+
+def _free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
+
+
+def _run(command: list[str], *, timeout_seconds: float = 120) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            command,
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=timeout_seconds,
+        )
+    except FileNotFoundError as exc:
+        pytest.skip(f"Docker is required when P1_POSTGRES_APP_DSN is not set: {exc}")
+    except subprocess.TimeoutExpired as exc:
+        output = exc.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", errors="replace")
+        return subprocess.CompletedProcess(
+            args=command,
+            returncode=124,
+            stdout=f"{output}\ncommand timed out after {timeout_seconds} seconds".strip(),
+        )
+
+
+def _wait_postgres(database_url: str) -> None:
+    deadline = time.time() + 45
+    last_error: Exception | None = None
+    while time.time() < deadline:
+        try:
+            with psycopg.connect(database_url, connect_timeout=2) as connection:
+                connection.execute("SELECT 1")
+                return
+        except Exception as exc:  # noqa: BLE001 - transient container startup errors.
+            last_error = exc
+            time.sleep(0.5)
+    raise RuntimeError(f"temporary PostgreSQL did not become ready: {last_error}")
+
+
+def _apply_migrations(database_url: str) -> None:
+    with psycopg.connect(database_url, autocommit=True) as connection:
+        for migration in sorted(MIGRATIONS.glob("*.up.sql")):
+            connection.execute(migration.read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def p1_postgres_dsn() -> Iterator[str]:
+    configured = os.getenv("P1_POSTGRES_APP_DSN")
+    if configured:
+        yield configured
+        return
+
+    if os.getenv("P1_POSTGRES_AUTO_DOCKER", "true").strip().lower() in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }:
+        pytest.skip("P1_POSTGRES_APP_DSN is required when P1_POSTGRES_AUTO_DOCKER=false")
+
+    image = os.getenv("P1_POSTGRES_IMAGE", DEFAULT_POSTGRES_IMAGE)
+    name = f"vulnlab-p1-postgres-{uuid4().hex[:10]}"
+    password = f"p1-{uuid4().hex}"
+    host_port = _free_port()
+    database_url = f"postgresql://p1:{password}@127.0.0.1:{host_port}/p1"
+    started = _run(
+        [
+            "docker",
+            "run",
+            "-d",
+            "--rm",
+            "--name",
+            name,
+            "-p",
+            f"127.0.0.1:{host_port}:5432",
+            "-e",
+            "POSTGRES_USER=p1",
+            "-e",
+            f"POSTGRES_PASSWORD={password}",
+            "-e",
+            "POSTGRES_DB=p1",
+            image,
+        ],
+        timeout_seconds=90,
+    )
+    if started.returncode != 0:
+        pytest.skip(f"temporary PostgreSQL container could not start: {started.stdout}")
+    try:
+        _wait_postgres(database_url)
+        _apply_migrations(database_url)
+        yield database_url
+    finally:
+        _run(["docker", "rm", "-f", name], timeout_seconds=30)
 
 
 def _token(private_key, *, tenant_id, subject, username, audience=AUDIENCE) -> str:
@@ -42,8 +148,8 @@ def _token(private_key, *, tenant_id, subject, username, audience=AUDIENCE) -> s
     )
 
 
-def test_enterprise_api_auth_scope_rbac_and_idempotency(tmp_path) -> None:
-    database_url = os.environ["P1_POSTGRES_APP_DSN"]
+def test_enterprise_api_auth_scope_rbac_and_idempotency(tmp_path, p1_postgres_dsn) -> None:
+    database_url = p1_postgres_dsn
     suffix = uuid4().hex[:10]
     tenant_id = uuid4()
     subject = f"api-admin-{suffix}"
