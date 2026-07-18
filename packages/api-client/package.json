@@ -1,6 +1,6 @@
 {
   "name": "@vulnlab/api-client",
-  "version": "1.10.0-p10",
+  "version": "1.11.0-p11",
   "private": true,
   "type": "module",
   "exports": {

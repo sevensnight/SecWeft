@@ -838,6 +838,414 @@ class VulnerabilityCaseDetailResponse(APIModel):
     audit_events: list[dict[str, Any]]
 
 
+EvaluationStatus = Literal[
+    "DRAFT",
+    "EVALUATING",
+    "PASSED",
+    "FAILED",
+    "REVIEW_PENDING",
+    "APPROVED",
+    "REJECTED",
+    "PROMOTED",
+    "ROLLED_BACK",
+    "CANCELLED",
+]
+EvaluationType = Literal[
+    "deterministic_offline",
+    "real_model",
+    "controlled_e2e",
+    "human_blind_review",
+]
+ScoringMethod = Literal[
+    "deterministic_rule",
+    "schema_validation",
+    "exact_match",
+    "set_comparison",
+    "human_annotation",
+    "restricted_llm_judge",
+]
+
+
+def default_scoring_methods() -> list[ScoringMethod]:
+    return ["deterministic_rule", "set_comparison"]
+
+
+class EvaluationSuiteCreate(APIModel):
+    name: str = Field(min_length=3, max_length=160)
+    description: str = Field(min_length=3, max_length=2000)
+    project_id: str = Field(default="default", min_length=1, max_length=120)
+    version: str = Field(default="1.0", min_length=1, max_length=80)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvaluationSuiteResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    name: str
+    description: str
+    version: str
+    status: Literal["DRAFT", "ACTIVE", "ARCHIVED"]
+    metadata: dict[str, Any]
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class EvaluationDatasetCreate(APIModel):
+    suite_id: str
+    name: str = Field(min_length=3, max_length=160)
+    description: str = Field(default="", max_length=3000)
+    version: str = Field(default="1.0", min_length=1, max_length=80)
+    project_id: str = Field(default="default", min_length=1, max_length=120)
+    ground_truth_version: str = Field(min_length=1, max_length=120)
+    published: bool = False
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvaluationDatasetResponse(APIModel):
+    id: str
+    suite_id: str
+    tenant_id: str
+    project_id: str
+    name: str
+    description: str
+    version: str
+    ground_truth_version: str
+    published: bool
+    immutable: bool
+    dataset_hash: str
+    metadata: dict[str, Any]
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class EvaluationCaseCreate(APIModel):
+    external_id: str = Field(min_length=1, max_length=160)
+    input: dict[str, Any] = Field(default_factory=dict)
+    expected_output: str | None = Field(default=None, max_length=20_000)
+    accepted_conclusions: list[str] = Field(default_factory=list, max_length=64)
+    forbidden_conclusions: list[str] = Field(default_factory=list, max_length=64)
+    expected_citations: list[str] = Field(default_factory=list, max_length=64)
+    expected_template: str | None = Field(default=None, max_length=120)
+    expected_policy_result: Literal["allow", "deny", "requires_approval"] | None = None
+    required_evidence_fields: list[str] = Field(default_factory=list, max_length=64)
+    allowed_tools: list[str] = Field(default_factory=list, max_length=64)
+    forbidden_tools: list[str] = Field(default_factory=list, max_length=64)
+    maximum_token_budget: int = Field(default=4096, ge=1, le=1_000_000)
+    maximum_cost: float = Field(default=1.0, ge=0, le=10_000)
+    maximum_latency_ms: int = Field(default=30_000, ge=1, le=3_600_000)
+    scoring_method: list[ScoringMethod] = Field(
+        default_factory=default_scoring_methods,
+        min_length=1,
+        max_length=6,
+    )
+    ground_truth_version: str = Field(min_length=1, max_length=120)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def explicit_ground_truth(self) -> EvaluationCaseCreate:
+        has_truth = bool(
+            self.expected_output
+            or self.accepted_conclusions
+            or self.expected_citations
+            or self.expected_template
+            or self.expected_policy_result
+            or self.required_evidence_fields
+        )
+        if not has_truth:
+            raise ValueError("evaluation case must define explicit ground truth")
+        if self.scoring_method == ["restricted_llm_judge"]:
+            raise ValueError("restricted LLM judge cannot be the only scoring method")
+        if self.metadata.get("ground_truth_source") == "model_only":
+            raise ValueError("ground truth cannot be only another model's score")
+        return self
+
+
+class EvaluationCaseResponse(APIModel):
+    id: str
+    dataset_id: str
+    tenant_id: str
+    project_id: str
+    external_id: str
+    input: dict[str, Any]
+    expected_output: str | None
+    accepted_conclusions: list[str]
+    forbidden_conclusions: list[str]
+    expected_citations: list[str]
+    expected_template: str | None
+    expected_policy_result: Literal["allow", "deny", "requires_approval"] | None
+    required_evidence_fields: list[str]
+    allowed_tools: list[str]
+    forbidden_tools: list[str]
+    maximum_token_budget: int
+    maximum_cost: float
+    maximum_latency_ms: int
+    scoring_method: list[ScoringMethod]
+    ground_truth_version: str
+    ground_truth_hash: str
+    metadata: dict[str, Any]
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class EvaluationCaseOutput(APIModel):
+    case_id: str | None = None
+    external_id: str | None = Field(default=None, max_length=160)
+    output: str | None = Field(default=None, max_length=100_000)
+    conclusions: list[str] = Field(default_factory=list, max_length=64)
+    citations: list[str] = Field(default_factory=list, max_length=64)
+    selected_template: str | None = Field(default=None, max_length=120)
+    policy_result: Literal["allow", "deny", "requires_approval"] | None = None
+    evidence_fields: dict[str, Any] = Field(default_factory=dict)
+    tools_requested: list[str] = Field(default_factory=list, max_length=64)
+    input_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
+    cost_usd: float = Field(default=0.0, ge=0)
+    latency_ms: int = Field(default=0, ge=0)
+    structured_output: bool = True
+    error: str | None = Field(default=None, max_length=4000)
+    model_invocation_id: str | None = None
+    judge: dict[str, Any] | None = None
+
+
+class EvaluationRunVariantCreate(APIModel):
+    name: str = Field(min_length=1, max_length=120)
+    role: Literal["baseline", "candidate"]
+    model_configuration: dict[str, Any] = Field(default_factory=dict)
+    prompt_template: dict[str, Any] = Field(default_factory=dict)
+    agent_definition: dict[str, Any] = Field(default_factory=dict)
+    skill_definition: dict[str, Any] = Field(default_factory=dict)
+    knowledge_package: dict[str, Any] = Field(default_factory=dict)
+    retrieval_configuration: dict[str, Any] = Field(default_factory=dict)
+    policy_version: dict[str, Any] = Field(default_factory=dict)
+    workflow_definition: dict[str, Any] = Field(default_factory=dict)
+    metric_definition_version: str = Field(default="p11-default-metrics-v1", max_length=120)
+    case_outputs: list[EvaluationCaseOutput] = Field(default_factory=list, max_length=1000)
+
+
+class EvaluationRunCreate(APIModel):
+    suite_id: str
+    dataset_id: str
+    project_id: str = Field(default="default", min_length=1, max_length=120)
+    evaluation_type: EvaluationType = "deterministic_offline"
+    variants: list[EvaluationRunVariantCreate] = Field(min_length=2, max_length=8)
+    gate_config: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def has_baseline_and_candidate(self) -> EvaluationRunCreate:
+        roles = {variant.role for variant in self.variants}
+        if not {"baseline", "candidate"} <= roles:
+            raise ValueError("evaluation run requires baseline and candidate variants")
+        return self
+
+
+class ConfigurationSnapshotResponse(APIModel):
+    id: str
+    run_id: str
+    variant_id: str
+    tenant_id: str
+    project_id: str
+    snapshot: dict[str, Any]
+    snapshot_hash: str
+    created_at: datetime
+
+
+class EvaluationRunVariantResponse(APIModel):
+    id: str
+    run_id: str
+    tenant_id: str
+    project_id: str
+    name: str
+    role: Literal["baseline", "candidate"]
+    configuration_snapshot_id: str
+    configuration_hash: str
+    status: Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED", "CANCELLED"]
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class EvaluationRunResponse(APIModel):
+    id: str
+    suite_id: str
+    dataset_id: str
+    tenant_id: str
+    project_id: str
+    evaluation_type: EvaluationType
+    status: EvaluationStatus
+    gate_status: Literal["PENDING", "PASSED", "FAILED", "NOT_EVALUATED"]
+    baseline_variant_id: str | None
+    candidate_variant_id: str | None
+    config_hash: str
+    created_by: str
+    started_at: datetime | None
+    finished_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+    variants: list[EvaluationRunVariantResponse] = Field(default_factory=list)
+
+
+class EvaluationResultResponse(APIModel):
+    id: str
+    run_id: str
+    variant_id: str
+    case_id: str
+    tenant_id: str
+    project_id: str
+    status: Literal["PASSED", "FAILED", "ERROR", "GROUND_TRUTH_MISSING", "INCONCLUSIVE"]
+    output: dict[str, Any]
+    scores: dict[str, Any]
+    failure_reasons: list[str]
+    model_invocation_id: str | None
+    judge: dict[str, Any] | None
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class MetricDefinitionResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    name: str
+    category: Literal["quality", "security", "cost", "latency", "stability"]
+    direction: Literal["higher_is_better", "lower_is_better"]
+    definition: dict[str, Any]
+    version: str
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class MetricResultResponse(APIModel):
+    id: str
+    run_id: str
+    variant_id: str
+    metric_definition_id: str
+    tenant_id: str
+    project_id: str
+    metric_name: str
+    category: str
+    value: float
+    unit: str
+    threshold: float | None
+    passed: bool | None
+    details: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class EvaluationFailureResponse(APIModel):
+    result_id: str
+    run_id: str
+    variant_id: str
+    case_id: str
+    external_id: str
+    status: str
+    failure_reasons: list[str]
+    scores: dict[str, Any]
+
+
+class EvaluationComparisonCreate(APIModel):
+    run_id: str
+    baseline_variant_id: str
+    candidate_variant_id: str
+    gate_config: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvaluationComparisonResponse(APIModel):
+    id: str
+    run_id: str
+    suite_id: str
+    dataset_id: str
+    tenant_id: str
+    project_id: str
+    baseline_variant_id: str
+    candidate_variant_id: str
+    improved_metrics: list[str]
+    regressed_metrics: list[str]
+    new_failures: list[str]
+    resolved_failures: list[str]
+    cost_change: float
+    latency_change: float
+    security_gate_status: Literal["PASSED", "FAILED"]
+    gate_status: Literal["PASSED", "FAILED"]
+    failed_gates: list[str]
+    details: dict[str, Any]
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class EvaluationReviewCreate(APIModel):
+    decision: Literal["ACCEPTED", "REJECTED", "CHANGES_REQUESTED"]
+    blind: bool = True
+    comments: str = Field(min_length=3, max_length=4000)
+    annotations: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvaluationReviewResponse(APIModel):
+    id: str
+    run_id: str
+    tenant_id: str
+    project_id: str
+    decision: Literal["ACCEPTED", "REJECTED", "CHANGES_REQUESTED"]
+    blind: bool
+    comments: str
+    annotations: dict[str, Any]
+    reviewed_by: str
+    reviewed_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class PromotionDecisionCreate(APIModel):
+    decision: Literal["APPROVED", "REJECTED", "PROMOTED", "ROLLED_BACK"]
+    reason: str = Field(min_length=3, max_length=4000)
+    expected_version: int = Field(ge=1)
+    target_environment: str = Field(default="production", min_length=1, max_length=120)
+
+
+class PromotionDecisionResponse(APIModel):
+    id: str
+    run_id: str
+    comparison_id: str | None
+    tenant_id: str
+    project_id: str
+    decision: Literal["APPROVED", "REJECTED", "PROMOTED", "ROLLED_BACK"]
+    reason: str
+    target_environment: str
+    decided_by: str
+    decided_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    version_no: int
+
+
+class EvaluationDatasetDetailResponse(EvaluationDatasetResponse):
+    cases: list[EvaluationCaseResponse] = Field(default_factory=list)
+
+
+class EvaluationRunDetailResponse(EvaluationRunResponse):
+    results: list[EvaluationResultResponse] = Field(default_factory=list)
+    metrics: list[MetricResultResponse] = Field(default_factory=list)
+    comparisons: list[EvaluationComparisonResponse] = Field(default_factory=list)
+    reviews: list[EvaluationReviewResponse] = Field(default_factory=list)
+    promotion_decisions: list[PromotionDecisionResponse] = Field(default_factory=list)
+
+
 class SandboxRequest(APIModel):
     task_id: str | None = None
     argv: list[str] = Field(min_length=1, max_length=32)
@@ -931,6 +1339,15 @@ class PolicyEvaluationRequest(APIModel):
         "comparison.review",
         "case.close",
         "report.generate",
+        "evaluation.suite.create",
+        "evaluation.dataset.manage",
+        "evaluation.run",
+        "evaluation.cancel",
+        "evaluation.review",
+        "evaluation.compare",
+        "evaluation.promote",
+        "evaluation.rollback",
+        "metric.definition.manage",
         "task.execute",
         "context.restore",
         "rag.search",

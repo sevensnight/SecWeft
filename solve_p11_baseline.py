@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic acceptance runner for Module 2 P10 remediation verification and case management."""
+"""Deterministic acceptance runner for Module 2 P11 AI evaluation governance."""
 
 from __future__ import annotations
 
@@ -32,17 +32,21 @@ class CheckResult:
 
 
 REQUIRED_FILES = (
-    "apps/control-plane/src/vulnlab/case_management.py",
-    "apps/control-plane/src/vulnlab/api/routers/cases.py",
-    "tests/test_p10_case_lifecycle.py",
-    "solve_p10_baseline.py",
-    "docs/architecture/p10-case-lifecycle.md",
-    "docs/architecture/p10-remediation-model.md",
-    "docs/testing/p10-validation-matrix.md",
-    "docs/security/p10-human-decision-boundaries.md",
-    "docs/acceptance/p10-acceptance-report.md",
-    "infrastructure/migrations/0010_p10_case_lifecycle.up.sql",
-    "infrastructure/migrations/0010_p10_case_lifecycle.down.sql",
+    "apps/control-plane/src/vulnlab/evaluation_governance.py",
+    "apps/control-plane/src/vulnlab/api/routers/evaluations.py",
+    "apps/web-console/src/services/evaluations.ts",
+    "apps/web-console/src/modules/evaluations/pages/EvaluationsPage.tsx",
+    "apps/web-console/src/modules/evaluations/pages/EvaluationRunDetailPage.tsx",
+    "tests/test_p11_evaluation_governance.py",
+    "solve_p11_baseline.py",
+    "docs/architecture/p11-evaluation-platform.md",
+    "docs/architecture/p11-metric-model.md",
+    "docs/testing/p11-evaluation-matrix.md",
+    "docs/security/p11-promotion-boundaries.md",
+    "docs/operations/p11-evaluation-runbook.md",
+    "docs/acceptance/p11-acceptance-report.md",
+    "infrastructure/migrations/0011_p11_evaluation_governance.up.sql",
+    "infrastructure/migrations/0011_p11_evaluation_governance.down.sql",
 )
 
 
@@ -72,23 +76,41 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     value = openapi_snapshot.check(runtime=True)
     paths = openapi_snapshot.load_document()["paths"]
     required_paths = {
-        "/vulnerability-cases",
-        "/vulnerability-cases/{case_id}",
-        "/vulnerability-cases/{case_id}/findings",
-        "/vulnerability-cases/{case_id}/remediation-proposals",
-        "/remediation-proposals/{proposal_id}/decisions",
-        "/remediation-decisions/{decision_id}/implementations",
-        "/vulnerability-cases/{case_id}/retests",
-        "/retests/{retest_id}",
-        "/retests/{retest_id}/comparison",
-        "/vulnerability-cases/{case_id}/disposition",
-        "/vulnerability-cases/{case_id}/close",
-        "/vulnerability-cases/{case_id}/reports",
+        "/evaluation-suites",
+        "/evaluation-suites/{suite_id}",
+        "/evaluation-datasets",
+        "/evaluation-datasets/{dataset_id}",
+        "/evaluation-datasets/{dataset_id}/cases",
+        "/evaluation-runs",
+        "/evaluation-runs/{run_id}",
+        "/evaluation-runs/{run_id}/cancel",
+        "/evaluation-runs/{run_id}/results",
+        "/evaluation-runs/{run_id}/metrics",
+        "/evaluation-runs/{run_id}/failures",
+        "/evaluation-comparisons",
+        "/evaluation-comparisons/{comparison_id}",
+        "/evaluation-runs/{run_id}/reviews",
+        "/evaluation-runs/{run_id}/promotion-decisions",
+    }
+    schemas = openapi_snapshot.load_document()["components"]["schemas"]
+    required_schemas = {
+        "EvaluationSuiteCreate",
+        "EvaluationSuiteResponse",
+        "EvaluationDatasetCreate",
+        "EvaluationDatasetDetailResponse",
+        "EvaluationCaseCreate",
+        "EvaluationCaseResponse",
+        "EvaluationRunCreate",
+        "EvaluationRunDetailResponse",
+        "EvaluationComparisonResponse",
+        "EvaluationReviewCreate",
+        "PromotionDecisionCreate",
     }
     invariants = {
-        "operation_count_keeps_p10_surface": value["operation_count"] >= 89,
-        "all_p10_paths_exist": required_paths <= set(paths),
-        "p9_validation_execution_paths_remain": "/validation-plans/{plan_id}/executions" in paths,
+        "operation_count_is_p11": value["operation_count"] == 106,
+        "all_p11_paths_exist": required_paths <= set(paths),
+        "all_p11_schemas_exist": required_schemas <= set(schemas),
+        "p10_case_paths_remain": "/vulnerability-cases/{case_id}/reports" in paths,
         "dangerous_paths_still_absent": all(
             marker not in path.lower()
             for path in paths
@@ -102,36 +124,46 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
 def _migration_check() -> tuple[str, dict[str, Any]]:
     value = check_migrations.check()
     invariants = {
-        "p10_migration_present": "0010_p10_case_lifecycle" in value["pairs"],
-        "case_tables_are_tenant_safe": value["valid"],
+        "p11_migration_present": "0011_p11_evaluation_governance" in value["pairs"],
+        "evaluation_tables_are_tenant_safe": value["valid"],
     }
     errors = list(value["errors"]) + sorted(name for name, valid in invariants.items() if not valid)
     return ("PASS" if not errors else "FAIL"), {**value, "invariants": invariants, "errors": errors}
 
 
 def _security_static_check() -> tuple[str, dict[str, Any]]:
-    service = (ROOT / "apps/control-plane/src/vulnlab/case_management.py").read_text(
+    service = (ROOT / "apps/control-plane/src/vulnlab/evaluation_governance.py").read_text(
         encoding="utf-8"
     )
+    schemas = (ROOT / "apps/control-plane/src/vulnlab/schemas.py").read_text(encoding="utf-8")
     validation_service = (
         ROOT / "apps/control-plane/src/vulnlab/validation_execution.py"
     ).read_text(encoding="utf-8")
-    router = (ROOT / "apps/control-plane/src/vulnlab/api/routers/cases.py").read_text(
-        encoding="utf-8"
-    )
-    tests = (ROOT / "tests/test_p10_case_lifecycle.py").read_text(encoding="utf-8")
+    tests = (ROOT / "tests/test_p11_evaluation_governance.py").read_text(encoding="utf-8")
     invariants = {
-        "case_state_machine_defined": "CASE_ALLOWED_TRANSITIONS" in service
-        and "DRAFT" in service
-        and "CLOSED" in service,
-        "retest_reuses_p9_execution_service": "self.validation_execution.create" in service
-        and "validation.retest" in service,
-        "comparison_requires_evidence_sha": "evidence_sha256" in service
-        and "_execution_evidence_sha" in service,
-        "ai_proposal_cannot_auto_approve": "automated remediation decisions cannot approve proposals"
-        in service,
-        "separation_of_duties_high_risk": "separation of duties" in service,
-        "no_arbitrary_shell_added": "shell=True" not in service and "subprocess" not in service,
+        "configuration_snapshots_are_hashed": "configuration_hash" in service
+        and "snapshot_hash" in service
+        and "config_hash" in service,
+        "ground_truth_is_explicit": "evaluation case must define explicit ground truth" in schemas
+        and "ground_truth_hash" in service,
+        "llm_judge_not_sole_scoring": "restricted LLM judge cannot be the only scoring method"
+        in schemas,
+        "gates_block_promotion": "gate failure blocks promotion" in service,
+        "creator_cannot_self_promote": "creator cannot independently approve" in service,
+        "human_only_statuses_defined": "HUMAN_ONLY_STATUSES" in service
+        and "APPROVED" in service
+        and "PROMOTED" in service,
+        "no_arbitrary_shell_added": all(
+            marker not in service
+            for marker in (
+                "import subprocess",
+                "from subprocess",
+                "subprocess.",
+                "shell=True",
+                "os.system(",
+                "os.popen(",
+            )
+        ),
         "p9_templates_unchanged": all(
             marker in validation_service
             for marker in (
@@ -141,9 +173,8 @@ def _security_static_check() -> tuple[str, dict[str, Any]]:
             )
         )
         and "shell.arbitrary" not in validation_service,
-        "write_apis_accept_idempotency": "Idempotency-Key" in router,
-        "negative_tests_cover_human_boundaries": "p10-ai-auto-approve" in tests
-        and "p10-invalid-remediated" in tests,
+        "negative_tests_cover_promotion_and_ground_truth": "p11-blocked-promote" in tests
+        and "GROUND_TRUTH_MISSING" in tests,
     }
     errors = sorted(name for name, valid in invariants.items() if not valid)
     return ("PASS" if not errors else "FAIL"), {"invariants": invariants, "errors": errors}
@@ -184,24 +215,24 @@ def _command_check(
 def run(full: bool) -> dict[str, Any]:
     python = sys.executable
     checks = [
-        _timed("p10_repository_layout", _layout_check),
-        _timed("p10_openapi_contract_guard", _contract_check),
-        _timed("p10_migration_guard", _migration_check),
-        _timed("p10_security_static_guard", _security_static_check),
+        _timed("p11_repository_layout", _layout_check),
+        _timed("p11_openapi_contract_guard", _contract_check),
+        _timed("p11_migration_guard", _migration_check),
+        _timed("p11_security_static_guard", _security_static_check),
         _command_check(
-            "p10_backend_case_lifecycle_tests",
-            [python, "-m", "pytest", "tests/test_p10_case_lifecycle.py", "-q"],
+            "p11_backend_evaluation_governance_tests",
+            [python, "-m", "pytest", "tests/test_p11_evaluation_governance.py", "-q"],
         ),
         _command_check(
-            "p10_contract_tests",
+            "p11_contract_tests",
             [python, "-m", "pytest", "tests/contract/test_openapi_contract.py", "-q"],
         ),
         _command_check(
-            "p10_migration_tests",
+            "p11_migration_tests",
             [python, "-m", "pytest", "tests/contract/test_postgres_migrations.py", "-q"],
         ),
         _command_check(
-            "p10_web_typecheck",
+            "p11_web_typecheck",
             ["pnpm", "--filter", "@vulnlab/web-console", "typecheck"],
             optional_tool="pnpm",
         ),
@@ -209,10 +240,8 @@ def run(full: bool) -> dict[str, Any]:
     if full:
         checks.extend(
             [
-                _command_check(
-                    "p9_baseline_compatibility",
-                    [python, "solve_p9_baseline.py"],
-                ),
+                _command_check("p10_baseline_compatibility", [python, "solve_p10_baseline.py"]),
+                _command_check("p9_baseline_compatibility", [python, "solve_p9_baseline.py"]),
                 _command_check(
                     "python_compile",
                     [
@@ -221,7 +250,7 @@ def run(full: bool) -> dict[str, Any]:
                         "compileall",
                         "-q",
                         "apps/control-plane/src",
-                        "solve_p10_baseline.py",
+                        "solve_p11_baseline.py",
                     ],
                 ),
                 _command_check("python_format", [python, "-m", "ruff", "format", "--check", "."]),
@@ -234,7 +263,7 @@ def run(full: bool) -> dict[str, Any]:
         )
     failed = [check for check in checks if check.status == "FAIL"]
     return {
-        "phase": "P10",
+        "phase": "P11",
         "valid": not failed,
         "full": full,
         "summary": {
@@ -245,9 +274,9 @@ def run(full: bool) -> dict[str, Any]:
         },
         "checks": [asdict(check) for check in checks],
         "not_executed": {
-            "new_validation_templates": "Not applicable; P10 intentionally adds no validation templates.",
-            "arbitrary_poc_execution": "Not applicable; P10 does not add arbitrary PoC upload or shell execution.",
-            "linux_runtime_network_authority": "Covered by P9-H runtime path, not expanded by P10.",
+            "new_validation_templates": "Not applicable; P11 intentionally adds no validation templates.",
+            "arbitrary_poc_execution": "Not applicable; P11 does not add arbitrary PoC upload or shell execution.",
+            "new_scanning_tools": "Not applicable; P11 adds evaluation governance only.",
         },
     }
 

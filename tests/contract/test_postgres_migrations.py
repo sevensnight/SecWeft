@@ -17,6 +17,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0008_p9r_validation_runtime_outbox",
         "0009_p9h_repository_hardening",
         "0010_p10_case_lifecycle",
+        "0011_p11_evaluation_governance",
     ]
 
 
@@ -152,6 +153,38 @@ def test_p10_case_lifecycle_migration_has_remediation_retest_and_comparison() ->
     assert "references case_mgmt.vulnerability_cases (tenant_id, id)" in sql
     assert "grant select, insert, update on all tables in schema case_mgmt to vulnlab_app" in sql
     assert "grant select, insert, update, delete on all tables in schema case_mgmt" not in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p11_evaluation_governance_migration_has_versioned_metrics_and_gates() -> None:
+    up = MIGRATIONS / "0011_p11_evaluation_governance.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists evaluation" in sql
+    assert "evaluation.evaluation_suites" in sql
+    assert "evaluation.evaluation_datasets" in sql
+    assert "evaluation.evaluation_cases" in sql
+    assert "evaluation.metric_definitions" in sql
+    assert "evaluation.evaluation_runs" in sql
+    assert "evaluation.evaluation_run_variants" in sql
+    assert "evaluation.configuration_snapshots" in sql
+    assert "evaluation.evaluation_results" in sql
+    assert "evaluation.metric_results" in sql
+    assert "evaluation.regression_comparisons" in sql
+    assert "evaluation.evaluation_reviews" in sql
+    assert "evaluation.promotion_decisions" in sql
+    assert "ground_truth_hash char(64) not null" in sql
+    assert "config_hash char(64) not null" in sql
+    assert "snapshot_hash char(64) not null" in sql
+    assert "ck_eval_cases_judge" in sql
+    assert "restricted_llm_judge" in sql
+    assert "references evaluation.evaluation_datasets (tenant_id, id)" in sql
+    assert "references evaluation.evaluation_runs (tenant_id, id)" in sql
+    assert "references evaluation.evaluation_run_variants (tenant_id, id)" in sql
+    assert "grant select, insert, update on all tables in schema evaluation to vulnlab_app" in sql
+    assert "grant select, insert, update, delete on all tables in schema evaluation" not in sql
     assert "host network" not in sql
     assert "docker socket" not in sql
     assert "exploit payload" not in sql

@@ -2,6 +2,7 @@ from .audit import router as audit_router
 from .authorization import router as authorization_router
 from .cases import router as cases_router
 from .enterprise_iam import router as enterprise_iam_router
+from .evaluations import router as evaluations_router
 from .execution import router as execution_router
 from .knowledge import router as knowledge_router
 from .models import router as models_router
@@ -21,6 +22,7 @@ ALL_ROUTERS = (
     knowledge_router,
     policies_router,
     cases_router,
+    evaluations_router,
     validation_plans_router,
     validation_executions_router,
     execution_router,

@@ -108,6 +108,24 @@ const caseDetailRoute = createRoute({
   ),
 });
 
+const evaluationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/evaluations',
+  component: lazyRouteComponent(
+    () => import('../modules/evaluations/pages/EvaluationsPage'),
+    'EvaluationsPage',
+  ),
+});
+
+const evaluationRunDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/evaluations/$runId',
+  component: lazyRouteComponent(
+    () => import('../modules/evaluations/pages/EvaluationRunDetailPage'),
+    'EvaluationRunDetailPage',
+  ),
+});
+
 const sandboxesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sandboxes',
@@ -165,6 +183,8 @@ const routeTree = rootRoute.addChildren([
   validationRoute,
   casesRoute,
   caseDetailRoute,
+  evaluationsRoute,
+  evaluationRunDetailRoute,
   sandboxesRoute,
   policiesRoute,
   auditRoute,

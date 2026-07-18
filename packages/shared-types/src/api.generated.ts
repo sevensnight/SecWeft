@@ -1248,6 +1248,263 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/evaluation-comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Evaluation Comparison */
+        post: operations["create_evaluation_comparison_api_v1_evaluation_comparisons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-comparisons/{comparison_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Evaluation Comparison */
+        get: operations["get_evaluation_comparison_api_v1_evaluation_comparisons__comparison_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Evaluation Dataset */
+        post: operations["create_evaluation_dataset_api_v1_evaluation_datasets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-datasets/{dataset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Evaluation Dataset */
+        get: operations["get_evaluation_dataset_api_v1_evaluation_datasets__dataset_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-datasets/{dataset_id}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Evaluation Case */
+        post: operations["create_evaluation_case_api_v1_evaluation_datasets__dataset_id__cases_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Evaluation Runs */
+        get: operations["list_evaluation_runs_api_v1_evaluation_runs_get"];
+        put?: never;
+        /** Create Evaluation Run */
+        post: operations["create_evaluation_run_api_v1_evaluation_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Evaluation Run */
+        get: operations["get_evaluation_run_api_v1_evaluation_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Evaluation Run */
+        post: operations["cancel_evaluation_run_api_v1_evaluation_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs/{run_id}/failures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Evaluation Failures */
+        get: operations["list_evaluation_failures_api_v1_evaluation_runs__run_id__failures_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs/{run_id}/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Evaluation Metrics */
+        get: operations["list_evaluation_metrics_api_v1_evaluation_runs__run_id__metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs/{run_id}/promotion-decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Promotion Decision */
+        post: operations["create_promotion_decision_api_v1_evaluation_runs__run_id__promotion_decisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs/{run_id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Evaluation Results */
+        get: operations["list_evaluation_results_api_v1_evaluation_runs__run_id__results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-runs/{run_id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Evaluation Review */
+        post: operations["create_evaluation_review_api_v1_evaluation_runs__run_id__reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-suites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Evaluation Suites */
+        get: operations["list_evaluation_suites_api_v1_evaluation_suites_get"];
+        put?: never;
+        /** Create Evaluation Suite */
+        post: operations["create_evaluation_suite_api_v1_evaluation_suites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluation-suites/{suite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Evaluation Suite */
+        get: operations["get_evaluation_suite_api_v1_evaluation_suites__suite_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2666,6 +2923,854 @@ export interface components {
             audit_events: {
                 [key: string]: unknown;
             }[];
+        };
+        /** EvaluationCaseCreate */
+        EvaluationCaseCreate: {
+            /** External Id */
+            external_id: string;
+            /** Input */
+            input?: {
+                [key: string]: unknown;
+            };
+            /** Expected Output */
+            expected_output?: string | null;
+            /** Accepted Conclusions */
+            accepted_conclusions?: string[];
+            /** Forbidden Conclusions */
+            forbidden_conclusions?: string[];
+            /** Expected Citations */
+            expected_citations?: string[];
+            /** Expected Template */
+            expected_template?: string | null;
+            /** Expected Policy Result */
+            expected_policy_result?: ("allow" | "deny" | "requires_approval") | null;
+            /** Required Evidence Fields */
+            required_evidence_fields?: string[];
+            /** Allowed Tools */
+            allowed_tools?: string[];
+            /** Forbidden Tools */
+            forbidden_tools?: string[];
+            /**
+             * Maximum Token Budget
+             * @default 4096
+             */
+            maximum_token_budget: number;
+            /**
+             * Maximum Cost
+             * @default 1
+             */
+            maximum_cost: number;
+            /**
+             * Maximum Latency Ms
+             * @default 30000
+             */
+            maximum_latency_ms: number;
+            /** Scoring Method */
+            scoring_method?: ("deterministic_rule" | "schema_validation" | "exact_match" | "set_comparison" | "human_annotation" | "restricted_llm_judge")[];
+            /** Ground Truth Version */
+            ground_truth_version: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvaluationCaseOutput */
+        EvaluationCaseOutput: {
+            /** Case Id */
+            case_id?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /** Output */
+            output?: string | null;
+            /** Conclusions */
+            conclusions?: string[];
+            /** Citations */
+            citations?: string[];
+            /** Selected Template */
+            selected_template?: string | null;
+            /** Policy Result */
+            policy_result?: ("allow" | "deny" | "requires_approval") | null;
+            /** Evidence Fields */
+            evidence_fields?: {
+                [key: string]: unknown;
+            };
+            /** Tools Requested */
+            tools_requested?: string[];
+            /**
+             * Input Tokens
+             * @default 0
+             */
+            input_tokens: number;
+            /**
+             * Output Tokens
+             * @default 0
+             */
+            output_tokens: number;
+            /**
+             * Cost Usd
+             * @default 0
+             */
+            cost_usd: number;
+            /**
+             * Latency Ms
+             * @default 0
+             */
+            latency_ms: number;
+            /**
+             * Structured Output
+             * @default true
+             */
+            structured_output: boolean;
+            /** Error */
+            error?: string | null;
+            /** Model Invocation Id */
+            model_invocation_id?: string | null;
+            /** Judge */
+            judge?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** EvaluationCaseResponse */
+        EvaluationCaseResponse: {
+            /** Id */
+            id: string;
+            /** Dataset Id */
+            dataset_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** External Id */
+            external_id: string;
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /** Expected Output */
+            expected_output: string | null;
+            /** Accepted Conclusions */
+            accepted_conclusions: string[];
+            /** Forbidden Conclusions */
+            forbidden_conclusions: string[];
+            /** Expected Citations */
+            expected_citations: string[];
+            /** Expected Template */
+            expected_template: string | null;
+            /** Expected Policy Result */
+            expected_policy_result: ("allow" | "deny" | "requires_approval") | null;
+            /** Required Evidence Fields */
+            required_evidence_fields: string[];
+            /** Allowed Tools */
+            allowed_tools: string[];
+            /** Forbidden Tools */
+            forbidden_tools: string[];
+            /** Maximum Token Budget */
+            maximum_token_budget: number;
+            /** Maximum Cost */
+            maximum_cost: number;
+            /** Maximum Latency Ms */
+            maximum_latency_ms: number;
+            /** Scoring Method */
+            scoring_method: ("deterministic_rule" | "schema_validation" | "exact_match" | "set_comparison" | "human_annotation" | "restricted_llm_judge")[];
+            /** Ground Truth Version */
+            ground_truth_version: string;
+            /** Ground Truth Hash */
+            ground_truth_hash: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** EvaluationComparisonCreate */
+        EvaluationComparisonCreate: {
+            /** Run Id */
+            run_id: string;
+            /** Baseline Variant Id */
+            baseline_variant_id: string;
+            /** Candidate Variant Id */
+            candidate_variant_id: string;
+            /** Gate Config */
+            gate_config?: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvaluationComparisonResponse */
+        EvaluationComparisonResponse: {
+            /** Id */
+            id: string;
+            /** Run Id */
+            run_id: string;
+            /** Suite Id */
+            suite_id: string;
+            /** Dataset Id */
+            dataset_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Baseline Variant Id */
+            baseline_variant_id: string;
+            /** Candidate Variant Id */
+            candidate_variant_id: string;
+            /** Improved Metrics */
+            improved_metrics: string[];
+            /** Regressed Metrics */
+            regressed_metrics: string[];
+            /** New Failures */
+            new_failures: string[];
+            /** Resolved Failures */
+            resolved_failures: string[];
+            /** Cost Change */
+            cost_change: number;
+            /** Latency Change */
+            latency_change: number;
+            /**
+             * Security Gate Status
+             * @enum {string}
+             */
+            security_gate_status: "PASSED" | "FAILED";
+            /**
+             * Gate Status
+             * @enum {string}
+             */
+            gate_status: "PASSED" | "FAILED";
+            /** Failed Gates */
+            failed_gates: string[];
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** EvaluationDatasetCreate */
+        EvaluationDatasetCreate: {
+            /** Suite Id */
+            suite_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Version
+             * @default 1.0
+             */
+            version: string;
+            /**
+             * Project Id
+             * @default default
+             */
+            project_id: string;
+            /** Ground Truth Version */
+            ground_truth_version: string;
+            /**
+             * Published
+             * @default false
+             */
+            published: boolean;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvaluationDatasetDetailResponse */
+        EvaluationDatasetDetailResponse: {
+            /** Id */
+            id: string;
+            /** Suite Id */
+            suite_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Version */
+            version: string;
+            /** Ground Truth Version */
+            ground_truth_version: string;
+            /** Published */
+            published: boolean;
+            /** Immutable */
+            immutable: boolean;
+            /** Dataset Hash */
+            dataset_hash: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+            /** Cases */
+            cases?: components["schemas"]["EvaluationCaseResponse"][];
+        };
+        /** EvaluationFailureResponse */
+        EvaluationFailureResponse: {
+            /** Result Id */
+            result_id: string;
+            /** Run Id */
+            run_id: string;
+            /** Variant Id */
+            variant_id: string;
+            /** Case Id */
+            case_id: string;
+            /** External Id */
+            external_id: string;
+            /** Status */
+            status: string;
+            /** Failure Reasons */
+            failure_reasons: string[];
+            /** Scores */
+            scores: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvaluationResultResponse */
+        EvaluationResultResponse: {
+            /** Id */
+            id: string;
+            /** Run Id */
+            run_id: string;
+            /** Variant Id */
+            variant_id: string;
+            /** Case Id */
+            case_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "PASSED" | "FAILED" | "ERROR" | "GROUND_TRUTH_MISSING" | "INCONCLUSIVE";
+            /** Output */
+            output: {
+                [key: string]: unknown;
+            };
+            /** Scores */
+            scores: {
+                [key: string]: unknown;
+            };
+            /** Failure Reasons */
+            failure_reasons: string[];
+            /** Model Invocation Id */
+            model_invocation_id: string | null;
+            /** Judge */
+            judge: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** EvaluationReviewCreate */
+        EvaluationReviewCreate: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "ACCEPTED" | "REJECTED" | "CHANGES_REQUESTED";
+            /**
+             * Blind
+             * @default true
+             */
+            blind: boolean;
+            /** Comments */
+            comments: string;
+            /** Annotations */
+            annotations?: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvaluationReviewResponse */
+        EvaluationReviewResponse: {
+            /** Id */
+            id: string;
+            /** Run Id */
+            run_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "ACCEPTED" | "REJECTED" | "CHANGES_REQUESTED";
+            /** Blind */
+            blind: boolean;
+            /** Comments */
+            comments: string;
+            /** Annotations */
+            annotations: {
+                [key: string]: unknown;
+            };
+            /** Reviewed By */
+            reviewed_by: string;
+            /**
+             * Reviewed At
+             * Format: date-time
+             */
+            reviewed_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** EvaluationRunCreate */
+        EvaluationRunCreate: {
+            /** Suite Id */
+            suite_id: string;
+            /** Dataset Id */
+            dataset_id: string;
+            /**
+             * Project Id
+             * @default default
+             */
+            project_id: string;
+            /**
+             * Evaluation Type
+             * @default deterministic_offline
+             * @enum {string}
+             */
+            evaluation_type: "deterministic_offline" | "real_model" | "controlled_e2e" | "human_blind_review";
+            /** Variants */
+            variants: components["schemas"]["EvaluationRunVariantCreate"][];
+            /** Gate Config */
+            gate_config?: {
+                [key: string]: unknown;
+            };
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvaluationRunDetailResponse */
+        EvaluationRunDetailResponse: {
+            /** Id */
+            id: string;
+            /** Suite Id */
+            suite_id: string;
+            /** Dataset Id */
+            dataset_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Evaluation Type
+             * @enum {string}
+             */
+            evaluation_type: "deterministic_offline" | "real_model" | "controlled_e2e" | "human_blind_review";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "EVALUATING" | "PASSED" | "FAILED" | "REVIEW_PENDING" | "APPROVED" | "REJECTED" | "PROMOTED" | "ROLLED_BACK" | "CANCELLED";
+            /**
+             * Gate Status
+             * @enum {string}
+             */
+            gate_status: "PENDING" | "PASSED" | "FAILED" | "NOT_EVALUATED";
+            /** Baseline Variant Id */
+            baseline_variant_id: string | null;
+            /** Candidate Variant Id */
+            candidate_variant_id: string | null;
+            /** Config Hash */
+            config_hash: string;
+            /** Created By */
+            created_by: string;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+            /** Variants */
+            variants?: components["schemas"]["EvaluationRunVariantResponse"][];
+            /** Results */
+            results?: components["schemas"]["EvaluationResultResponse"][];
+            /** Metrics */
+            metrics?: components["schemas"]["MetricResultResponse"][];
+            /** Comparisons */
+            comparisons?: components["schemas"]["EvaluationComparisonResponse"][];
+            /** Reviews */
+            reviews?: components["schemas"]["EvaluationReviewResponse"][];
+            /** Promotion Decisions */
+            promotion_decisions?: components["schemas"]["PromotionDecisionResponse"][];
+        };
+        /** EvaluationRunResponse */
+        EvaluationRunResponse: {
+            /** Id */
+            id: string;
+            /** Suite Id */
+            suite_id: string;
+            /** Dataset Id */
+            dataset_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Evaluation Type
+             * @enum {string}
+             */
+            evaluation_type: "deterministic_offline" | "real_model" | "controlled_e2e" | "human_blind_review";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "EVALUATING" | "PASSED" | "FAILED" | "REVIEW_PENDING" | "APPROVED" | "REJECTED" | "PROMOTED" | "ROLLED_BACK" | "CANCELLED";
+            /**
+             * Gate Status
+             * @enum {string}
+             */
+            gate_status: "PENDING" | "PASSED" | "FAILED" | "NOT_EVALUATED";
+            /** Baseline Variant Id */
+            baseline_variant_id: string | null;
+            /** Candidate Variant Id */
+            candidate_variant_id: string | null;
+            /** Config Hash */
+            config_hash: string;
+            /** Created By */
+            created_by: string;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+            /** Variants */
+            variants?: components["schemas"]["EvaluationRunVariantResponse"][];
+        };
+        /** EvaluationRunVariantCreate */
+        EvaluationRunVariantCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "baseline" | "candidate";
+            /** Model Configuration */
+            model_configuration?: {
+                [key: string]: unknown;
+            };
+            /** Prompt Template */
+            prompt_template?: {
+                [key: string]: unknown;
+            };
+            /** Agent Definition */
+            agent_definition?: {
+                [key: string]: unknown;
+            };
+            /** Skill Definition */
+            skill_definition?: {
+                [key: string]: unknown;
+            };
+            /** Knowledge Package */
+            knowledge_package?: {
+                [key: string]: unknown;
+            };
+            /** Retrieval Configuration */
+            retrieval_configuration?: {
+                [key: string]: unknown;
+            };
+            /** Policy Version */
+            policy_version?: {
+                [key: string]: unknown;
+            };
+            /** Workflow Definition */
+            workflow_definition?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Metric Definition Version
+             * @default p11-default-metrics-v1
+             */
+            metric_definition_version: string;
+            /** Case Outputs */
+            case_outputs?: components["schemas"]["EvaluationCaseOutput"][];
+        };
+        /** EvaluationRunVariantResponse */
+        EvaluationRunVariantResponse: {
+            /** Id */
+            id: string;
+            /** Run Id */
+            run_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "baseline" | "candidate";
+            /** Configuration Snapshot Id */
+            configuration_snapshot_id: string;
+            /** Configuration Hash */
+            configuration_hash: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** EvaluationSuiteCreate */
+        EvaluationSuiteCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /**
+             * Project Id
+             * @default default
+             */
+            project_id: string;
+            /**
+             * Version
+             * @default 1.0
+             */
+            version: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvaluationSuiteResponse */
+        EvaluationSuiteResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Version */
+            version: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** MetricResultResponse */
+        MetricResultResponse: {
+            /** Id */
+            id: string;
+            /** Run Id */
+            run_id: string;
+            /** Variant Id */
+            variant_id: string;
+            /** Metric Definition Id */
+            metric_definition_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Metric Name */
+            metric_name: string;
+            /** Category */
+            category: string;
+            /** Value */
+            value: number;
+            /** Unit */
+            unit: string;
+            /** Threshold */
+            threshold: number | null;
+            /** Passed */
+            passed: boolean | null;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** PromotionDecisionCreate */
+        PromotionDecisionCreate: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "APPROVED" | "REJECTED" | "PROMOTED" | "ROLLED_BACK";
+            /** Reason */
+            reason: string;
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Target Environment
+             * @default production
+             */
+            target_environment: string;
+        };
+        /** PromotionDecisionResponse */
+        PromotionDecisionResponse: {
+            /** Id */
+            id: string;
+            /** Run Id */
+            run_id: string;
+            /** Comparison Id */
+            comparison_id: string | null;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "APPROVED" | "REJECTED" | "PROMOTED" | "ROLLED_BACK";
+            /** Reason */
+            reason: string;
+            /** Target Environment */
+            target_environment: string;
+            /** Decided By */
+            decided_by: string;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
         };
     };
     responses: {
@@ -5396,6 +6501,750 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    create_evaluation_comparison_api_v1_evaluation_comparisons_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationComparisonCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationComparisonResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_evaluation_comparison_api_v1_evaluation_comparisons__comparison_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationComparisonResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_evaluation_dataset_api_v1_evaluation_datasets_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationDatasetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationDatasetDetailResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_evaluation_dataset_api_v1_evaluation_datasets__dataset_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationDatasetDetailResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_evaluation_case_api_v1_evaluation_datasets__dataset_id__cases_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationCaseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationCaseResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_evaluation_runs_api_v1_evaluation_runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                project_id?: string | null;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRunResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_evaluation_run_api_v1_evaluation_runs_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationRunCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRunDetailResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_evaluation_run_api_v1_evaluation_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRunDetailResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_evaluation_run_api_v1_evaluation_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRunResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_evaluation_failures_api_v1_evaluation_runs__run_id__failures_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationFailureResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_evaluation_metrics_api_v1_evaluation_runs__run_id__metrics_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricResultResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_promotion_decision_api_v1_evaluation_runs__run_id__promotion_decisions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionDecisionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionDecisionResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_evaluation_results_api_v1_evaluation_runs__run_id__results_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationResultResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_evaluation_review_api_v1_evaluation_runs__run_id__reviews_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationReviewCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationReviewResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_evaluation_suites_api_v1_evaluation_suites_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                project_id?: string | null;
+            };
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationSuiteResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_evaluation_suite_api_v1_evaluation_suites_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationSuiteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationSuiteResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_evaluation_suite_api_v1_evaluation_suites__suite_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                suite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationSuiteResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
 }

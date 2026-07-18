@@ -1,8 +1,8 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "0ab71e72abb84136c5c9b5c1afd1bd46397bf607339ac1d83d1a94dd53b08fde",
+  "document_sha256": "8206565c265c21ee5fb0aa1b71d3d3fc3151667fbb5640e35ba45b8555b0d1a8",
   "openapi": "3.1.0",
-  "info_version": "1.10.0-p10",
+  "info_version": "1.11.0-p11",
   "operations": [
     {
       "method": "GET",
@@ -124,6 +124,428 @@
         "401",
         "403",
         "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-comparisons",
+      "operation_id": "create_evaluation_comparison_api_v1_evaluation_comparisons_post",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-comparisons/{comparison_id}",
+      "operation_id": "get_evaluation_comparison_api_v1_evaluation_comparisons__comparison_id__get",
+      "parameters": [
+        {
+          "name": "comparison_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-datasets",
+      "operation_id": "create_evaluation_dataset_api_v1_evaluation_datasets_post",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-datasets/{dataset_id}",
+      "operation_id": "get_evaluation_dataset_api_v1_evaluation_datasets__dataset_id__get",
+      "parameters": [
+        {
+          "name": "dataset_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-datasets/{dataset_id}/cases",
+      "operation_id": "create_evaluation_case_api_v1_evaluation_datasets__dataset_id__cases_post",
+      "parameters": [
+        {
+          "name": "dataset_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-runs",
+      "operation_id": "list_evaluation_runs_api_v1_evaluation_runs_get",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "project_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-runs",
+      "operation_id": "create_evaluation_run_api_v1_evaluation_runs_post",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-runs/{run_id}",
+      "operation_id": "get_evaluation_run_api_v1_evaluation_runs__run_id__get",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-runs/{run_id}/cancel",
+      "operation_id": "cancel_evaluation_run_api_v1_evaluation_runs__run_id__cancel_post",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-runs/{run_id}/failures",
+      "operation_id": "list_evaluation_failures_api_v1_evaluation_runs__run_id__failures_get",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-runs/{run_id}/metrics",
+      "operation_id": "list_evaluation_metrics_api_v1_evaluation_runs__run_id__metrics_get",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-runs/{run_id}/promotion-decisions",
+      "operation_id": "create_promotion_decision_api_v1_evaluation_runs__run_id__promotion_decisions_post",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-runs/{run_id}/results",
+      "operation_id": "list_evaluation_results_api_v1_evaluation_runs__run_id__results_get",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-runs/{run_id}/reviews",
+      "operation_id": "create_evaluation_review_api_v1_evaluation_runs__run_id__reviews_post",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-suites",
+      "operation_id": "list_evaluation_suites_api_v1_evaluation_suites_get",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "project_id",
+          "in": "query",
+          "required": false
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/evaluation-suites",
+      "operation_id": "create_evaluation_suite_api_v1_evaluation_suites_post",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "201",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/evaluation-suites/{suite_id}",
+      "operation_id": "get_evaluation_suite_api_v1_evaluation_suites__suite_id__get",
+      "parameters": [
+        {
+          "name": "suite_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
         "422"
       ],
       "success_media_types": [
@@ -2264,10 +2686,29 @@
     "ContextMessageCreate",
     "ContextRestore",
     "EffectiveConfig",
+    "EvaluationCaseCreate",
+    "EvaluationCaseOutput",
+    "EvaluationCaseResponse",
+    "EvaluationComparisonCreate",
+    "EvaluationComparisonResponse",
+    "EvaluationDatasetCreate",
+    "EvaluationDatasetDetailResponse",
+    "EvaluationFailureResponse",
+    "EvaluationResultResponse",
+    "EvaluationReviewCreate",
+    "EvaluationReviewResponse",
+    "EvaluationRunCreate",
+    "EvaluationRunDetailResponse",
+    "EvaluationRunResponse",
+    "EvaluationRunVariantCreate",
+    "EvaluationRunVariantResponse",
+    "EvaluationSuiteCreate",
+    "EvaluationSuiteResponse",
     "EvidenceCreate",
     "EvidenceItem",
     "KnowledgePack",
     "KnowledgePackRequest",
+    "MetricResultResponse",
     "ModelCatalogItem",
     "ModelChatMessage",
     "ModelCompletion",
@@ -2290,6 +2731,8 @@
     "Project",
     "ProjectCreate",
     "ProjectPage",
+    "PromotionDecisionCreate",
+    "PromotionDecisionResponse",
     "RAGChunk",
     "RAGCitation",
     "RAGDocument",

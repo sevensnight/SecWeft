@@ -24,6 +24,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "policy:read",
             "validation:read",
             "case:read",
+            "evaluation:read",
             "report:read",
         }
     ),
@@ -52,6 +53,11 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "case:create",
             "case:update",
             "remediation:propose",
+            "evaluation:read",
+            "evaluation:suite:create",
+            "evaluation:dataset:manage",
+            "evaluation:run",
+            "evaluation:compare",
             "report:read",
             "report:generate",
         }
@@ -90,6 +96,13 @@ ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
             "validation:retest",
             "comparison:review",
             "case:close",
+            "evaluation:read",
+            "evaluation:suite:create",
+            "evaluation:dataset:manage",
+            "evaluation:run",
+            "evaluation:cancel",
+            "evaluation:compare",
+            "evaluation:review",
             "report:read",
             "report:generate",
         }

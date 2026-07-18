@@ -58,3 +58,26 @@ export type CaseDispositionCreate = components['schemas']['CaseDispositionCreate
 export type CaseCloseRequest = components['schemas']['CaseCloseRequest'];
 export type CaseReport = components['schemas']['CaseReport'];
 export type CaseReportCreate = components['schemas']['CaseReportCreate'];
+export type EvaluationSuiteCreate = components['schemas']['EvaluationSuiteCreate'];
+export type EvaluationSuite = components['schemas']['EvaluationSuiteResponse'];
+export type EvaluationDatasetCreate = components['schemas']['EvaluationDatasetCreate'];
+export type EvaluationDataset = components['schemas']['EvaluationDatasetDetailResponse'];
+export type EvaluationCaseCreate = components['schemas']['EvaluationCaseCreate'];
+export type EvaluationCase = components['schemas']['EvaluationCaseResponse'];
+export type EvaluationCaseOutput = components['schemas']['EvaluationCaseOutput'];
+export type EvaluationRunCreate = components['schemas']['EvaluationRunCreate'];
+export type EvaluationRun = components['schemas']['EvaluationRunResponse'];
+export type EvaluationRunDetail = components['schemas']['EvaluationRunDetailResponse'];
+export type EvaluationRunVariantCreate =
+  components['schemas']['EvaluationRunVariantCreate'];
+export type EvaluationRunVariant = components['schemas']['EvaluationRunVariantResponse'];
+export type EvaluationResult = components['schemas']['EvaluationResultResponse'];
+export type MetricResult = components['schemas']['MetricResultResponse'];
+export type EvaluationFailure = components['schemas']['EvaluationFailureResponse'];
+export type EvaluationComparisonCreate =
+  components['schemas']['EvaluationComparisonCreate'];
+export type EvaluationComparison = components['schemas']['EvaluationComparisonResponse'];
+export type EvaluationReviewCreate = components['schemas']['EvaluationReviewCreate'];
+export type EvaluationReview = components['schemas']['EvaluationReviewResponse'];
+export type PromotionDecisionCreate = components['schemas']['PromotionDecisionCreate'];
+export type PromotionDecision = components['schemas']['PromotionDecisionResponse'];

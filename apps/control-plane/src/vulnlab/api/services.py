@@ -9,6 +9,7 @@ from ..case_management import CaseManagementService
 from ..config import Settings
 from ..context import ContextService
 from ..enterprise import EnterpriseServices, build_enterprise_services
+from ..evaluation_governance import EvaluationGovernanceService
 from ..evidence import EvidenceService
 from ..model_gateway import ModelGateway, ProviderStore
 from ..orchestrator import Orchestrator
@@ -47,6 +48,7 @@ class Services:
     validation_evidence_store: EvidenceStore
     validation_execution: ValidationExecutionService
     cases: CaseManagementService
+    evaluations: EvaluationGovernanceService
     sandbox: SandboxService
     orchestrator: Orchestrator
     enterprise: EnterpriseServices | None = None
@@ -98,7 +100,9 @@ def build_services(settings: Settings) -> Services:
         validation_sandbox,
         validation_evidence_store,
     )
+    gateway = ModelGateway(providers, audit)
     cases = CaseManagementService(db, policy, audit, validation_execution)
+    evaluations = EvaluationGovernanceService(db, policy, audit, gateway)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
     enterprise = build_enterprise_services(settings) if settings.auth_mode == "oidc" else None
@@ -108,7 +112,7 @@ def build_services(settings: Settings) -> Services:
         security=security,
         audit=audit,
         providers=providers,
-        gateway=ModelGateway(providers, audit),
+        gateway=gateway,
         scope=scope_service,
         skills=skills,
         agents=agents,
@@ -122,6 +126,7 @@ def build_services(settings: Settings) -> Services:
         validation_evidence_store=validation_evidence_store,
         validation_execution=validation_execution,
         cases=cases,
+        evaluations=evaluations,
         sandbox=sandbox,
         orchestrator=orchestrator,
         enterprise=enterprise,

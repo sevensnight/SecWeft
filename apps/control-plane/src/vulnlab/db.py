@@ -718,6 +718,257 @@ CREATE INDEX IF NOT EXISTS idx_case_dispositions_case
     ON case_dispositions(case_id, decided_at DESC);
 CREATE INDEX IF NOT EXISTS idx_case_reports_case
     ON case_reports(case_id, generated_at DESC);
+CREATE TABLE IF NOT EXISTS evaluation_suites (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    semantic_version TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('DRAFT','ACTIVE','ARCHIVED')),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, project_id, name, semantic_version)
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_datasets (
+    id TEXT PRIMARY KEY,
+    suite_id TEXT NOT NULL REFERENCES evaluation_suites(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    semantic_version TEXT NOT NULL,
+    ground_truth_version TEXT NOT NULL,
+    published INTEGER NOT NULL DEFAULT 0,
+    immutable INTEGER NOT NULL DEFAULT 0,
+    dataset_hash TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, project_id, suite_id, name, semantic_version)
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_cases (
+    id TEXT PRIMARY KEY,
+    dataset_id TEXT NOT NULL REFERENCES evaluation_datasets(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    external_id TEXT NOT NULL,
+    input_json TEXT NOT NULL DEFAULT '{}',
+    expected_output TEXT,
+    accepted_conclusions_json TEXT NOT NULL DEFAULT '[]',
+    forbidden_conclusions_json TEXT NOT NULL DEFAULT '[]',
+    expected_citations_json TEXT NOT NULL DEFAULT '[]',
+    expected_template TEXT,
+    expected_policy_result TEXT CHECK(expected_policy_result IN ('allow','deny','requires_approval')),
+    required_evidence_fields_json TEXT NOT NULL DEFAULT '[]',
+    allowed_tools_json TEXT NOT NULL DEFAULT '[]',
+    forbidden_tools_json TEXT NOT NULL DEFAULT '[]',
+    maximum_token_budget INTEGER NOT NULL,
+    maximum_cost REAL NOT NULL,
+    maximum_latency_ms INTEGER NOT NULL,
+    scoring_method_json TEXT NOT NULL DEFAULT '[]',
+    ground_truth_version TEXT NOT NULL,
+    ground_truth_hash TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, project_id, dataset_id, external_id)
+);
+
+CREATE TABLE IF NOT EXISTS metric_definitions (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL CHECK(category IN ('quality','security','cost','latency','stability')),
+    direction TEXT NOT NULL CHECK(direction IN ('higher_is_better','lower_is_better')),
+    definition_json TEXT NOT NULL DEFAULT '{}',
+    semantic_version TEXT NOT NULL,
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, project_id, name, semantic_version)
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_runs (
+    id TEXT PRIMARY KEY,
+    suite_id TEXT NOT NULL REFERENCES evaluation_suites(id) ON DELETE CASCADE,
+    dataset_id TEXT NOT NULL REFERENCES evaluation_datasets(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    evaluation_type TEXT NOT NULL CHECK(evaluation_type IN (
+        'deterministic_offline','real_model','controlled_e2e','human_blind_review'
+    )),
+    status TEXT NOT NULL CHECK(status IN (
+        'DRAFT','EVALUATING','PASSED','FAILED','REVIEW_PENDING','APPROVED',
+        'REJECTED','PROMOTED','ROLLED_BACK','CANCELLED'
+    )),
+    gate_status TEXT NOT NULL CHECK(gate_status IN ('PENDING','PASSED','FAILED','NOT_EVALUATED')),
+    baseline_variant_id TEXT,
+    candidate_variant_id TEXT,
+    config_hash TEXT NOT NULL,
+    gate_config_json TEXT NOT NULL DEFAULT '{}',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    started_at TEXT,
+    finished_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_run_variants (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES evaluation_runs(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('baseline','candidate')),
+    configuration_snapshot_id TEXT NOT NULL,
+    configuration_hash TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('PENDING','RUNNING','SUCCEEDED','FAILED','CANCELLED')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(run_id, role, name)
+);
+
+CREATE TABLE IF NOT EXISTS configuration_snapshots (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES evaluation_runs(id) ON DELETE CASCADE,
+    variant_id TEXT NOT NULL,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    snapshot_json TEXT NOT NULL,
+    snapshot_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(run_id, variant_id)
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_results (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES evaluation_runs(id) ON DELETE CASCADE,
+    variant_id TEXT NOT NULL REFERENCES evaluation_run_variants(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL REFERENCES evaluation_cases(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('PASSED','FAILED','ERROR','GROUND_TRUTH_MISSING','INCONCLUSIVE')),
+    output_json TEXT NOT NULL DEFAULT '{}',
+    scores_json TEXT NOT NULL DEFAULT '{}',
+    failure_reasons_json TEXT NOT NULL DEFAULT '[]',
+    model_invocation_id TEXT REFERENCES model_invocations(id),
+    judge_json TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(run_id, variant_id, case_id)
+);
+
+CREATE TABLE IF NOT EXISTS metric_results (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES evaluation_runs(id) ON DELETE CASCADE,
+    variant_id TEXT NOT NULL REFERENCES evaluation_run_variants(id) ON DELETE CASCADE,
+    metric_definition_id TEXT NOT NULL REFERENCES metric_definitions(id),
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    metric_name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    value REAL NOT NULL,
+    unit TEXT NOT NULL,
+    threshold REAL,
+    passed INTEGER,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(run_id, variant_id, metric_name)
+);
+
+CREATE TABLE IF NOT EXISTS regression_comparisons (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES evaluation_runs(id) ON DELETE CASCADE,
+    suite_id TEXT NOT NULL REFERENCES evaluation_suites(id) ON DELETE CASCADE,
+    dataset_id TEXT NOT NULL REFERENCES evaluation_datasets(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    baseline_variant_id TEXT NOT NULL REFERENCES evaluation_run_variants(id),
+    candidate_variant_id TEXT NOT NULL REFERENCES evaluation_run_variants(id),
+    improved_metrics_json TEXT NOT NULL DEFAULT '[]',
+    regressed_metrics_json TEXT NOT NULL DEFAULT '[]',
+    new_failures_json TEXT NOT NULL DEFAULT '[]',
+    resolved_failures_json TEXT NOT NULL DEFAULT '[]',
+    cost_change REAL NOT NULL DEFAULT 0,
+    latency_change REAL NOT NULL DEFAULT 0,
+    security_gate_status TEXT NOT NULL CHECK(security_gate_status IN ('PASSED','FAILED')),
+    gate_status TEXT NOT NULL CHECK(gate_status IN ('PASSED','FAILED')),
+    failed_gates_json TEXT NOT NULL DEFAULT '[]',
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_reviews (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES evaluation_runs(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    decision TEXT NOT NULL CHECK(decision IN ('ACCEPTED','REJECTED','CHANGES_REQUESTED')),
+    blind INTEGER NOT NULL DEFAULT 1,
+    comments TEXT NOT NULL,
+    annotations_json TEXT NOT NULL DEFAULT '{}',
+    reviewed_by TEXT NOT NULL REFERENCES users(id),
+    reviewed_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS promotion_decisions (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES evaluation_runs(id) ON DELETE CASCADE,
+    comparison_id TEXT REFERENCES regression_comparisons(id),
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    decision TEXT NOT NULL CHECK(decision IN ('APPROVED','REJECTED','PROMOTED','ROLLED_BACK')),
+    reason TEXT NOT NULL,
+    target_environment TEXT NOT NULL,
+    decided_by TEXT NOT NULL REFERENCES users(id),
+    decided_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS idx_evaluation_suites_tenant_project
+    ON evaluation_suites(tenant_id, project_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evaluation_datasets_suite
+    ON evaluation_datasets(suite_id, semantic_version);
+CREATE INDEX IF NOT EXISTS idx_evaluation_cases_dataset
+    ON evaluation_cases(dataset_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_evaluation_runs_tenant_project
+    ON evaluation_runs(tenant_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evaluation_results_run
+    ON evaluation_results(run_id, variant_id, status);
+CREATE INDEX IF NOT EXISTS idx_metric_results_run
+    ON metric_results(run_id, variant_id, metric_name);
+CREATE INDEX IF NOT EXISTS idx_regression_comparisons_run
+    ON regression_comparisons(run_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evaluation_reviews_run
+    ON evaluation_reviews(run_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_promotion_decisions_run
+    ON promotion_decisions(run_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time
@@ -1121,7 +1372,7 @@ class Database:
                         (int(count_row["count"]), last["entry_hash"], last["timestamp"]),
                     )
             connection.execute("UPDATE skills SET updated_at=created_at WHERE updated_at=''")
-            connection.execute("PRAGMA user_version=10")
+            connection.execute("PRAGMA user_version=11")
             connection.commit()
         except Exception:
             connection.rollback()

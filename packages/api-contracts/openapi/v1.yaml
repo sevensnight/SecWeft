@@ -1,12 +1,10 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.10.0-p10
-  description: P6 contract for OIDC identity, tenant/project data scope, eight-role
-    RBAC, layered configuration, append-only audit, the model gateway, and durable
-    task/Agent orchestration with resumable Server-Sent Events plus tenant-safe context,
-    checkpoint, evidence, retrieval-augmented knowledge services, and explicit policy
-    decision logging plus non-executing validation plan approval.
+  version: 1.11.0-p11
+  description: P11 contract for AI evaluation governance, versioned ground truth,
+    immutable configuration snapshots, metric regression gates, human review, and
+    promotion decisions, preserving P0-P10 control-plane compatibility.
 servers:
 - url: /api/v1
 tags:
@@ -23,6 +21,7 @@ tags:
 - name: Policies
 - name: Validation
 - name: Audit
+- name: Evaluations
 security:
 - ApiKeyAuth: []
 paths:
@@ -2823,6 +2822,616 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CaseReportCreate'
+  /evaluation-comparisons:
+    post:
+      tags:
+      - evaluations
+      summary: Create Evaluation Comparison
+      operationId: create_evaluation_comparison_api_v1_evaluation_comparisons_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationComparisonCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationComparisonResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-comparisons/{comparison_id}:
+    get:
+      tags:
+      - evaluations
+      summary: Get Evaluation Comparison
+      operationId: get_evaluation_comparison_api_v1_evaluation_comparisons__comparison_id__get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: comparison_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Comparison Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationComparisonResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-datasets:
+    post:
+      tags:
+      - evaluations
+      summary: Create Evaluation Dataset
+      operationId: create_evaluation_dataset_api_v1_evaluation_datasets_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationDatasetCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationDatasetDetailResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-datasets/{dataset_id}:
+    get:
+      tags:
+      - evaluations
+      summary: Get Evaluation Dataset
+      operationId: get_evaluation_dataset_api_v1_evaluation_datasets__dataset_id__get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationDatasetDetailResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-datasets/{dataset_id}/cases:
+    post:
+      tags:
+      - evaluations
+      summary: Create Evaluation Case
+      operationId: create_evaluation_case_api_v1_evaluation_datasets__dataset_id__cases_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationCaseCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationCaseResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs:
+    post:
+      tags:
+      - evaluations
+      summary: Create Evaluation Run
+      operationId: create_evaluation_run_api_v1_evaluation_runs_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationRunCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationRunDetailResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+    get:
+      tags:
+      - evaluations
+      summary: List Evaluation Runs
+      operationId: list_evaluation_runs_api_v1_evaluation_runs_get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: project_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationRunResponse'
+                title: Response List Evaluation Runs Api V1 Evaluation Runs Get
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs/{run_id}:
+    get:
+      tags:
+      - evaluations
+      summary: Get Evaluation Run
+      operationId: get_evaluation_run_api_v1_evaluation_runs__run_id__get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationRunDetailResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs/{run_id}/cancel:
+    post:
+      tags:
+      - evaluations
+      summary: Cancel Evaluation Run
+      operationId: cancel_evaluation_run_api_v1_evaluation_runs__run_id__cancel_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationRunResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs/{run_id}/failures:
+    get:
+      tags:
+      - evaluations
+      summary: List Evaluation Failures
+      operationId: list_evaluation_failures_api_v1_evaluation_runs__run_id__failures_get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationFailureResponse'
+                title: Response List Evaluation Failures Api V1 Evaluation Runs  Run
+                  Id  Failures Get
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs/{run_id}/metrics:
+    get:
+      tags:
+      - evaluations
+      summary: List Evaluation Metrics
+      operationId: list_evaluation_metrics_api_v1_evaluation_runs__run_id__metrics_get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetricResultResponse'
+                title: Response List Evaluation Metrics Api V1 Evaluation Runs  Run
+                  Id  Metrics Get
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs/{run_id}/promotion-decisions:
+    post:
+      tags:
+      - evaluations
+      summary: Create Promotion Decision
+      operationId: create_promotion_decision_api_v1_evaluation_runs__run_id__promotion_decisions_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromotionDecisionCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionDecisionResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs/{run_id}/results:
+    get:
+      tags:
+      - evaluations
+      summary: List Evaluation Results
+      operationId: list_evaluation_results_api_v1_evaluation_runs__run_id__results_get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationResultResponse'
+                title: Response List Evaluation Results Api V1 Evaluation Runs  Run
+                  Id  Results Get
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-runs/{run_id}/reviews:
+    post:
+      tags:
+      - evaluations
+      summary: Create Evaluation Review
+      operationId: create_evaluation_review_api_v1_evaluation_runs__run_id__reviews_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationReviewCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationReviewResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-suites:
+    post:
+      tags:
+      - evaluations
+      summary: Create Evaluation Suite
+      operationId: create_evaluation_suite_api_v1_evaluation_suites_post
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationSuiteCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationSuiteResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+    get:
+      tags:
+      - evaluations
+      summary: List Evaluation Suites
+      operationId: list_evaluation_suites_api_v1_evaluation_suites_get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: project_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationSuiteResponse'
+                title: Response List Evaluation Suites Api V1 Evaluation Suites Get
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
+  /evaluation-suites/{suite_id}:
+    get:
+      tags:
+      - evaluations
+      summary: Get Evaluation Suite
+      operationId: get_evaluation_suite_api_v1_evaluation_suites__suite_id__get
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: suite_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Suite Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationSuiteResponse'
+        '422':
+          ? ''
+          : '#/components/responses/ValidationError'
+        '401':
+          ? ''
+          : '#/components/responses/Unauthorized'
+        '403':
+          ? ''
+          : '#/components/responses/Forbidden'
+      security:
+      - BearerAuth: []
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -6787,3 +7396,1534 @@ components:
         audit_events:
           type: array
           items: *id003
+    EvaluationCaseCreate:
+      properties:
+        external_id:
+          type: string
+          maxLength: 160
+          minLength: 1
+          title: External Id
+        input:
+          additionalProperties: true
+          type: object
+          title: Input
+        expected_output:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Expected Output
+        accepted_conclusions:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Accepted Conclusions
+        forbidden_conclusions:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Forbidden Conclusions
+        expected_citations:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Expected Citations
+        expected_template:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Expected Template
+        expected_policy_result:
+          anyOf:
+          - type: string
+            enum:
+            - allow
+            - deny
+            - requires_approval
+          - type: 'null'
+          title: Expected Policy Result
+        required_evidence_fields:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Required Evidence Fields
+        allowed_tools:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Allowed Tools
+        forbidden_tools:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Forbidden Tools
+        maximum_token_budget:
+          type: integer
+          maximum: 1000000.0
+          minimum: 1.0
+          title: Maximum Token Budget
+          default: 4096
+        maximum_cost:
+          type: number
+          maximum: 10000.0
+          minimum: 0.0
+          title: Maximum Cost
+          default: 1.0
+        maximum_latency_ms:
+          type: integer
+          maximum: 3600000.0
+          minimum: 1.0
+          title: Maximum Latency Ms
+          default: 30000
+        scoring_method:
+          items:
+            type: string
+            enum:
+            - deterministic_rule
+            - schema_validation
+            - exact_match
+            - set_comparison
+            - human_annotation
+            - restricted_llm_judge
+          type: array
+          maxItems: 6
+          minItems: 1
+          title: Scoring Method
+        ground_truth_version:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Ground Truth Version
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - external_id
+      - ground_truth_version
+      title: EvaluationCaseCreate
+    EvaluationCaseOutput:
+      properties:
+        case_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Case Id
+        external_id:
+          anyOf:
+          - type: string
+            maxLength: 160
+          - type: 'null'
+          title: External Id
+        output:
+          anyOf:
+          - type: string
+            maxLength: 100000
+          - type: 'null'
+          title: Output
+        conclusions:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Conclusions
+        citations:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Citations
+        selected_template:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Selected Template
+        policy_result:
+          anyOf:
+          - type: string
+            enum:
+            - allow
+            - deny
+            - requires_approval
+          - type: 'null'
+          title: Policy Result
+        evidence_fields:
+          additionalProperties: true
+          type: object
+          title: Evidence Fields
+        tools_requested:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Tools Requested
+        input_tokens:
+          type: integer
+          minimum: 0.0
+          title: Input Tokens
+          default: 0
+        output_tokens:
+          type: integer
+          minimum: 0.0
+          title: Output Tokens
+          default: 0
+        cost_usd:
+          type: number
+          minimum: 0.0
+          title: Cost Usd
+          default: 0.0
+        latency_ms:
+          type: integer
+          minimum: 0.0
+          title: Latency Ms
+          default: 0
+        structured_output:
+          type: boolean
+          title: Structured Output
+          default: true
+        error:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Error
+        model_invocation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Invocation Id
+        judge:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Judge
+      additionalProperties: false
+      type: object
+      title: EvaluationCaseOutput
+    EvaluationCaseResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        external_id:
+          type: string
+          title: External Id
+        input:
+          additionalProperties: true
+          type: object
+          title: Input
+        expected_output:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Output
+        accepted_conclusions:
+          items:
+            type: string
+          type: array
+          title: Accepted Conclusions
+        forbidden_conclusions:
+          items:
+            type: string
+          type: array
+          title: Forbidden Conclusions
+        expected_citations:
+          items:
+            type: string
+          type: array
+          title: Expected Citations
+        expected_template:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Template
+        expected_policy_result:
+          anyOf:
+          - type: string
+            enum:
+            - allow
+            - deny
+            - requires_approval
+          - type: 'null'
+          title: Expected Policy Result
+        required_evidence_fields:
+          items:
+            type: string
+          type: array
+          title: Required Evidence Fields
+        allowed_tools:
+          items:
+            type: string
+          type: array
+          title: Allowed Tools
+        forbidden_tools:
+          items:
+            type: string
+          type: array
+          title: Forbidden Tools
+        maximum_token_budget:
+          type: integer
+          title: Maximum Token Budget
+        maximum_cost:
+          type: number
+          title: Maximum Cost
+        maximum_latency_ms:
+          type: integer
+          title: Maximum Latency Ms
+        scoring_method:
+          items:
+            type: string
+            enum:
+            - deterministic_rule
+            - schema_validation
+            - exact_match
+            - set_comparison
+            - human_annotation
+            - restricted_llm_judge
+          type: array
+          title: Scoring Method
+        ground_truth_version:
+          type: string
+          title: Ground Truth Version
+        ground_truth_hash:
+          type: string
+          title: Ground Truth Hash
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - dataset_id
+      - tenant_id
+      - project_id
+      - external_id
+      - input
+      - expected_output
+      - accepted_conclusions
+      - forbidden_conclusions
+      - expected_citations
+      - expected_template
+      - expected_policy_result
+      - required_evidence_fields
+      - allowed_tools
+      - forbidden_tools
+      - maximum_token_budget
+      - maximum_cost
+      - maximum_latency_ms
+      - scoring_method
+      - ground_truth_version
+      - ground_truth_hash
+      - metadata
+      - created_by
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationCaseResponse
+    EvaluationComparisonCreate:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        baseline_variant_id:
+          type: string
+          title: Baseline Variant Id
+        candidate_variant_id:
+          type: string
+          title: Candidate Variant Id
+        gate_config:
+          additionalProperties: true
+          type: object
+          title: Gate Config
+      additionalProperties: false
+      type: object
+      required:
+      - run_id
+      - baseline_variant_id
+      - candidate_variant_id
+      title: EvaluationComparisonCreate
+    EvaluationComparisonResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        run_id:
+          type: string
+          title: Run Id
+        suite_id:
+          type: string
+          title: Suite Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        baseline_variant_id:
+          type: string
+          title: Baseline Variant Id
+        candidate_variant_id:
+          type: string
+          title: Candidate Variant Id
+        improved_metrics:
+          items:
+            type: string
+          type: array
+          title: Improved Metrics
+        regressed_metrics:
+          items:
+            type: string
+          type: array
+          title: Regressed Metrics
+        new_failures:
+          items:
+            type: string
+          type: array
+          title: New Failures
+        resolved_failures:
+          items:
+            type: string
+          type: array
+          title: Resolved Failures
+        cost_change:
+          type: number
+          title: Cost Change
+        latency_change:
+          type: number
+          title: Latency Change
+        security_gate_status:
+          type: string
+          enum:
+          - PASSED
+          - FAILED
+          title: Security Gate Status
+        gate_status:
+          type: string
+          enum:
+          - PASSED
+          - FAILED
+          title: Gate Status
+        failed_gates:
+          items:
+            type: string
+          type: array
+          title: Failed Gates
+        details:
+          additionalProperties: true
+          type: object
+          title: Details
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - run_id
+      - suite_id
+      - dataset_id
+      - tenant_id
+      - project_id
+      - baseline_variant_id
+      - candidate_variant_id
+      - improved_metrics
+      - regressed_metrics
+      - new_failures
+      - resolved_failures
+      - cost_change
+      - latency_change
+      - security_gate_status
+      - gate_status
+      - failed_gates
+      - details
+      - created_by
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationComparisonResponse
+    EvaluationDatasetCreate:
+      properties:
+        suite_id:
+          type: string
+          title: Suite Id
+        name:
+          type: string
+          maxLength: 160
+          minLength: 3
+          title: Name
+        description:
+          type: string
+          maxLength: 3000
+          title: Description
+          default: ''
+        version:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Version
+          default: '1.0'
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: default
+        ground_truth_version:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Ground Truth Version
+        published:
+          type: boolean
+          title: Published
+          default: false
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - suite_id
+      - name
+      - ground_truth_version
+      title: EvaluationDatasetCreate
+    EvaluationDatasetDetailResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        suite_id:
+          type: string
+          title: Suite Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        version:
+          type: string
+          title: Version
+        ground_truth_version:
+          type: string
+          title: Ground Truth Version
+        published:
+          type: boolean
+          title: Published
+        immutable:
+          type: boolean
+          title: Immutable
+        dataset_hash:
+          type: string
+          title: Dataset Hash
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+        cases:
+          items:
+            $ref: '#/components/schemas/EvaluationCaseResponse'
+          type: array
+          title: Cases
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - suite_id
+      - tenant_id
+      - project_id
+      - name
+      - description
+      - version
+      - ground_truth_version
+      - published
+      - immutable
+      - dataset_hash
+      - metadata
+      - created_by
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationDatasetDetailResponse
+    EvaluationFailureResponse:
+      properties:
+        result_id:
+          type: string
+          title: Result Id
+        run_id:
+          type: string
+          title: Run Id
+        variant_id:
+          type: string
+          title: Variant Id
+        case_id:
+          type: string
+          title: Case Id
+        external_id:
+          type: string
+          title: External Id
+        status:
+          type: string
+          title: Status
+        failure_reasons:
+          items:
+            type: string
+          type: array
+          title: Failure Reasons
+        scores:
+          additionalProperties: true
+          type: object
+          title: Scores
+      additionalProperties: false
+      type: object
+      required:
+      - result_id
+      - run_id
+      - variant_id
+      - case_id
+      - external_id
+      - status
+      - failure_reasons
+      - scores
+      title: EvaluationFailureResponse
+    EvaluationResultResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        run_id:
+          type: string
+          title: Run Id
+        variant_id:
+          type: string
+          title: Variant Id
+        case_id:
+          type: string
+          title: Case Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        status:
+          type: string
+          enum:
+          - PASSED
+          - FAILED
+          - ERROR
+          - GROUND_TRUTH_MISSING
+          - INCONCLUSIVE
+          title: Status
+        output:
+          additionalProperties: true
+          type: object
+          title: Output
+        scores:
+          additionalProperties: true
+          type: object
+          title: Scores
+        failure_reasons:
+          items:
+            type: string
+          type: array
+          title: Failure Reasons
+        model_invocation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Invocation Id
+        judge:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Judge
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - run_id
+      - variant_id
+      - case_id
+      - tenant_id
+      - project_id
+      - status
+      - output
+      - scores
+      - failure_reasons
+      - model_invocation_id
+      - judge
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationResultResponse
+    EvaluationReviewCreate:
+      properties:
+        decision:
+          type: string
+          enum:
+          - ACCEPTED
+          - REJECTED
+          - CHANGES_REQUESTED
+          title: Decision
+        blind:
+          type: boolean
+          title: Blind
+          default: true
+        comments:
+          type: string
+          maxLength: 4000
+          minLength: 3
+          title: Comments
+        annotations:
+          additionalProperties: true
+          type: object
+          title: Annotations
+      additionalProperties: false
+      type: object
+      required:
+      - decision
+      - comments
+      title: EvaluationReviewCreate
+    EvaluationReviewResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        run_id:
+          type: string
+          title: Run Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        decision:
+          type: string
+          enum:
+          - ACCEPTED
+          - REJECTED
+          - CHANGES_REQUESTED
+          title: Decision
+        blind:
+          type: boolean
+          title: Blind
+        comments:
+          type: string
+          title: Comments
+        annotations:
+          additionalProperties: true
+          type: object
+          title: Annotations
+        reviewed_by:
+          type: string
+          title: Reviewed By
+        reviewed_at:
+          type: string
+          format: date-time
+          title: Reviewed At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - run_id
+      - tenant_id
+      - project_id
+      - decision
+      - blind
+      - comments
+      - annotations
+      - reviewed_by
+      - reviewed_at
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationReviewResponse
+    EvaluationRunCreate:
+      properties:
+        suite_id:
+          type: string
+          title: Suite Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: default
+        evaluation_type:
+          type: string
+          enum:
+          - deterministic_offline
+          - real_model
+          - controlled_e2e
+          - human_blind_review
+          title: Evaluation Type
+          default: deterministic_offline
+        variants:
+          items:
+            $ref: '#/components/schemas/EvaluationRunVariantCreate'
+          type: array
+          maxItems: 8
+          minItems: 2
+          title: Variants
+        gate_config:
+          additionalProperties: true
+          type: object
+          title: Gate Config
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - suite_id
+      - dataset_id
+      - variants
+      title: EvaluationRunCreate
+    EvaluationRunDetailResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        suite_id:
+          type: string
+          title: Suite Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        evaluation_type:
+          type: string
+          enum:
+          - deterministic_offline
+          - real_model
+          - controlled_e2e
+          - human_blind_review
+          title: Evaluation Type
+        status:
+          type: string
+          enum:
+          - DRAFT
+          - EVALUATING
+          - PASSED
+          - FAILED
+          - REVIEW_PENDING
+          - APPROVED
+          - REJECTED
+          - PROMOTED
+          - ROLLED_BACK
+          - CANCELLED
+          title: Status
+        gate_status:
+          type: string
+          enum:
+          - PENDING
+          - PASSED
+          - FAILED
+          - NOT_EVALUATED
+          title: Gate Status
+        baseline_variant_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Baseline Variant Id
+        candidate_variant_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Variant Id
+        config_hash:
+          type: string
+          title: Config Hash
+        created_by:
+          type: string
+          title: Created By
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+        variants:
+          items:
+            $ref: '#/components/schemas/EvaluationRunVariantResponse'
+          type: array
+          title: Variants
+        results:
+          items:
+            $ref: '#/components/schemas/EvaluationResultResponse'
+          type: array
+          title: Results
+        metrics:
+          items:
+            $ref: '#/components/schemas/MetricResultResponse'
+          type: array
+          title: Metrics
+        comparisons:
+          items:
+            $ref: '#/components/schemas/EvaluationComparisonResponse'
+          type: array
+          title: Comparisons
+        reviews:
+          items:
+            $ref: '#/components/schemas/EvaluationReviewResponse'
+          type: array
+          title: Reviews
+        promotion_decisions:
+          items:
+            $ref: '#/components/schemas/PromotionDecisionResponse'
+          type: array
+          title: Promotion Decisions
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - suite_id
+      - dataset_id
+      - tenant_id
+      - project_id
+      - evaluation_type
+      - status
+      - gate_status
+      - baseline_variant_id
+      - candidate_variant_id
+      - config_hash
+      - created_by
+      - started_at
+      - finished_at
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationRunDetailResponse
+    EvaluationRunResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        suite_id:
+          type: string
+          title: Suite Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        evaluation_type:
+          type: string
+          enum:
+          - deterministic_offline
+          - real_model
+          - controlled_e2e
+          - human_blind_review
+          title: Evaluation Type
+        status:
+          type: string
+          enum:
+          - DRAFT
+          - EVALUATING
+          - PASSED
+          - FAILED
+          - REVIEW_PENDING
+          - APPROVED
+          - REJECTED
+          - PROMOTED
+          - ROLLED_BACK
+          - CANCELLED
+          title: Status
+        gate_status:
+          type: string
+          enum:
+          - PENDING
+          - PASSED
+          - FAILED
+          - NOT_EVALUATED
+          title: Gate Status
+        baseline_variant_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Baseline Variant Id
+        candidate_variant_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Variant Id
+        config_hash:
+          type: string
+          title: Config Hash
+        created_by:
+          type: string
+          title: Created By
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+        variants:
+          items:
+            $ref: '#/components/schemas/EvaluationRunVariantResponse'
+          type: array
+          title: Variants
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - suite_id
+      - dataset_id
+      - tenant_id
+      - project_id
+      - evaluation_type
+      - status
+      - gate_status
+      - baseline_variant_id
+      - candidate_variant_id
+      - config_hash
+      - created_by
+      - started_at
+      - finished_at
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationRunResponse
+    EvaluationRunVariantCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Name
+        role:
+          type: string
+          enum:
+          - baseline
+          - candidate
+          title: Role
+        model_configuration:
+          additionalProperties: true
+          type: object
+          title: Model Configuration
+        prompt_template:
+          additionalProperties: true
+          type: object
+          title: Prompt Template
+        agent_definition:
+          additionalProperties: true
+          type: object
+          title: Agent Definition
+        skill_definition:
+          additionalProperties: true
+          type: object
+          title: Skill Definition
+        knowledge_package:
+          additionalProperties: true
+          type: object
+          title: Knowledge Package
+        retrieval_configuration:
+          additionalProperties: true
+          type: object
+          title: Retrieval Configuration
+        policy_version:
+          additionalProperties: true
+          type: object
+          title: Policy Version
+        workflow_definition:
+          additionalProperties: true
+          type: object
+          title: Workflow Definition
+        metric_definition_version:
+          type: string
+          maxLength: 120
+          title: Metric Definition Version
+          default: p11-default-metrics-v1
+        case_outputs:
+          items:
+            $ref: '#/components/schemas/EvaluationCaseOutput'
+          type: array
+          maxItems: 1000
+          title: Case Outputs
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - role
+      title: EvaluationRunVariantCreate
+    EvaluationRunVariantResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        run_id:
+          type: string
+          title: Run Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        role:
+          type: string
+          enum:
+          - baseline
+          - candidate
+          title: Role
+        configuration_snapshot_id:
+          type: string
+          title: Configuration Snapshot Id
+        configuration_hash:
+          type: string
+          title: Configuration Hash
+        status:
+          type: string
+          enum:
+          - PENDING
+          - RUNNING
+          - SUCCEEDED
+          - FAILED
+          - CANCELLED
+          title: Status
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - run_id
+      - tenant_id
+      - project_id
+      - name
+      - role
+      - configuration_snapshot_id
+      - configuration_hash
+      - status
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationRunVariantResponse
+    EvaluationSuiteCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 160
+          minLength: 3
+          title: Name
+        description:
+          type: string
+          maxLength: 2000
+          minLength: 3
+          title: Description
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: default
+        version:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Version
+          default: '1.0'
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - description
+      title: EvaluationSuiteCreate
+    EvaluationSuiteResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        version:
+          type: string
+          title: Version
+        status:
+          type: string
+          enum:
+          - DRAFT
+          - ACTIVE
+          - ARCHIVED
+          title: Status
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - name
+      - description
+      - version
+      - status
+      - metadata
+      - created_by
+      - created_at
+      - updated_at
+      - version_no
+      title: EvaluationSuiteResponse
+    MetricResultResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        run_id:
+          type: string
+          title: Run Id
+        variant_id:
+          type: string
+          title: Variant Id
+        metric_definition_id:
+          type: string
+          title: Metric Definition Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        metric_name:
+          type: string
+          title: Metric Name
+        category:
+          type: string
+          title: Category
+        value:
+          type: number
+          title: Value
+        unit:
+          type: string
+          title: Unit
+        threshold:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Threshold
+        passed:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Passed
+        details:
+          additionalProperties: true
+          type: object
+          title: Details
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - run_id
+      - variant_id
+      - metric_definition_id
+      - tenant_id
+      - project_id
+      - metric_name
+      - category
+      - value
+      - unit
+      - threshold
+      - passed
+      - details
+      - created_at
+      - updated_at
+      - version_no
+      title: MetricResultResponse
+    PromotionDecisionCreate:
+      properties:
+        decision:
+          type: string
+          enum:
+          - APPROVED
+          - REJECTED
+          - PROMOTED
+          - ROLLED_BACK
+          title: Decision
+        reason:
+          type: string
+          maxLength: 4000
+          minLength: 3
+          title: Reason
+        expected_version:
+          type: integer
+          minimum: 1.0
+          title: Expected Version
+        target_environment:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Target Environment
+          default: production
+      additionalProperties: false
+      type: object
+      required:
+      - decision
+      - reason
+      - expected_version
+      title: PromotionDecisionCreate
+    PromotionDecisionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        run_id:
+          type: string
+          title: Run Id
+        comparison_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comparison Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        decision:
+          type: string
+          enum:
+          - APPROVED
+          - REJECTED
+          - PROMOTED
+          - ROLLED_BACK
+          title: Decision
+        reason:
+          type: string
+          title: Reason
+        target_environment:
+          type: string
+          title: Target Environment
+        decided_by:
+          type: string
+          title: Decided By
+        decided_at:
+          type: string
+          format: date-time
+          title: Decided At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        version_no:
+          type: integer
+          title: Version No
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - run_id
+      - comparison_id
+      - tenant_id
+      - project_id
+      - decision
+      - reason
+      - target_environment
+      - decided_by
+      - decided_at
+      - created_at
+      - updated_at
+      - version_no
+      title: PromotionDecisionResponse
