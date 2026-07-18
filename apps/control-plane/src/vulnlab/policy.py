@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 from .audit import AuditService
 from .config import Settings
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import PolicyEvaluationRequest
 from .scope import ScopeService, ScopeViolation
 from .security import Principal, redact
@@ -25,7 +25,7 @@ class PolicyDenied(PermissionError):
 class PolicyService:
     def __init__(
         self,
-        db: Database,
+        db: ControlPlaneRepository,
         scope: ScopeService,
         settings: Settings,
         audit: AuditService,

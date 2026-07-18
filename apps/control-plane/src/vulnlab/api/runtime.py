@@ -12,6 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg import Error as PsycopgError
+from psycopg.errors import ForeignKeyViolation, UniqueViolation
 
 from ..enterprise.errors import EnterpriseError
 from ..model_gateway import ModelGatewayError, ProviderConfigurationError, RateLimitError
@@ -223,6 +224,26 @@ def install_runtime(app: FastAPI, services: Services) -> None:
             detail=exc.detail,
             code=exc.code,
             headers=headers,
+        )
+
+    @app.exception_handler(UniqueViolation)
+    async def postgres_unique_violation(request: Request, __: UniqueViolation) -> JSONResponse:
+        return problem(
+            request,
+            status_code=409,
+            detail="resource conflicts with existing data",
+            code="conflict",
+        )
+
+    @app.exception_handler(ForeignKeyViolation)
+    async def postgres_foreign_key_violation(
+        request: Request, __: ForeignKeyViolation
+    ) -> JSONResponse:
+        return problem(
+            request,
+            status_code=409,
+            detail="resource references missing or conflicting data",
+            code="conflict",
         )
 
     @app.exception_handler(HTTPException)

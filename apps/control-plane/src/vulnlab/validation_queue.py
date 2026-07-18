@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 from .config import Settings
-from .db import Database
+from .repository import ControlPlaneRepository
 
 VALIDATION_QUEUE_SUBJECT = "validation.executions.requested"
 
@@ -83,7 +83,7 @@ def _headers(row: Any, payload: dict[str, Any], schema_version: int) -> dict[str
 class SQLiteValidationQueue:
     """Durable local adapter used only for deterministic development and tests."""
 
-    def __init__(self, db: Database, settings: Settings) -> None:
+    def __init__(self, db: ControlPlaneRepository, settings: Settings) -> None:
         self.db = db
         self.settings = settings
 
@@ -248,7 +248,7 @@ class SQLiteValidationQueue:
 class NatsJetStreamValidationQueue:
     """JetStream transport backed by the validation_queue_messages transactional outbox."""
 
-    def __init__(self, db: Database, settings: Settings) -> None:
+    def __init__(self, db: ControlPlaneRepository, settings: Settings) -> None:
         if settings.nats_url is None:
             raise ValidationQueueError("VULNLAB_NATS_URL is required for NATS validation queue")
         self.db = db
@@ -421,7 +421,7 @@ class NatsJetStreamValidationQueue:
             self._loop.close()
 
 
-def build_validation_queue(db: Database, settings: Settings) -> ValidationQueue:
+def build_validation_queue(db: ControlPlaneRepository, settings: Settings) -> ValidationQueue:
     if settings.validation_queue_backend == "sqlite":
         if settings.env in {"production", "prod"}:
             raise ValidationQueueError("SQLite validation queue is forbidden in production")

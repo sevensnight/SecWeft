@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from .audit import AuditService
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import SkillCreate
 from .security import Principal
 
@@ -106,7 +106,7 @@ BUILTIN_SKILLS: tuple[dict[str, Any], ...] = (
 
 
 class SkillRegistry:
-    def __init__(self, db: Database, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, audit: AuditService):
         self.db = db
         self.audit = audit
 

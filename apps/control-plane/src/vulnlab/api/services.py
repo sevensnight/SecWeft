@@ -7,13 +7,13 @@ from ..agent_registry import AgentRegistry
 from ..audit import AuditService
 from ..config import Settings
 from ..context import ContextService
-from ..db import Database
 from ..enterprise import EnterpriseServices, build_enterprise_services
 from ..evidence import EvidenceService
 from ..model_gateway import ModelGateway, ProviderStore
 from ..orchestrator import Orchestrator
 from ..policy import PolicyService
 from ..rag import RAGService
+from ..repository import ControlPlaneRepository, build_control_plane_repository
 from ..sandbox import SandboxService
 from ..scope import ScopeService
 from ..security import SecurityService
@@ -28,7 +28,7 @@ from ..validation_sandbox import SandboxBackend, build_sandbox_backend
 @dataclass(slots=True)
 class Services:
     settings: Settings
-    db: Database
+    db: ControlPlaneRepository
     security: SecurityService
     audit: AuditService
     providers: ProviderStore
@@ -60,7 +60,7 @@ class Services:
 def build_services(settings: Settings) -> Services:
     """Compose the current modular-monolith adapters behind explicit service interfaces."""
     settings.prepare()
-    db = Database(settings.db_path)
+    db = build_control_plane_repository(settings)
     db.initialize()
     security = SecurityService(db, settings.audit_key)
     if settings.auth_mode == "compatibility":

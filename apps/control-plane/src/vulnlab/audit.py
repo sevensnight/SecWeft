@@ -7,7 +7,7 @@ from contextlib import closing
 from datetime import UTC, datetime
 from typing import Any
 
-from .db import Database
+from .repository import ControlPlaneRepository
 from .security import redact
 
 
@@ -18,7 +18,7 @@ def _canonical(value: object) -> str:
 class AuditService:
     """Append-only, HMAC chained audit records."""
 
-    def __init__(self, db: Database, key: bytes):
+    def __init__(self, db: ControlPlaneRepository, key: bytes):
         self.db = db
         self.key = key
 

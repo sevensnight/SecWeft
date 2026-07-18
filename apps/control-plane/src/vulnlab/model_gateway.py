@@ -18,7 +18,7 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from .audit import AuditService
 from .context import scrub_secrets
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import ProviderCreate
 from .security import Principal
 
@@ -138,7 +138,7 @@ def _row_to_provider(row: Any) -> dict[str, Any]:
 
 
 class ProviderStore:
-    def __init__(self, db: Database, fernet: Fernet, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, fernet: Fernet, audit: AuditService):
         self.db = db
         self.fernet = fernet
         self.audit = audit

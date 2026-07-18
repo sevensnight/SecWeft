@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from .audit import AuditService
-from .db import Database
+from .repository import ControlPlaneRepository
 from .security import Principal
 
 SECRET_PATTERNS = (
@@ -29,7 +29,7 @@ def scrub_secrets(text: str) -> str:
 
 
 class ContextService:
-    def __init__(self, db: Database, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, audit: AuditService):
         self.db = db
         self.audit = audit
 

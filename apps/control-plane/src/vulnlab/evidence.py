@@ -8,14 +8,14 @@ from typing import Any
 
 from .audit import AuditService
 from .context import scrub_secrets
-from .db import Database
 from .rag import ROLE_CLASSIFICATIONS
+from .repository import ControlPlaneRepository
 from .schemas import EvidenceCreate
 from .security import Principal
 
 
 class EvidenceService:
-    def __init__(self, db: Database, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, audit: AuditService):
         self.db = db
         self.audit = audit
 

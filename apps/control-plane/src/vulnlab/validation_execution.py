@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import threading
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -11,9 +12,9 @@ from typing import Any
 
 from .audit import AuditService
 from .config import Settings
-from .db import Database
 from .evidence import EvidenceService
 from .policy import PolicyDenied, PolicyService
+from .repository import ControlPlaneRepository
 from .schemas import EvidenceCreate, PolicyEvaluationRequest, Role
 from .scope import ScopeService, ScopeViolation
 from .security import Principal
@@ -221,7 +222,7 @@ def _digest(value: Any) -> str:
 class ValidationExecutionService:
     def __init__(
         self,
-        db: Database,
+        db: ControlPlaneRepository,
         settings: Settings,
         scope: ScopeService,
         evidence: EvidenceService,
@@ -240,6 +241,7 @@ class ValidationExecutionService:
         self.queue = queue
         self.sandbox_backend = sandbox_backend
         self.evidence_store = evidence_store
+        self._create_lock = threading.RLock()
 
     @staticmethod
     def templates() -> list[dict[str, Any]]:
@@ -441,6 +443,24 @@ class ValidationExecutionService:
         )
 
     def create(
+        self,
+        principal: Principal,
+        plan_id: str,
+        *,
+        idempotency_key: str | None,
+        template_id: str | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        with self._create_lock:
+            return self._create_locked(
+                principal,
+                plan_id,
+                idempotency_key=idempotency_key,
+                template_id=template_id,
+                request_id=request_id,
+            )
+
+    def _create_locked(
         self,
         principal: Principal,
         plan_id: str,

@@ -13,7 +13,7 @@ from typing import Any
 
 from .audit import AuditService
 from .config import Settings
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import SandboxRequest
 from .security import Principal
 
@@ -33,7 +33,7 @@ SAFE_PATH = re.compile(r"^[A-Za-z0-9_./\\-]+$")
 class SandboxService:
     """A narrow diagnostic runner; it is deliberately not a generic shell API."""
 
-    def __init__(self, db: Database, settings: Settings, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, settings: Settings, audit: AuditService):
         self.db = db
         self.settings = settings
         self.audit = audit

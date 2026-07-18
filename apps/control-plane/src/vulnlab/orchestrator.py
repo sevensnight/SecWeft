@@ -12,7 +12,7 @@ from typing import Any
 from .agent_registry import AgentRegistry
 from .audit import AuditService
 from .context import scrub_secrets
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import TaskCreate
 from .scope import ScopeService, ScopeViolation, row_scope_hash
 from .security import Principal, redact
@@ -136,7 +136,7 @@ def serialize_task(row: Any, stages: builtins.list[dict[str, Any]] | None = None
 class Orchestrator:
     def __init__(
         self,
-        db: Database,
+        db: ControlPlaneRepository,
         scope: ScopeService,
         skills: SkillRegistry,
         agents: AgentRegistry,

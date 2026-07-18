@@ -53,6 +53,8 @@ class Settings:
     request_timeout_seconds: float = 8.0
     legacy_execution_enabled: bool = False
     auth_mode: str = "compatibility"
+    repository_backend: str = "sqlite"
+    repository_schema: str = "compat"
     database_url: str | None = None
     oidc_issuer: str | None = None
     oidc_audience: str | None = None
@@ -110,6 +112,17 @@ class Settings:
                 "Production forbids host-local execution; use dry_run or a dedicated sandbox runner"
             )
         database_url = os.getenv("DATABASE_URL") or None
+        repository_backend = os.getenv("VULNLAB_REPOSITORY_BACKEND", "sqlite").strip().lower()
+        if repository_backend not in {"sqlite", "postgres"}:
+            raise RuntimeError("VULNLAB_REPOSITORY_BACKEND must be sqlite or postgres")
+        repository_schema = os.getenv("VULNLAB_REPOSITORY_SCHEMA", "compat").strip()
+        if not repository_schema or not repository_schema.replace("_", "").isalnum():
+            raise RuntimeError("VULNLAB_REPOSITORY_SCHEMA must be a simple schema identifier")
+        if repository_backend == "postgres":
+            if not database_url:
+                raise RuntimeError("VULNLAB_REPOSITORY_BACKEND=postgres requires DATABASE_URL")
+            if not database_url.startswith("postgresql://"):
+                raise RuntimeError("PostgreSQL repository DATABASE_URL must use postgresql://")
         oidc_issuer = os.getenv("VULNLAB_OIDC_ISSUER") or None
         oidc_audience = os.getenv("VULNLAB_OIDC_AUDIENCE") or None
         oidc_jwks_url = os.getenv("VULNLAB_OIDC_JWKS_URL") or None
@@ -230,6 +243,11 @@ class Settings:
                 raise RuntimeError("Database pool sizes must satisfy 1 <= min <= max <= 64")
             if not 1 <= pool_timeout <= 120:
                 raise RuntimeError("VULNLAB_DATABASE_POOL_TIMEOUT_SECONDS must be 1 to 120")
+        if production and repository_backend != "postgres":
+            raise RuntimeError(
+                "Production requires VULNLAB_REPOSITORY_BACKEND=postgres; "
+                "SQLite control-plane repository is development/test only"
+            )
         if production and validation_queue_backend != "nats":
             raise RuntimeError(
                 "Production requires VULNLAB_VALIDATION_QUEUE_BACKEND=nats; "
@@ -268,6 +286,8 @@ class Settings:
             request_timeout_seconds=max(0.5, float(os.getenv("VULNLAB_REQUEST_TIMEOUT", "8"))),
             legacy_execution_enabled=_bool(os.getenv("VULNLAB_LEGACY_EXECUTION_ENABLED", "false")),
             auth_mode=auth_mode,
+            repository_backend=repository_backend,
+            repository_schema=repository_schema,
             database_url=database_url,
             oidc_issuer=oidc_issuer,
             oidc_audience=oidc_audience,

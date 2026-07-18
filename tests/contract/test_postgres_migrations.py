@@ -15,6 +15,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0006_p3_agent_orchestration",
         "0007_p9_validation_execution_plane",
         "0008_p9r_validation_runtime_outbox",
+        "0009_p9h_repository_hardening",
     ]
 
 
@@ -105,6 +106,24 @@ def test_p9r_runtime_outbox_migration_has_publish_and_lease_fields() -> None:
     assert "last_publish_error text" in sql
     assert "idx_validation_queue_outbox_unpublished" in sql
     assert "idx_validation_execution_lease" in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p9h_repository_hardening_migration_declares_adapter_contracts() -> None:
+    up = MIGRATIONS / "0009_p9h_repository_hardening.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "compat.repository_adapter_metadata" in sql
+    assert "control.repository_adapter_contracts" in sql
+    assert "controlplanerepository" in sql
+    assert "sqlitecontrolplanerepository" in sql
+    assert "postgrescontrolplanerepository" in sql
+    assert "validation_plan_execution" in sql
+    assert "idempotency_key_concurrency" in sql
+    assert "timezone_aware_timestamps" in sql
+    assert "required_behaviors jsonb not null" in sql
     assert "host network" not in sql
     assert "docker socket" not in sql
     assert "exploit payload" not in sql

@@ -110,7 +110,7 @@ Real infrastructure runtime acceptance:
 
 Current Windows Docker Desktop execution returned `valid: true` for:
 
-- PostgreSQL migrations 0001-0008 and P9-R outbox/lease schema behavior.
+- PostgreSQL migrations 0001-0009 and P9-R outbox/lease schema behavior.
 - NATS JetStream outbox publish and durable worker consume.
 - Docker sandbox execution against an authorized internal lab-network target.
 - MinIO evidence upload/download SHA-256 verification.
@@ -118,6 +118,6 @@ Current Windows Docker Desktop execution returned `valid: true` for:
 - Internet egress blocked from the internal sandbox network.
 - Timeout cleanup and memory-limit kill probes.
 
-Boundary: the current FastAPI compatibility control plane still uses the existing SQLite `Database` adapter for API-level business persistence. The runtime PostgreSQL check proves the P9-R migration/outbox/lease schema and behavior, not a complete replacement of the compatibility control-plane repository with PostgreSQL.
+P9-R keeps this runner focused on NATS, Docker, MinIO, and runtime resource behavior. P9-H adds the PostgreSQL compatibility control-plane repository adapter and verifies it through `solve_p9_hardening.py`.
 
 Linux CI or a Linux host should still be used as the authority for final network-isolation and cgroup behavior before production release.

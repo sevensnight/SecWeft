@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .config import Settings
-from .db import Database
+from .repository import ControlPlaneRepository
 
 
 class ScopeViolation(ValueError):
@@ -104,7 +104,7 @@ def _matches_pattern(host: str, pattern: str) -> bool:
 
 
 class ScopeService:
-    def __init__(self, db: Database, settings: Settings):
+    def __init__(self, db: ControlPlaneRepository, settings: Settings):
         self.db = db
         self.settings = settings
 

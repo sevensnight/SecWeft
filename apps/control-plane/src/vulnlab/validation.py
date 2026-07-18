@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 from .audit import AuditService
-from .db import Database
 from .policy import PolicyDenied, PolicyService
+from .repository import ControlPlaneRepository
 from .schemas import PolicyEvaluationRequest, ValidationPlanCreate
 from .security import Principal
 
@@ -18,7 +18,7 @@ class ValidationPlanStateError(ValueError):
 
 
 class ValidationPlanService:
-    def __init__(self, db: Database, policy: PolicyService, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, policy: PolicyService, audit: AuditService):
         self.db = db
         self.policy = policy
         self.audit = audit

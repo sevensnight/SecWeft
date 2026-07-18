@@ -1,6 +1,6 @@
 {
   "name": "@vulnlab/web-console",
-  "version": "0.9.0-p9",
+  "version": "0.9.1-p9h",
   "private": true,
   "type": "module",
   "scripts": {

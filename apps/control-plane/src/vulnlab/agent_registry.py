@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from .audit import AuditService
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import AgentCreate, WorkflowCreate
 from .security import Principal
 
@@ -202,7 +202,7 @@ def _loads(value: str | None, default: Any) -> Any:
 
 
 class AgentRegistry:
-    def __init__(self, db: Database, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, audit: AuditService):
         self.db = db
         self.audit = audit
 

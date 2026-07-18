@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import Role
 
 ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
@@ -99,7 +99,7 @@ class PermissionDenied(PermissionError):
 
 
 class SecurityService:
-    def __init__(self, db: Database, secret: bytes):
+    def __init__(self, db: ControlPlaneRepository, secret: bytes):
         self.db = db
         self.secret = secret
 

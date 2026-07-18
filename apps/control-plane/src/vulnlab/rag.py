@@ -11,7 +11,7 @@ from typing import Any
 
 from .audit import AuditService
 from .context import scrub_secrets
-from .db import Database
+from .repository import ControlPlaneRepository
 from .schemas import RAGDocumentCreate, Role
 from .security import Principal
 
@@ -58,7 +58,7 @@ ROLE_CLASSIFICATIONS: dict[Role, frozenset[str]] = {
 
 
 class RAGService:
-    def __init__(self, db: Database, audit: AuditService):
+    def __init__(self, db: ControlPlaneRepository, audit: AuditService):
         self.db = db
         self.audit = audit
 

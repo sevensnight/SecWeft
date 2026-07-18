@@ -6,7 +6,7 @@ transactional validation outbox -> NATS JetStream -> worker idempotent consumpti
 -> DockerSandboxBackend execution for the HTTP response template -> MinIO evidence
 upload/download SHA-256 verification -> internal Docker lab network allow/deny
 behavior -> timeout cleanup -> memory-limit kill. It also applies PostgreSQL
-migrations 0001-0008 in a temporary PostgreSQL container and verifies the P9-R
+migrations 0001-0009 in a temporary PostgreSQL container and verifies the P9-R
 outbox/lease columns and constraints.
 """
 
@@ -1046,10 +1046,8 @@ def run(
         "checks": [asdict(check) for check in checks],
         "not_executed": {
             "full_fastapi_control_plane_postgresql_repository": (
-                "The runtime applies PostgreSQL migrations 0001-0008 and verifies P9-R "
-                "outbox/lease behavior in PostgreSQL. The compatibility FastAPI control "
-                "plane still uses the existing SQLite Database adapter for its API-level "
-                "business flow in this repository."
+                "P9-R runtime keeps this check focused on NATS/Docker/MinIO behavior. "
+                "P9-H PostgreSQL API repository parity is covered by solve_p9_hardening.py."
             )
         },
     }

@@ -16,9 +16,9 @@ This matrix separates deterministic local baseline coverage from real infrastruc
 
 | Requirement | Runner/check | Current status |
 |---|---|---|
-| PostgreSQL migrations 0001-0008 | temporary `postgres:17.4-alpine` in `solve_p9_runtime.py` | passed |
+| PostgreSQL migrations 0001-0009 | temporary `postgres:17.4-alpine` in `solve_p9_runtime.py` | passed |
 | PostgreSQL P9-R outbox schema | insert execution/queue row, lease CAS, publish metadata, duplicate message rejection | passed |
-| Full FastAPI compatibility control-plane PostgreSQL repository | replace existing SQLite `Database` adapter for API business flow | not implemented |
+| Full FastAPI compatibility control-plane PostgreSQL repository | covered by `solve_p9_hardening.py` and `tests/integration/test_p9h_postgres_repository.py` | passed locally; Linux CI is authoritative |
 | NATS JetStream stream publish | `solve_p9_runtime.py` outbox dispatch | passed |
 | Durable worker consumption | `solve_p9_runtime.py` worker consume | passed |
 | Duplicate message idempotency | duplicate JetStream publish | passed |
