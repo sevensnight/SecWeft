@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: VulnLab Module 2 Enterprise Control Plane API
-  version: 1.13.0-p13
-  description: P13 contract revision for release governance, supply-chain evidence,
-    immutable artifact promotion, drift, rollback, and compliance packages while preserving
-    P0-P12 compatibility.
+  version: 1.14.0-p14
+  description: P14 contract revision for enterprise acceptance, delivery package generation,
+    data governance, compliance evidence mapping, and production readiness gates while
+    preserving P0-P13 compatibility.
 servers:
 - url: /api/v1
 tags:
@@ -23,6 +23,11 @@ tags:
 - name: Audit
 - name: Evaluations
 - name: Releases
+- name: Acceptance
+- name: Delivery
+- name: Compliance
+- name: Data Governance
+- name: Readiness
 security:
 - ApiKeyAuth: []
 paths:
@@ -4109,6 +4114,403 @@ paths:
       security:
       - ApiKeyAuth: []
       - BearerAuth: []
+  /acceptance/requirements:
+    get:
+      tags:
+      - Acceptance
+      summary: List requirement traceability records
+      operationId: listAcceptanceRequirements
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RequirementTraceabilityItem'
+                title: Response Acceptance Requirements Api V1 Acceptance Requirements
+                  Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /acceptance/status:
+    get:
+      tags:
+      - Acceptance
+      summary: Get P14 acceptance status
+      operationId: getAcceptanceStatus
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptanceStatusResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /acceptance/runs:
+    post:
+      tags:
+      - Acceptance
+      summary: Run deterministic enterprise acceptance
+      operationId: runEnterpriseAcceptance
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptanceRunCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptanceRunResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /acceptance/runs/{run_id}:
+    get:
+      tags:
+      - Acceptance
+      summary: Get one enterprise acceptance run
+      operationId: getAcceptanceRun
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptanceRunResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /delivery-packages:
+    post:
+      tags:
+      - Delivery
+      summary: Generate candidate or formal delivery package
+      operationId: generateDeliveryPackage
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryPackageCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryPackageResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /delivery-packages/{package_id}:
+    get:
+      tags:
+      - Delivery
+      summary: Get delivery package metadata
+      operationId: getDeliveryPackage
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - name: package_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Package Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryPackageResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /compliance/controls:
+    get:
+      tags:
+      - Compliance
+      summary: List compliance control mappings
+      operationId: listComplianceControls
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComplianceControlResponse'
+                title: Response Compliance Controls Api V1 Compliance Controls Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /compliance/evidence-packages:
+    post:
+      tags:
+      - Compliance
+      summary: Generate compliance evidence package
+      operationId: generateComplianceEvidencePackage
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceEvidencePackageCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceEvidencePackageResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /data-governance/export:
+    post:
+      tags:
+      - Data Governance
+      summary: Export redacted tenant data manifest
+      operationId: exportTenantData
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataExportCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataExportResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /data-governance/deletion-requests:
+    post:
+      tags:
+      - Data Governance
+      summary: Request controlled data deletion
+      operationId: requestDataDeletion
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataDeletionRequestCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataDeletionRequestResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /data-governance/legal-holds:
+    post:
+      tags:
+      - Data Governance
+      summary: Create a legal hold
+      operationId: createLegalHold
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalHoldCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalHoldResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+  /readiness/production:
+    get:
+      tags:
+      - Readiness
+      summary: Get production readiness gate result
+      operationId: getProductionReadiness
+      parameters:
+      - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionReadinessResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestId'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -6997,10 +7399,6 @@ components:
           type: string
           format: date-time
     PolicyEvaluationRequest:
-      type: object
-      additionalProperties: false
-      required:
-      - action
       properties:
         action:
           type: string
@@ -7008,57 +7406,115 @@ components:
           - asset.probe
           - sandbox.run
           - validation.execute
+          - case.create
+          - case.update
+          - case.confirm
+          - case.disposition
+          - remediation.propose
+          - remediation.approve
+          - remediation.implement
+          - validation.retest
+          - comparison.review
+          - case.close
+          - report.generate
+          - evaluation.suite.create
+          - evaluation.dataset.manage
+          - evaluation.run
+          - evaluation.cancel
+          - evaluation.review
+          - evaluation.compare
+          - evaluation.promote
+          - evaluation.rollback
+          - metric.definition.manage
+          - release.artifact.register
+          - release.candidate.create
+          - release.gate.evaluate
+          - release.exception.request
+          - release.exception.approve
+          - release.approve
+          - release.promote.development
+          - release.promote.integration
+          - release.promote.staging
+          - release.promote.production
+          - release.rollback
+          - release.drift.review
+          - release.compliance.generate
+          - acceptance.run
+          - acceptance.review
+          - delivery.generate
+          - delivery.download
+          - compliance.map
+          - compliance.generate
+          - data.export
+          - data.delete.request
+          - data.delete.approve
+          - legal-hold.create
+          - legal-hold.release
+          - secret.rotate
+          - production-readiness.review
           - task.execute
           - context.restore
           - rag.search
+          title: Action
         resource_type:
           type: string
-          minLength: 1
           maxLength: 80
+          minLength: 1
+          title: Resource Type
           default: task
         resource_id:
           type: string
-          minLength: 1
           maxLength: 200
+          minLength: 1
+          title: Resource Id
           default: ad-hoc
         task_id:
-          type:
-          - string
-          - 'null'
-          format: uuid
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
         scope_id:
-          type:
-          - string
-          - 'null'
-          format: uuid
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scope Id
         target:
-          type:
-          - string
-          - 'null'
-          maxLength: 2048
+          anyOf:
+          - type: string
+            maxLength: 2048
+          - type: 'null'
+          title: Target
         ports:
-          type: array
-          maxItems: 32
           items:
             type: integer
-            minimum: 1
-            maximum: 65535
-        argv:
           type: array
           maxItems: 32
+          title: Ports
+        argv:
           items:
             type: string
+          type: array
+          maxItems: 32
+          title: Argv
         destructive:
           type: boolean
+          title: Destructive
           default: false
         reason:
-          type:
-          - string
-          - 'null'
-          maxLength: 500
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Reason
         metadata:
-          type: object
           additionalProperties: true
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      title: PolicyEvaluationRequest
     PolicyDecision:
       type: object
       additionalProperties: false
@@ -11458,3 +11914,883 @@ components:
       - msg
       - type
       title: ValidationError
+    RequirementTraceabilityItem:
+      properties:
+        requirement_id:
+          type: string
+          title: Requirement Id
+        requirement_description:
+          type: string
+          title: Requirement Description
+        implementation_status:
+          type: string
+          enum:
+          - IMPLEMENTED
+          - PARTIALLY_IMPLEMENTED
+          - NOT_IMPLEMENTED
+          - NOT_APPLICABLE
+          - BLOCKED
+          title: Implementation Status
+        backend_modules:
+          items:
+            type: string
+          type: array
+          title: Backend Modules
+        frontend_routes:
+          items:
+            type: string
+          type: array
+          title: Frontend Routes
+        api_operations:
+          items:
+            type: string
+          type: array
+          title: Api Operations
+        database_migrations:
+          items:
+            type: string
+          type: array
+          title: Database Migrations
+        policy_actions:
+          items:
+            type: string
+          type: array
+          title: Policy Actions
+        tests:
+          items:
+            type: string
+          type: array
+          title: Tests
+        acceptance_scripts:
+          items:
+            type: string
+          type: array
+          title: Acceptance Scripts
+        documents:
+          items:
+            type: string
+          type: array
+          title: Documents
+        known_limitations:
+          items:
+            type: string
+          type: array
+          title: Known Limitations
+        runtime_evidence:
+          additionalProperties: true
+          type: object
+          title: Runtime Evidence
+      additionalProperties: false
+      type: object
+      required:
+      - requirement_id
+      - requirement_description
+      - implementation_status
+      - backend_modules
+      - frontend_routes
+      - api_operations
+      - database_migrations
+      - policy_actions
+      - tests
+      - acceptance_scripts
+      - documents
+      - known_limitations
+      - runtime_evidence
+      title: RequirementTraceabilityItem
+    ProductionGateResponse:
+      properties:
+        gate_id:
+          type: string
+          title: Gate Id
+        status:
+          type: string
+          enum:
+          - passed
+          - failed
+          - warning
+          - blocked
+          title: Status
+        critical:
+          type: boolean
+          title: Critical
+        evidence_kind:
+          type: string
+          enum:
+          - static
+          - deterministic
+          - runtime
+          - manual
+          - contract
+          - release_artifact
+          title: Evidence Kind
+        reason:
+          type: string
+          title: Reason
+        evidence:
+          additionalProperties: true
+          type: object
+          title: Evidence
+      additionalProperties: false
+      type: object
+      required:
+      - gate_id
+      - status
+      - critical
+      - evidence_kind
+      - reason
+      title: ProductionGateResponse
+    AcceptanceStatusResponse:
+      properties:
+        version:
+          type: string
+          title: Version
+        valid:
+          type: boolean
+          title: Valid
+        production_ready:
+          type: boolean
+          title: Production Ready
+        runtime:
+          type: boolean
+          title: Runtime
+        runtime_not_claimed:
+          type: boolean
+          title: Runtime Not Claimed
+        critical_gates:
+          items:
+            $ref: '#/components/schemas/ProductionGateResponse'
+          type: array
+          title: Critical Gates
+        failed_critical_gates:
+          items:
+            type: string
+          type: array
+          title: Failed Critical Gates
+        supported_upgrade_paths:
+          items:
+            type: string
+          type: array
+          title: Supported Upgrade Paths
+        unsupported_upgrade_paths:
+          items:
+            type: string
+          type: array
+          title: Unsupported Upgrade Paths
+        data_governance:
+          additionalProperties: true
+          type: object
+          title: Data Governance
+        secret_lifecycle:
+          additionalProperties: true
+          type: object
+          title: Secret Lifecycle
+        known_limitations:
+          items:
+            type: string
+          type: array
+          title: Known Limitations
+        evaluated_at:
+          type: string
+          title: Evaluated At
+      additionalProperties: false
+      type: object
+      required:
+      - version
+      - valid
+      - production_ready
+      - runtime
+      - runtime_not_claimed
+      - critical_gates
+      - failed_critical_gates
+      - supported_upgrade_paths
+      - unsupported_upgrade_paths
+      - data_governance
+      - secret_lifecycle
+      - known_limitations
+      - evaluated_at
+      title: AcceptanceStatusResponse
+    ProductionReadinessResponse:
+      properties:
+        version:
+          type: string
+          title: Version
+        production_ready:
+          type: boolean
+          title: Production Ready
+        valid:
+          type: boolean
+          title: Valid
+        runtime:
+          type: boolean
+          title: Runtime
+        runtime_not_claimed:
+          type: boolean
+          title: Runtime Not Claimed
+        critical_gates:
+          items:
+            $ref: '#/components/schemas/ProductionGateResponse'
+          type: array
+          title: Critical Gates
+        failed_critical_gates:
+          items:
+            type: string
+          type: array
+          title: Failed Critical Gates
+        policy_decision_id:
+          type: string
+          title: Policy Decision Id
+        supported_upgrade_paths:
+          items:
+            type: string
+          type: array
+          title: Supported Upgrade Paths
+        unsupported_upgrade_paths:
+          items:
+            type: string
+          type: array
+          title: Unsupported Upgrade Paths
+        known_limitations:
+          items:
+            type: string
+          type: array
+          title: Known Limitations
+        evaluated_at:
+          type: string
+          title: Evaluated At
+      additionalProperties: false
+      type: object
+      required:
+      - version
+      - production_ready
+      - valid
+      - runtime
+      - runtime_not_claimed
+      - critical_gates
+      - failed_critical_gates
+      - policy_decision_id
+      - supported_upgrade_paths
+      - unsupported_upgrade_paths
+      - known_limitations
+      - evaluated_at
+      title: ProductionReadinessResponse
+    AcceptanceRunCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: project-alpha
+        scenario_id:
+          type: string
+          maxLength: 120
+          minLength: 3
+          title: Scenario Id
+          default: p14-final-enterprise-acceptance
+        trace_id:
+          type: string
+          maxLength: 64
+          minLength: 16
+          title: Trace Id
+        runtime_evidence:
+          additionalProperties: true
+          type: object
+          title: Runtime Evidence
+      additionalProperties: false
+      type: object
+      title: AcceptanceRunCreate
+    AcceptanceRunResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        scenario_id:
+          type: string
+          title: Scenario Id
+        status:
+          type: string
+          title: Status
+        valid:
+          type: boolean
+          title: Valid
+        production_ready:
+          type: boolean
+          title: Production Ready
+        runtime:
+          type: boolean
+          title: Runtime
+        runtime_not_claimed:
+          type: boolean
+          title: Runtime Not Claimed
+        trace_id:
+          type: string
+          title: Trace Id
+        policy_decision_id:
+          type: string
+          title: Policy Decision Id
+        result:
+          additionalProperties: true
+          type: object
+          title: Result
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - scenario_id
+      - status
+      - valid
+      - production_ready
+      - runtime
+      - runtime_not_claimed
+      - trace_id
+      - policy_decision_id
+      - result
+      - created_by
+      - created_at
+      - updated_at
+      - version
+      title: AcceptanceRunResponse
+    DeliveryPackageCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: project-alpha
+        package_type:
+          type: string
+          enum:
+          - candidate
+          - formal
+          title: Package Type
+          default: candidate
+      additionalProperties: false
+      type: object
+      title: DeliveryPackageCreate
+    DeliveryPackageResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        package_type:
+          type: string
+          enum:
+          - candidate
+          - formal
+          title: Package Type
+        formal:
+          type: boolean
+          title: Formal
+        status:
+          type: string
+          title: Status
+        root_path:
+          type: string
+          title: Root Path
+        package_digest:
+          type: string
+          title: Package Digest
+        manifest:
+          additionalProperties: true
+          type: object
+          title: Manifest
+        policy_decision_id:
+          type: string
+          title: Policy Decision Id
+        generated_by:
+          type: string
+          title: Generated By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - package_type
+      - formal
+      - status
+      - root_path
+      - package_digest
+      - manifest
+      - policy_decision_id
+      - generated_by
+      - created_at
+      - updated_at
+      - version
+      title: DeliveryPackageResponse
+    ComplianceControlResponse:
+      properties:
+        framework:
+          type: string
+          title: Framework
+        control_id:
+          type: string
+          title: Control Id
+        implementation:
+          type: string
+          title: Implementation
+        evidence:
+          items:
+            type: string
+          type: array
+          title: Evidence
+        owner:
+          type: string
+          title: Owner
+        test:
+          type: string
+          title: Test
+        status:
+          type: string
+          title: Status
+        gap:
+          type: string
+          title: Gap
+        exception:
+          type: string
+          title: Exception
+        last_reviewed_at:
+          type: string
+          title: Last Reviewed At
+        certification_claim:
+          type: boolean
+          title: Certification Claim
+        disclaimer:
+          type: string
+          title: Disclaimer
+      additionalProperties: false
+      type: object
+      required:
+      - framework
+      - control_id
+      - implementation
+      - evidence
+      - owner
+      - test
+      - status
+      - gap
+      - exception
+      - last_reviewed_at
+      - certification_claim
+      - disclaimer
+      title: ComplianceControlResponse
+    ComplianceEvidencePackageCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: project-alpha
+        frameworks:
+          items:
+            type: string
+          type: array
+          maxItems: 16
+          title: Frameworks
+      additionalProperties: false
+      type: object
+      title: ComplianceEvidencePackageCreate
+    ComplianceEvidencePackageResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        package_digest:
+          type: string
+          title: Package Digest
+        controls:
+          items:
+            $ref: '#/components/schemas/ComplianceControlResponse'
+          type: array
+          title: Controls
+        certification_claim:
+          type: boolean
+          title: Certification Claim
+        disclaimer:
+          type: string
+          title: Disclaimer
+        policy_decision_id:
+          type: string
+          title: Policy Decision Id
+        generated_by:
+          type: string
+          title: Generated By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - package_digest
+      - controls
+      - certification_claim
+      - disclaimer
+      - policy_decision_id
+      - generated_by
+      - created_at
+      - updated_at
+      - version
+      title: ComplianceEvidencePackageResponse
+    DataExportCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: project-alpha
+        format:
+          type: string
+          const: json
+          title: Format
+          default: json
+      additionalProperties: false
+      type: object
+      title: DataExportCreate
+    DataExportResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        export_type:
+          type: string
+          title: Export Type
+        status:
+          type: string
+          title: Status
+        manifest:
+          additionalProperties: true
+          type: object
+          title: Manifest
+        redacted:
+          type: boolean
+          title: Redacted
+        secret_count:
+          type: integer
+          title: Secret Count
+        policy_decision_id:
+          type: string
+          title: Policy Decision Id
+        requested_by:
+          type: string
+          title: Requested By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - export_type
+      - status
+      - manifest
+      - redacted
+      - secret_count
+      - policy_decision_id
+      - requested_by
+      - created_at
+      - updated_at
+      - version
+      title: DataExportResponse
+    DataDeletionRequestCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: project-alpha
+        target_type:
+          type: string
+          enum:
+          - tenant
+          - project
+          - case
+          - report
+          - validation_metadata
+          title: Target Type
+        target_id:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Target Id
+        dry_run:
+          type: boolean
+          title: Dry Run
+          default: true
+        reason:
+          type: string
+          maxLength: 1000
+          minLength: 3
+          title: Reason
+      additionalProperties: false
+      type: object
+      required:
+      - target_type
+      - target_id
+      - reason
+      title: DataDeletionRequestCreate
+    DataDeletionRequestResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        target_type:
+          type: string
+          title: Target Type
+        target_id:
+          type: string
+          title: Target Id
+        dry_run:
+          type: boolean
+          title: Dry Run
+        status:
+          type: string
+          title: Status
+        scope_preview:
+          additionalProperties: true
+          type: object
+          title: Scope Preview
+        deletion_certificate:
+          additionalProperties: true
+          type: object
+          title: Deletion Certificate
+        policy_decision_id:
+          type: string
+          title: Policy Decision Id
+        requested_by:
+          type: string
+          title: Requested By
+        approved_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approved By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - target_type
+      - target_id
+      - dry_run
+      - status
+      - scope_preview
+      - deletion_certificate
+      - policy_decision_id
+      - requested_by
+      - approved_by
+      - created_at
+      - updated_at
+      - version
+      title: DataDeletionRequestResponse
+    LegalHoldCreate:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Tenant Id
+          default: system
+        project_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Project Id
+          default: project-alpha
+        hold_type:
+          type: string
+          enum:
+          - litigation
+          - incident
+          - regulatory
+          - customer_request
+          title: Hold Type
+          default: incident
+        reason:
+          type: string
+          maxLength: 1000
+          minLength: 3
+          title: Reason
+        scope:
+          additionalProperties: true
+          type: object
+          title: Scope
+      additionalProperties: false
+      type: object
+      required:
+      - reason
+      title: LegalHoldCreate
+    LegalHoldResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        project_id:
+          type: string
+          title: Project Id
+        hold_type:
+          type: string
+          title: Hold Type
+        status:
+          type: string
+          title: Status
+        reason:
+          type: string
+          title: Reason
+        scope:
+          additionalProperties: true
+          type: object
+          title: Scope
+        policy_decision_id:
+          type: string
+          title: Policy Decision Id
+        created_by:
+          type: string
+          title: Created By
+        released_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Released By
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        version:
+          type: integer
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - project_id
+      - hold_type
+      - status
+      - reason
+      - scope
+      - policy_decision_id
+      - created_by
+      - released_by
+      - created_at
+      - updated_at
+      - version
+      title: LegalHoldResponse

@@ -2,8 +2,8 @@ apiVersion: v2
 name: vulnlab-platform
 description: P12 Kubernetes delivery chart for HA control plane, validation workers, backup, and DR operations
 type: application
-version: 0.13.0
-appVersion: "2.13.0-p13"
+version: 0.14.0
+appVersion: "2.14.0-p14"
 kubeVersion: ">=1.29.0-0"
 annotations:
   category: Security

@@ -9,6 +9,7 @@ from ..case_management import CaseManagementService
 from ..config import Settings
 from ..context import ContextService
 from ..enterprise import EnterpriseServices, build_enterprise_services
+from ..enterprise_acceptance import EnterpriseAcceptanceService
 from ..evaluation_governance import EvaluationGovernanceService
 from ..evidence import EvidenceService
 from ..model_gateway import ModelGateway, ProviderStore
@@ -52,6 +53,7 @@ class Services:
     cases: CaseManagementService
     evaluations: EvaluationGovernanceService
     releases: ReleaseGovernanceService
+    acceptance: EnterpriseAcceptanceService
     operations: OperationalResilienceService
     sandbox: SandboxService
     orchestrator: Orchestrator
@@ -108,6 +110,7 @@ def build_services(settings: Settings) -> Services:
     cases = CaseManagementService(db, policy, audit, validation_execution)
     evaluations = EvaluationGovernanceService(db, policy, audit, gateway)
     releases = ReleaseGovernanceService(db, policy, audit)
+    acceptance = EnterpriseAcceptanceService(db, policy, audit)
     operations = OperationalResilienceService(db, settings, validation_evidence_store)
     sandbox = SandboxService(db, settings, audit)
     orchestrator = Orchestrator(db, scope_service, skills, agents, audit, settings.max_concurrency)
@@ -134,6 +137,7 @@ def build_services(settings: Settings) -> Services:
         cases=cases,
         evaluations=evaluations,
         releases=releases,
+        acceptance=acceptance,
         operations=operations,
         sandbox=sandbox,
         orchestrator=orchestrator,

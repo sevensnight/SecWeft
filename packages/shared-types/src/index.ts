@@ -108,3 +108,22 @@ export type RollbackCreate = components['schemas']['RollbackCreate'];
 export type RollbackRecord = components['schemas']['RollbackRecordResponse'];
 export type DriftDetectionResult = components['schemas']['DriftDetectionResultResponse'];
 export type CompliancePackage = components['schemas']['CompliancePackageResponse'];
+export type RequirementTraceabilityItem = components['schemas']['RequirementTraceabilityItem'];
+export type ProductionGate = components['schemas']['ProductionGateResponse'];
+export type AcceptanceStatus = components['schemas']['AcceptanceStatusResponse'];
+export type ProductionReadiness = components['schemas']['ProductionReadinessResponse'];
+export type AcceptanceRunCreate = components['schemas']['AcceptanceRunCreate'];
+export type AcceptanceRun = components['schemas']['AcceptanceRunResponse'];
+export type DeliveryPackageCreate = components['schemas']['DeliveryPackageCreate'];
+export type DeliveryPackage = components['schemas']['DeliveryPackageResponse'];
+export type ComplianceControl = components['schemas']['ComplianceControlResponse'];
+export type ComplianceEvidencePackageCreate =
+  components['schemas']['ComplianceEvidencePackageCreate'];
+export type ComplianceEvidencePackage =
+  components['schemas']['ComplianceEvidencePackageResponse'];
+export type DataExportCreate = components['schemas']['DataExportCreate'];
+export type DataExport = components['schemas']['DataExportResponse'];
+export type DataDeletionRequestCreate = components['schemas']['DataDeletionRequestCreate'];
+export type DataDeletionRequest = components['schemas']['DataDeletionRequestResponse'];
+export type LegalHoldCreate = components['schemas']['LegalHoldCreate'];
+export type LegalHold = components['schemas']['LegalHoldResponse'];

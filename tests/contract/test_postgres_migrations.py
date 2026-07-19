@@ -20,6 +20,7 @@ def test_p0_postgres_migrations_are_reversible_and_tenant_safe() -> None:
         "0011_p11_evaluation_governance",
         "0012_p12_operational_resilience",
         "0013_p13_release_governance",
+        "0014_p14_enterprise_acceptance_delivery",
     ]
 
 
@@ -248,6 +249,31 @@ def test_p13_release_governance_migration_has_supply_chain_and_release_state() -
     assert "force row level security" in sql
     assert "grant select, insert, update on all tables in schema release to vulnlab_app" in sql
     assert "grant select, insert, update, delete on all tables in schema release" not in sql
+    assert "host network" not in sql
+    assert "docker socket" not in sql
+    assert "exploit payload" not in sql
+
+
+def test_p14_enterprise_acceptance_migration_has_delivery_governance_and_rls() -> None:
+    up = MIGRATIONS / "0014_p14_enterprise_acceptance_delivery.up.sql"
+    sql = up.read_text(encoding="utf-8").lower()
+
+    assert "create schema if not exists delivery" in sql
+    assert "delivery.acceptance_runs" in sql
+    assert "delivery.delivery_packages" in sql
+    assert "delivery.data_exports" in sql
+    assert "delivery.deletion_requests" in sql
+    assert "delivery.legal_holds" in sql
+    assert "delivery.compliance_evidence_packages" in sql
+    assert "delivery.secret_rotation_records" in sql
+    assert "runtime_not_claimed boolean not null default true" in sql
+    assert "production_ready boolean not null default false" in sql
+    assert "jsonb not null default '{}'::jsonb" in sql
+    assert "ck_delivery_delete_no_self_approval" in sql
+    assert "secret_count integer not null default 0" in sql
+    assert "force row level security" in sql
+    assert "grant select, insert, update on all tables in schema delivery to vulnlab_app" in sql
+    assert "grant select, insert, update, delete on all tables in schema delivery" not in sql
     assert "host network" not in sql
     assert "docker socket" not in sql
     assert "exploit payload" not in sql

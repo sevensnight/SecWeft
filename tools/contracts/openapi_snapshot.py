@@ -127,6 +127,18 @@ CRITICAL_PATHS = frozenset(
         "/deployments/{deployment_id}",
         "/deployments/{deployment_id}/rollback",
         "/deployments/{deployment_id}/drift",
+        "/acceptance/requirements",
+        "/acceptance/status",
+        "/acceptance/runs",
+        "/acceptance/runs/{run_id}",
+        "/delivery-packages",
+        "/delivery-packages/{package_id}",
+        "/compliance/controls",
+        "/compliance/evidence-packages",
+        "/data-governance/export",
+        "/data-governance/deletion-requests",
+        "/data-governance/legal-holds",
+        "/readiness/production",
         "/policies/evaluate",
         "/audit/events",
     }
@@ -142,7 +154,8 @@ API_KEY_COMPATIBILITY_OPERATIONS = frozenset(
 )
 SSE_PATH = "/tasks/{task_id}/events/stream"
 MODEL_SSE_PATH = "/models/stream"
-FORBIDDEN_PATH_FRAGMENTS = ("/run", "/sandbox", "/assets/probe", "/exploit")
+FORBIDDEN_PATH_FRAGMENTS = ("/sandbox", "/assets/probe", "/exploit")
+FORBIDDEN_EXECUTION_PATHS = frozenset({"/run", "/tasks/{task_id}/run", "/validation-runs"})
 
 
 class ContractError(RuntimeError):
@@ -305,6 +318,8 @@ def validate_document(document: dict[str, Any]) -> list[str]:
             errors.append(f"invalid path key: {path!r}")
         if isinstance(path, str) and path.startswith("/api/v1"):
             errors.append(f"path duplicates the server version prefix: {path}")
+        if isinstance(path, str) and (path in FORBIDDEN_EXECUTION_PATHS or path.endswith("/run")):
+            errors.append(f"P1 contract exposes a deferred execution capability: {path}")
         if any(fragment in str(path).lower() for fragment in FORBIDDEN_PATH_FRAGMENTS):
             errors.append(f"P1 contract exposes a deferred execution capability: {path}")
 
@@ -483,6 +498,23 @@ def validate_document(document: dict[str, Any]) -> list[str]:
         "RollbackRecordResponse",
         "DriftDetectionResultResponse",
         "CompliancePackageResponse",
+        "RequirementTraceabilityItem",
+        "ProductionGateResponse",
+        "AcceptanceStatusResponse",
+        "ProductionReadinessResponse",
+        "AcceptanceRunCreate",
+        "AcceptanceRunResponse",
+        "DeliveryPackageCreate",
+        "DeliveryPackageResponse",
+        "ComplianceControlResponse",
+        "ComplianceEvidencePackageCreate",
+        "ComplianceEvidencePackageResponse",
+        "DataExportCreate",
+        "DataExportResponse",
+        "DataDeletionRequestCreate",
+        "DataDeletionRequestResponse",
+        "LegalHoldCreate",
+        "LegalHoldResponse",
         "PolicyEvaluationRequest",
         "PolicyDecision",
         "AuditEvent",

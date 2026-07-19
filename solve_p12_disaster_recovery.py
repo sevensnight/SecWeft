@@ -276,7 +276,7 @@ def run(command: str, *, runtime: bool, backup_id: str | None) -> dict[str, Any]
     claimed = runtime_claimed(runtime, checks)
     return {
         "phase": "P12-DR",
-        "version": "2.13.0-p13",
+        "version": "2.14.0-p14",
         "command": command,
         "runtime": runtime,
         "runtime_not_claimed": not claimed,

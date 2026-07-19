@@ -1762,6 +1762,210 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/acceptance/requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List requirement traceability records */
+        get: operations["listAcceptanceRequirements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acceptance/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get P14 acceptance status */
+        get: operations["getAcceptanceStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acceptance/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run deterministic enterprise acceptance */
+        post: operations["runEnterpriseAcceptance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acceptance/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one enterprise acceptance run */
+        get: operations["getAcceptanceRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate candidate or formal delivery package */
+        post: operations["generateDeliveryPackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-packages/{package_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get delivery package metadata */
+        get: operations["getDeliveryPackage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/controls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List compliance control mappings */
+        get: operations["listComplianceControls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/evidence-packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate compliance evidence package */
+        post: operations["generateComplianceEvidencePackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data-governance/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export redacted tenant data manifest */
+        post: operations["exportTenantData"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data-governance/deletion-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request controlled data deletion */
+        post: operations["requestDataDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data-governance/legal-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a legal hold */
+        post: operations["createLegalHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readiness/production": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get production readiness gate result */
+        get: operations["getProductionReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2766,23 +2970,41 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        /** PolicyEvaluationRequest */
         PolicyEvaluationRequest: {
-            /** @enum {string} */
-            action: "asset.probe" | "sandbox.run" | "validation.execute" | "task.execute" | "context.restore" | "rag.search";
-            /** @default task */
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "asset.probe" | "sandbox.run" | "validation.execute" | "case.create" | "case.update" | "case.confirm" | "case.disposition" | "remediation.propose" | "remediation.approve" | "remediation.implement" | "validation.retest" | "comparison.review" | "case.close" | "report.generate" | "evaluation.suite.create" | "evaluation.dataset.manage" | "evaluation.run" | "evaluation.cancel" | "evaluation.review" | "evaluation.compare" | "evaluation.promote" | "evaluation.rollback" | "metric.definition.manage" | "release.artifact.register" | "release.candidate.create" | "release.gate.evaluate" | "release.exception.request" | "release.exception.approve" | "release.approve" | "release.promote.development" | "release.promote.integration" | "release.promote.staging" | "release.promote.production" | "release.rollback" | "release.drift.review" | "release.compliance.generate" | "acceptance.run" | "acceptance.review" | "delivery.generate" | "delivery.download" | "compliance.map" | "compliance.generate" | "data.export" | "data.delete.request" | "data.delete.approve" | "legal-hold.create" | "legal-hold.release" | "secret.rotate" | "production-readiness.review" | "task.execute" | "context.restore" | "rag.search";
+            /**
+             * Resource Type
+             * @default task
+             */
             resource_type: string;
-            /** @default ad-hoc */
+            /**
+             * Resource Id
+             * @default ad-hoc
+             */
             resource_id: string;
-            /** Format: uuid */
+            /** Task Id */
             task_id?: string | null;
-            /** Format: uuid */
+            /** Scope Id */
             scope_id?: string | null;
+            /** Target */
             target?: string | null;
+            /** Ports */
             ports?: number[];
+            /** Argv */
             argv?: string[];
-            /** @default false */
+            /**
+             * Destructive
+             * @default false
+             */
             destructive: boolean;
+            /** Reason */
             reason?: string | null;
+            /** Metadata */
             metadata?: {
                 [key: string]: unknown;
             };
@@ -4948,6 +5170,478 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** RequirementTraceabilityItem */
+        RequirementTraceabilityItem: {
+            /** Requirement Id */
+            requirement_id: string;
+            /** Requirement Description */
+            requirement_description: string;
+            /**
+             * Implementation Status
+             * @enum {string}
+             */
+            implementation_status: "IMPLEMENTED" | "PARTIALLY_IMPLEMENTED" | "NOT_IMPLEMENTED" | "NOT_APPLICABLE" | "BLOCKED";
+            /** Backend Modules */
+            backend_modules: string[];
+            /** Frontend Routes */
+            frontend_routes: string[];
+            /** Api Operations */
+            api_operations: string[];
+            /** Database Migrations */
+            database_migrations: string[];
+            /** Policy Actions */
+            policy_actions: string[];
+            /** Tests */
+            tests: string[];
+            /** Acceptance Scripts */
+            acceptance_scripts: string[];
+            /** Documents */
+            documents: string[];
+            /** Known Limitations */
+            known_limitations: string[];
+            /** Runtime Evidence */
+            runtime_evidence: {
+                [key: string]: unknown;
+            };
+        };
+        /** ProductionGateResponse */
+        ProductionGateResponse: {
+            /** Gate Id */
+            gate_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "passed" | "failed" | "warning" | "blocked";
+            /** Critical */
+            critical: boolean;
+            /**
+             * Evidence Kind
+             * @enum {string}
+             */
+            evidence_kind: "static" | "deterministic" | "runtime" | "manual" | "contract" | "release_artifact";
+            /** Reason */
+            reason: string;
+            /** Evidence */
+            evidence?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AcceptanceStatusResponse */
+        AcceptanceStatusResponse: {
+            /** Version */
+            version: string;
+            /** Valid */
+            valid: boolean;
+            /** Production Ready */
+            production_ready: boolean;
+            /** Runtime */
+            runtime: boolean;
+            /** Runtime Not Claimed */
+            runtime_not_claimed: boolean;
+            /** Critical Gates */
+            critical_gates: components["schemas"]["ProductionGateResponse"][];
+            /** Failed Critical Gates */
+            failed_critical_gates: string[];
+            /** Supported Upgrade Paths */
+            supported_upgrade_paths: string[];
+            /** Unsupported Upgrade Paths */
+            unsupported_upgrade_paths: string[];
+            /** Data Governance */
+            data_governance: {
+                [key: string]: unknown;
+            };
+            /** Secret Lifecycle */
+            secret_lifecycle: {
+                [key: string]: unknown;
+            };
+            /** Known Limitations */
+            known_limitations: string[];
+            /** Evaluated At */
+            evaluated_at: string;
+        };
+        /** ProductionReadinessResponse */
+        ProductionReadinessResponse: {
+            /** Version */
+            version: string;
+            /** Production Ready */
+            production_ready: boolean;
+            /** Valid */
+            valid: boolean;
+            /** Runtime */
+            runtime: boolean;
+            /** Runtime Not Claimed */
+            runtime_not_claimed: boolean;
+            /** Critical Gates */
+            critical_gates: components["schemas"]["ProductionGateResponse"][];
+            /** Failed Critical Gates */
+            failed_critical_gates: string[];
+            /** Policy Decision Id */
+            policy_decision_id: string;
+            /** Supported Upgrade Paths */
+            supported_upgrade_paths: string[];
+            /** Unsupported Upgrade Paths */
+            unsupported_upgrade_paths: string[];
+            /** Known Limitations */
+            known_limitations: string[];
+            /** Evaluated At */
+            evaluated_at: string;
+        };
+        /** AcceptanceRunCreate */
+        AcceptanceRunCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default project-alpha
+             */
+            project_id: string;
+            /**
+             * Scenario Id
+             * @default p14-final-enterprise-acceptance
+             */
+            scenario_id: string;
+            /** Trace Id */
+            trace_id?: string;
+            /** Runtime Evidence */
+            runtime_evidence?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AcceptanceRunResponse */
+        AcceptanceRunResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Scenario Id */
+            scenario_id: string;
+            /** Status */
+            status: string;
+            /** Valid */
+            valid: boolean;
+            /** Production Ready */
+            production_ready: boolean;
+            /** Runtime */
+            runtime: boolean;
+            /** Runtime Not Claimed */
+            runtime_not_claimed: boolean;
+            /** Trace Id */
+            trace_id: string;
+            /** Policy Decision Id */
+            policy_decision_id: string;
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
+            /** Created By */
+            created_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** DeliveryPackageCreate */
+        DeliveryPackageCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default project-alpha
+             */
+            project_id: string;
+            /**
+             * Package Type
+             * @default candidate
+             * @enum {string}
+             */
+            package_type: "candidate" | "formal";
+        };
+        /** DeliveryPackageResponse */
+        DeliveryPackageResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Package Type
+             * @enum {string}
+             */
+            package_type: "candidate" | "formal";
+            /** Formal */
+            formal: boolean;
+            /** Status */
+            status: string;
+            /** Root Path */
+            root_path: string;
+            /** Package Digest */
+            package_digest: string;
+            /** Manifest */
+            manifest: {
+                [key: string]: unknown;
+            };
+            /** Policy Decision Id */
+            policy_decision_id: string;
+            /** Generated By */
+            generated_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ComplianceControlResponse */
+        ComplianceControlResponse: {
+            /** Framework */
+            framework: string;
+            /** Control Id */
+            control_id: string;
+            /** Implementation */
+            implementation: string;
+            /** Evidence */
+            evidence: string[];
+            /** Owner */
+            owner: string;
+            /** Test */
+            test: string;
+            /** Status */
+            status: string;
+            /** Gap */
+            gap: string;
+            /** Exception */
+            exception: string;
+            /** Last Reviewed At */
+            last_reviewed_at: string;
+            /** Certification Claim */
+            certification_claim: boolean;
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** ComplianceEvidencePackageCreate */
+        ComplianceEvidencePackageCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default project-alpha
+             */
+            project_id: string;
+            /** Frameworks */
+            frameworks?: string[];
+        };
+        /** ComplianceEvidencePackageResponse */
+        ComplianceEvidencePackageResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Package Digest */
+            package_digest: string;
+            /** Controls */
+            controls: components["schemas"]["ComplianceControlResponse"][];
+            /** Certification Claim */
+            certification_claim: boolean;
+            /** Disclaimer */
+            disclaimer: string;
+            /** Policy Decision Id */
+            policy_decision_id: string;
+            /** Generated By */
+            generated_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** DataExportCreate */
+        DataExportCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default project-alpha
+             */
+            project_id: string;
+            /**
+             * Format
+             * @default json
+             * @constant
+             */
+            format: "json";
+        };
+        /** DataExportResponse */
+        DataExportResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Export Type */
+            export_type: string;
+            /** Status */
+            status: string;
+            /** Manifest */
+            manifest: {
+                [key: string]: unknown;
+            };
+            /** Redacted */
+            redacted: boolean;
+            /** Secret Count */
+            secret_count: number;
+            /** Policy Decision Id */
+            policy_decision_id: string;
+            /** Requested By */
+            requested_by: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** DataDeletionRequestCreate */
+        DataDeletionRequestCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default project-alpha
+             */
+            project_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "tenant" | "project" | "case" | "report" | "validation_metadata";
+            /** Target Id */
+            target_id: string;
+            /**
+             * Dry Run
+             * @default true
+             */
+            dry_run: boolean;
+            /** Reason */
+            reason: string;
+        };
+        /** DataDeletionRequestResponse */
+        DataDeletionRequestResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Target Type */
+            target_type: string;
+            /** Target Id */
+            target_id: string;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Status */
+            status: string;
+            /** Scope Preview */
+            scope_preview: {
+                [key: string]: unknown;
+            };
+            /** Deletion Certificate */
+            deletion_certificate: {
+                [key: string]: unknown;
+            };
+            /** Policy Decision Id */
+            policy_decision_id: string;
+            /** Requested By */
+            requested_by: string;
+            /** Approved By */
+            approved_by: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** LegalHoldCreate */
+        LegalHoldCreate: {
+            /**
+             * Tenant Id
+             * @default system
+             */
+            tenant_id: string;
+            /**
+             * Project Id
+             * @default project-alpha
+             */
+            project_id: string;
+            /**
+             * Hold Type
+             * @default incident
+             * @enum {string}
+             */
+            hold_type: "litigation" | "incident" | "regulatory" | "customer_request";
+            /** Reason */
+            reason: string;
+            /** Scope */
+            scope?: {
+                [key: string]: unknown;
+            };
+        };
+        /** LegalHoldResponse */
+        LegalHoldResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Project Id */
+            project_id: string;
+            /** Hold Type */
+            hold_type: string;
+            /** Status */
+            status: string;
+            /** Reason */
+            reason: string;
+            /** Scope */
+            scope: {
+                [key: string]: unknown;
+            };
+            /** Policy Decision Id */
+            policy_decision_id: string;
+            /** Created By */
+            created_by: string;
+            /** Released By */
+            released_by: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
         };
     };
     responses: {
@@ -8808,6 +9502,358 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+        };
+    };
+    listAcceptanceRequirements: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequirementTraceabilityItem"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getAcceptanceStatus: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptanceStatusResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    runEnterpriseAcceptance: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptanceRunCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptanceRunResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getAcceptanceRun: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptanceRunResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    generateDeliveryPackage: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryPackageCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryPackageResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getDeliveryPackage: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path: {
+                package_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryPackageResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listComplianceControls: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplianceControlResponse"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    generateComplianceEvidencePackage: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComplianceEvidencePackageCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplianceEvidencePackageResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    exportTenantData: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataExportCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataExportResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    requestDataDeletion: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataDeletionRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataDeletionRequestResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createLegalHold: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalHoldCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalHoldResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getProductionReadiness: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Request-ID"?: components["parameters"]["XRequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionReadinessResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
 }

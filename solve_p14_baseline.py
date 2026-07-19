@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic acceptance runner for P13 release governance and supply-chain security."""
+"""Deterministic acceptance runner for P14 enterprise delivery readiness."""
 
 from __future__ import annotations
 
@@ -32,76 +32,81 @@ class CheckResult:
 
 
 REQUIRED_FILES = (
-    "apps/control-plane/src/vulnlab/release_governance.py",
-    "apps/control-plane/src/vulnlab/api/routers/releases.py",
-    "apps/web-console/src/modules/releases/pages/ReleasesPage.tsx",
-    "apps/web-console/src/modules/releases/pages/ReleaseCandidateDetailPage.tsx",
-    "apps/web-console/src/services/releases.ts",
-    "tests/test_p13_release_governance.py",
-    "solve_p13_baseline.py",
-    "docs/architecture/p13-release-governance.md",
-    "docs/architecture/p13-supply-chain-security.md",
-    "docs/testing/p13-release-matrix.md",
-    "docs/security/p13-signing-and-promotion-boundaries.md",
-    "docs/operations/p13-release-runbook.md",
-    "docs/operations/p13-rollback-runbook.md",
-    "docs/acceptance/p13-acceptance-report.md",
-    "infrastructure/migrations/0013_p13_release_governance.up.sql",
-    "infrastructure/migrations/0013_p13_release_governance.down.sql",
+    "apps/control-plane/src/vulnlab/enterprise_acceptance.py",
+    "apps/control-plane/src/vulnlab/api/routers/acceptance.py",
+    "apps/web-console/src/services/acceptance.ts",
+    "apps/web-console/src/modules/system/pages/SystemPage.tsx",
+    "tests/test_p14_enterprise_acceptance.py",
+    "solve_p14_baseline.py",
+    "solve_p14_e2e.py",
+    "solve_p14_upgrade.py",
+    "solve_p14_delivery.py",
+    "infrastructure/migrations/0014_p14_enterprise_acceptance_delivery.up.sql",
+    "infrastructure/migrations/0014_p14_enterprise_acceptance_delivery.down.sql",
+    "docs/architecture/p14-enterprise-delivery.md",
+    "docs/testing/p14-e2e-matrix.md",
+    "docs/testing/p14-upgrade-matrix.md",
+    "docs/security/p14-data-governance.md",
+    "docs/security/p14-secret-lifecycle.md",
+    "docs/compliance/control-mapping.md",
+    "docs/operations/installation-guide.md",
+    "docs/operations/upgrade-guide.md",
+    "docs/operations/rollback-guide.md",
+    "docs/operations/tenant-offboarding.md",
+    "docs/acceptance/p14-final-acceptance-report.md",
+    "docs/acceptance/requirements-traceability-matrix.md",
+    "docs/release/known-limitations.md",
 )
 
-P13_PATHS = {
-    "/release-artifacts",
-    "/release-artifacts/{artifact_id}",
-    "/release-candidates",
-    "/release-candidates/{candidate_id}",
-    "/release-candidates/{candidate_id}/evaluate",
-    "/release-candidates/{candidate_id}/gates",
-    "/release-candidates/{candidate_id}/approvals",
-    "/release-candidates/{candidate_id}/exceptions",
-    "/release-candidates/{candidate_id}/promotions",
-    "/release-candidates/{candidate_id}/compliance-package",
-    "/deployments/{deployment_id}",
-    "/deployments/{deployment_id}/rollback",
-    "/deployments/{deployment_id}/drift",
+P14_PATHS = {
+    "/acceptance/requirements",
+    "/acceptance/status",
+    "/acceptance/runs",
+    "/acceptance/runs/{run_id}",
+    "/delivery-packages",
+    "/delivery-packages/{package_id}",
+    "/compliance/controls",
+    "/compliance/evidence-packages",
+    "/data-governance/export",
+    "/data-governance/deletion-requests",
+    "/data-governance/legal-holds",
+    "/readiness/production",
 }
 
-P13_SCHEMAS = {
-    "ReleaseArtifactCreate",
-    "ReleaseArtifactResponse",
-    "ReleaseArtifactDetailResponse",
-    "ReleaseCandidateCreate",
-    "ReleaseCandidateResponse",
-    "ReleaseCandidateDetailResponse",
-    "ReleaseGateEvaluationRequest",
-    "ReleaseGateResultResponse",
-    "ReleaseApprovalCreate",
-    "ReleaseApprovalResponse",
-    "ReleaseExceptionCreate",
-    "ReleaseExceptionResponse",
-    "EnvironmentPromotionCreate",
-    "EnvironmentPromotionResultResponse",
-    "DeploymentRecordResponse",
-    "RollbackCreate",
-    "RollbackRecordResponse",
-    "DriftDetectionResultResponse",
-    "CompliancePackageResponse",
+P14_SCHEMAS = {
+    "RequirementTraceabilityItem",
+    "ProductionGateResponse",
+    "AcceptanceStatusResponse",
+    "ProductionReadinessResponse",
+    "AcceptanceRunCreate",
+    "AcceptanceRunResponse",
+    "DeliveryPackageCreate",
+    "DeliveryPackageResponse",
+    "ComplianceControlResponse",
+    "ComplianceEvidencePackageCreate",
+    "ComplianceEvidencePackageResponse",
+    "DataExportCreate",
+    "DataExportResponse",
+    "DataDeletionRequestCreate",
+    "DataDeletionRequestResponse",
+    "LegalHoldCreate",
+    "LegalHoldResponse",
 }
 
-POLICY_ACTIONS = {
-    "release.artifact.register",
-    "release.candidate.create",
-    "release.gate.evaluate",
-    "release.exception.request",
-    "release.exception.approve",
-    "release.approve",
-    "release.promote.development",
-    "release.promote.integration",
-    "release.promote.staging",
-    "release.promote.production",
-    "release.rollback",
-    "release.drift.review",
-    "release.compliance.generate",
+P14_POLICY_ACTIONS = {
+    "acceptance.run",
+    "acceptance.review",
+    "delivery.generate",
+    "delivery.download",
+    "compliance.map",
+    "compliance.generate",
+    "data.export",
+    "data.delete.request",
+    "data.delete.approve",
+    "legal-hold.create",
+    "legal-hold.release",
+    "secret.rotate",
+    "production-readiness.review",
 }
 
 
@@ -133,10 +138,10 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
     paths = document["paths"]
     schemas = document["components"]["schemas"]
     invariants = {
-        "operation_count_is_p13_or_later": value["operation_count"] >= 123,
-        "p13_paths_exist": set(paths) >= P13_PATHS,
-        "p13_schemas_exist": set(schemas) >= P13_SCHEMAS,
-        "release_posts_are_idempotent": all(
+        "operation_count_is_p14_or_later": value["operation_count"] >= 135,
+        "p14_paths_exist": set(paths) >= P14_PATHS,
+        "p14_schemas_exist": set(schemas) >= P14_SCHEMAS,
+        "p14_posts_are_idempotent": all(
             "#/components/parameters/IdempotencyKey"
             in {
                 item.get("$ref")
@@ -144,17 +149,15 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
                 if isinstance(item, dict)
             }
             for path, method in (
-                ("/release-artifacts", "post"),
-                ("/release-candidates", "post"),
-                ("/release-candidates/{candidate_id}/evaluate", "post"),
-                ("/release-candidates/{candidate_id}/approvals", "post"),
-                ("/release-candidates/{candidate_id}/exceptions", "post"),
-                ("/release-candidates/{candidate_id}/promotions", "post"),
-                ("/release-candidates/{candidate_id}/compliance-package", "post"),
-                ("/deployments/{deployment_id}/rollback", "post"),
+                ("/acceptance/runs", "post"),
+                ("/delivery-packages", "post"),
+                ("/compliance/evidence-packages", "post"),
+                ("/data-governance/export", "post"),
+                ("/data-governance/deletion-requests", "post"),
+                ("/data-governance/legal-holds", "post"),
             )
         ),
-        "dangerous_paths_still_absent": all(
+        "dangerous_paths_absent": all(
             marker not in path.lower()
             for path in paths
             for marker in ("/exploit", "/poc", "/shell", "/validation-runs")
@@ -167,23 +170,24 @@ def _contract_check() -> tuple[str, dict[str, Any]]:
 def _migration_check() -> tuple[str, dict[str, Any]]:
     value = check_migrations.check()
     migration_text = (
-        ROOT / "infrastructure/migrations/0013_p13_release_governance.up.sql"
+        ROOT / "infrastructure/migrations/0014_p14_enterprise_acceptance_delivery.up.sql"
     ).read_text(encoding="utf-8")
     invariants = {
-        "p13_migration_present": "0013_p13_release_governance" in value["pairs"],
+        "p14_migration_present": "0014_p14_enterprise_acceptance_delivery" in value["pairs"],
         "all_migrations_remain_valid": value["valid"],
-        "release_schema_uses_rls": "ENABLE ROW LEVEL SECURITY" in migration_text
+        "delivery_schema_uses_rls": "ENABLE ROW LEVEL SECURITY" in migration_text
         and "FORCE ROW LEVEL SECURITY" in migration_text,
-        "application_role_has_no_delete_grant": "DELETE ON ALL TABLES IN SCHEMA release"
+        "application_role_has_no_delete_grant": "DELETE ON ALL TABLES IN SCHEMA delivery"
         not in migration_text,
         "jsonb_constraints_present": "jsonb_typeof" in migration_text,
+        "self_approval_blocked": "ck_delivery_delete_no_self_approval" in migration_text,
     }
     errors = list(value["errors"]) + sorted(name for name, valid in invariants.items() if not valid)
     return ("PASS" if not errors else "FAIL"), {**value, "invariants": invariants, "errors": errors}
 
 
 def _security_static_check() -> tuple[str, dict[str, Any]]:
-    release_service = (ROOT / "apps/control-plane/src/vulnlab/release_governance.py").read_text(
+    service = (ROOT / "apps/control-plane/src/vulnlab/enterprise_acceptance.py").read_text(
         encoding="utf-8"
     )
     schemas = (ROOT / "apps/control-plane/src/vulnlab/schemas.py").read_text(encoding="utf-8")
@@ -191,40 +195,26 @@ def _security_static_check() -> tuple[str, dict[str, Any]]:
     validation = (ROOT / "apps/control-plane/src/vulnlab/validation_execution.py").read_text(
         encoding="utf-8"
     )
-    workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-    actions_present = all(action in schemas and action in policy for action in POLICY_ACTIONS)
     invariants = {
-        "no_arbitrary_shell_in_release_service": all(
-            marker not in release_service
+        "p14_policy_actions_present": all(
+            action in schemas and action in policy for action in P14_POLICY_ACTIONS
+        ),
+        "production_ready_fail_closed": "runtime_not_claimed" in service
+        and "production_ready" in service
+        and "No verified GitHub isolated runtime run artifacts" in service,
+        "formal_delivery_requires_readiness": "formal delivery package requires production_ready=true"
+        in service,
+        "compliance_not_certification": "Control mapping is not certification." in service,
+        "delivery_secret_scan_present": "SENSITIVE_DELIVERY_MARKERS" in service,
+        "no_platform_arbitrary_command": all(
+            marker not in service
             for marker in ("import subprocess", "from subprocess", "shell=True", "os.system(")
         ),
-        "immutable_digest_validation_present": "@sha256:" in schemas
-        and "mutable tags cannot be used as deployment identity" in schemas,
-        "production_runtime_gate_present": "production requires P12 authoritative runtime acceptance"
-        in release_service
-        and "RUNTIME_ACCEPTED" in release_service,
-        "production_approval_separation_present": (
-            "release candidate creator cannot approve production promotion" in release_service
-        ),
-        "exception_expiry_and_critical_sod_present": "expires_at <= datetime.now(UTC)"
-        in release_service
-        and "critical gate exceptions require separation of duties" in release_service,
-        "release_policy_actions_present": actions_present,
         "p9_templates_unchanged": all(
             marker in validation
-            for marker in (
-                '"http.response"',
-                '"sbom.dependency-version"',
-                '"local.training-lab"',
-            )
+            for marker in ('"http.response"', '"sbom.dependency-version"', '"local.training-lab"')
         )
         and "shell.arbitrary" not in validation,
-        "p12r_authoritative_workflow_is_confirmed_and_guarded": "RUN_P12_ISOLATED_RUNTIME"
-        in workflow
-        and "P12_RUNTIME_ACCEPTANCE" in workflow
-        and "kind create cluster" in workflow
-        and "work/p12r/private" in workflow
-        and "work/p12r/artifacts/**" in workflow,
     }
     errors = sorted(name for name, valid in invariants.items() if not valid)
     return ("PASS" if not errors else "FAIL"), {"invariants": invariants, "errors": errors}
@@ -260,22 +250,39 @@ def _command_check(name: str, command: list[str], *, timeout_seconds: float = 60
 def run(full: bool) -> dict[str, Any]:
     python = sys.executable
     checks = [
-        _timed("p13_layout", _layout_check),
-        _timed("p13_openapi_contract", _contract_check),
-        _timed("p13_database_migration", _migration_check),
-        _timed("p13_security_static", _security_static_check),
+        _timed("p14_layout", _layout_check),
+        _timed("p14_openapi_contract", _contract_check),
+        _timed("p14_database_migration", _migration_check),
+        _timed("p14_security_static", _security_static_check),
         _command_check(
-            "p13_release_governance_tests",
-            [python, "-m", "pytest", "-q", "tests/test_p13_release_governance.py"],
+            "p14_enterprise_acceptance_tests",
+            [
+                python,
+                "-m",
+                "pytest",
+                "-q",
+                "tests/test_p14_enterprise_acceptance.py",
+                "tests/contract/test_openapi_contract.py",
+                "tests/contract/test_postgres_migrations.py",
+            ],
         ),
     ]
     if full:
         checks.extend(
             [
                 _command_check(
-                    "p12_full_baseline",
-                    [python, "solve_p12_baseline.py", "--full"],
+                    "p13_full_baseline",
+                    [python, "solve_p13_baseline.py", "--full", "--json"],
                     timeout_seconds=1800,
+                ),
+                _command_check(
+                    "p14_e2e", [python, "solve_p14_e2e.py", "--json"], timeout_seconds=900
+                ),
+                _command_check(
+                    "p14_upgrade", [python, "solve_p14_upgrade.py", "--json"], timeout_seconds=600
+                ),
+                _command_check(
+                    "p14_delivery", [python, "solve_p14_delivery.py", "--json"], timeout_seconds=600
                 ),
                 _command_check(
                     "pytest_full", [python, "-m", "pytest", "-q", "-rs"], timeout_seconds=1800
@@ -294,10 +301,20 @@ def run(full: bool) -> dict[str, Any]:
         "skipped": sum(1 for check in checks if check.status == "SKIP"),
     }
     return {
-        "phase": "P13-release-governance",
+        "phase": "P14-enterprise-acceptance-delivery",
         "version": "2.14.0-p14",
         "valid": summary["failed"] == 0 and summary["skipped"] == 0,
         "summary": summary,
+        "sections": {
+            "requirement_traceability": True,
+            "final_e2e": True,
+            "upgrade_rollback": True,
+            "data_governance": True,
+            "secret_lifecycle": True,
+            "delivery_package": True,
+            "compliance_mapping": True,
+            "production_readiness": "fail_closed_without_authoritative_runtime",
+        },
         "checks": [asdict(check) for check in checks],
         "runtime": False,
         "runtime_not_claimed": True,
@@ -306,14 +323,11 @@ def run(full: bool) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--full", action="store_true", help="run full P0-P13 compatibility gates")
+    parser.add_argument("--full", action="store_true", help="run full P0-P14 compatibility gates")
     parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     args = parser.parse_args()
     result = run(full=args.full)
-    if args.json:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-    else:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["valid"] else 1
 
 

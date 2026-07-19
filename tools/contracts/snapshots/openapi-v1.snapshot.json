@@ -1,9 +1,94 @@
 {
   "contract": "packages/api-contracts/openapi/v1.yaml",
-  "document_sha256": "f6af7446fe2bfccf30db799e440293572a62e3e0f634541670a868dc2fd12691",
+  "document_sha256": "79a1ffbad65f93ef3961f48c69031c2fe1a70d4c75a9a2a0115a05eebfd25e18",
   "openapi": "3.1.0",
-  "info_version": "1.13.0-p13",
+  "info_version": "1.14.0-p14",
   "operations": [
+    {
+      "method": "GET",
+      "path": "/acceptance/requirements",
+      "operation_id": "listAcceptanceRequirements",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/acceptance/runs",
+      "operation_id": "runEnterpriseAcceptance",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/acceptance/runs/{run_id}",
+      "operation_id": "getAcceptanceRun",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/acceptance/status",
+      "operation_id": "getAcceptanceStatus",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
     {
       "method": "GET",
       "path": "/agents",
@@ -76,6 +161,48 @@
     },
     {
       "method": "GET",
+      "path": "/compliance/controls",
+      "operation_id": "listComplianceControls",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/compliance/evidence-packages",
+      "operation_id": "generateComplianceEvidencePackage",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/config/effective",
       "operation_id": "getEffectiveConfiguration",
       "parameters": [
@@ -124,6 +251,122 @@
         "401",
         "403",
         "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/data-governance/deletion-requests",
+      "operation_id": "requestDataDeletion",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/data-governance/export",
+      "operation_id": "exportTenantData",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/data-governance/legal-holds",
+      "operation_id": "createLegalHold",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/delivery-packages",
+      "operation_id": "generateDeliveryPackage",
+      "parameters": [
+        {
+          "ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "202",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/delivery-packages/{package_id}",
+      "operation_id": "getDeliveryPackage",
+      "parameters": [
+        {
+          "name": "package_id",
+          "in": "path",
+          "required": true
+        },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
         "422"
       ],
       "success_media_types": [
@@ -1179,6 +1422,25 @@
         {
           "ref": "#/components/parameters/IdempotencyKey"
         },
+        {
+          "ref": "#/components/parameters/XRequestId"
+        }
+      ],
+      "responses": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "success_media_types": [
+        "application/json"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/readiness/production",
+      "operation_id": "getProductionReadiness",
+      "parameters": [
         {
           "ref": "#/components/parameters/XRequestId"
         }
@@ -3094,6 +3356,9 @@
     }
   ],
   "schemas": [
+    "AcceptanceRunCreate",
+    "AcceptanceRunResponse",
+    "AcceptanceStatusResponse",
     "AgentDefinition",
     "AgentDefinitionCreate",
     "AuditEvent",
@@ -3106,12 +3371,21 @@
     "CaseReport",
     "CaseReportCreate",
     "Checkpoint",
+    "ComplianceControlResponse",
+    "ComplianceEvidencePackageCreate",
+    "ComplianceEvidencePackageResponse",
     "CompliancePackageResponse",
     "ConfigEntry",
     "ConfigEntryUpdate",
     "ContextMessage",
     "ContextMessageCreate",
     "ContextRestore",
+    "DataDeletionRequestCreate",
+    "DataDeletionRequestResponse",
+    "DataExportCreate",
+    "DataExportResponse",
+    "DeliveryPackageCreate",
+    "DeliveryPackageResponse",
     "DeploymentRecordResponse",
     "DriftDetectionResultResponse",
     "EffectiveConfig",
@@ -3143,6 +3417,8 @@
     "HTTPValidationError",
     "KnowledgePack",
     "KnowledgePackRequest",
+    "LegalHoldCreate",
+    "LegalHoldResponse",
     "LicenseScanResultCreate",
     "LicenseScanResultResponse",
     "MetricResultResponse",
@@ -3165,6 +3441,8 @@
     "PolicyDecision",
     "PolicyEvaluationRequest",
     "Problem",
+    "ProductionGateResponse",
+    "ProductionReadinessResponse",
     "Project",
     "ProjectCreate",
     "ProjectPage",
@@ -3197,6 +3475,7 @@
     "RemediationImplementationCreate",
     "RemediationProposal",
     "RemediationProposalCreate",
+    "RequirementTraceabilityItem",
     "RetestRequest",
     "RetestRequestCreate",
     "Role",

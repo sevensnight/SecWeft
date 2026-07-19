@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
@@ -1715,6 +1716,227 @@ class ReleaseCandidateDetailResponse(ReleaseCandidateResponse):
     deployments: list[DeploymentRecordResponse]
 
 
+class RequirementTraceabilityItem(APIModel):
+    requirement_id: str
+    requirement_description: str
+    implementation_status: Literal[
+        "IMPLEMENTED", "PARTIALLY_IMPLEMENTED", "NOT_IMPLEMENTED", "NOT_APPLICABLE", "BLOCKED"
+    ]
+    backend_modules: list[str]
+    frontend_routes: list[str]
+    api_operations: list[str]
+    database_migrations: list[str]
+    policy_actions: list[str]
+    tests: list[str]
+    acceptance_scripts: list[str]
+    documents: list[str]
+    known_limitations: list[str]
+    runtime_evidence: dict[str, Any]
+
+
+class ProductionGateResponse(APIModel):
+    gate_id: str
+    status: Literal["passed", "failed", "warning", "blocked"]
+    critical: bool
+    evidence_kind: Literal[
+        "static", "deterministic", "runtime", "manual", "contract", "release_artifact"
+    ]
+    reason: str
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class AcceptanceStatusResponse(APIModel):
+    version: str
+    valid: bool
+    production_ready: bool
+    runtime: bool
+    runtime_not_claimed: bool
+    critical_gates: list[ProductionGateResponse]
+    failed_critical_gates: list[str]
+    supported_upgrade_paths: list[str]
+    unsupported_upgrade_paths: list[str]
+    data_governance: dict[str, Any]
+    secret_lifecycle: dict[str, Any]
+    known_limitations: list[str]
+    evaluated_at: str
+
+
+class ProductionReadinessResponse(APIModel):
+    version: str
+    production_ready: bool
+    valid: bool
+    runtime: bool
+    runtime_not_claimed: bool
+    critical_gates: list[ProductionGateResponse]
+    failed_critical_gates: list[str]
+    policy_decision_id: str
+    supported_upgrade_paths: list[str]
+    unsupported_upgrade_paths: list[str]
+    known_limitations: list[str]
+    evaluated_at: str
+
+
+class AcceptanceRunCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=120)
+    project_id: str = Field(default="project-alpha", min_length=1, max_length=120)
+    scenario_id: str = Field(
+        default="p14-final-enterprise-acceptance", min_length=3, max_length=120
+    )
+    trace_id: str = Field(default_factory=lambda: uuid.uuid4().hex, min_length=16, max_length=64)
+    runtime_evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class AcceptanceRunResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    scenario_id: str
+    status: str
+    valid: bool
+    production_ready: bool
+    runtime: bool
+    runtime_not_claimed: bool
+    trace_id: str
+    policy_decision_id: str
+    result: dict[str, Any]
+    created_by: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class DeliveryPackageCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=120)
+    project_id: str = Field(default="project-alpha", min_length=1, max_length=120)
+    package_type: Literal["candidate", "formal"] = "candidate"
+
+
+class DeliveryPackageResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    package_type: Literal["candidate", "formal"]
+    formal: bool
+    status: str
+    root_path: str
+    package_digest: str
+    manifest: dict[str, Any]
+    policy_decision_id: str
+    generated_by: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class ComplianceControlResponse(APIModel):
+    framework: str
+    control_id: str
+    implementation: str
+    evidence: list[str]
+    owner: str
+    test: str
+    status: str
+    gap: str
+    exception: str
+    last_reviewed_at: str
+    certification_claim: bool
+    disclaimer: str
+
+
+class ComplianceEvidencePackageCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=120)
+    project_id: str = Field(default="project-alpha", min_length=1, max_length=120)
+    frameworks: list[str] = Field(default_factory=list, max_length=16)
+
+
+class ComplianceEvidencePackageResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    package_digest: str
+    controls: list[ComplianceControlResponse]
+    certification_claim: bool
+    disclaimer: str
+    policy_decision_id: str
+    generated_by: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class DataExportCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=120)
+    project_id: str = Field(default="project-alpha", min_length=1, max_length=120)
+    format: Literal["json"] = "json"
+
+
+class DataExportResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    export_type: str
+    status: str
+    manifest: dict[str, Any]
+    redacted: bool
+    secret_count: int
+    policy_decision_id: str
+    requested_by: str
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class DataDeletionRequestCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=120)
+    project_id: str = Field(default="project-alpha", min_length=1, max_length=120)
+    target_type: Literal["tenant", "project", "case", "report", "validation_metadata"]
+    target_id: str = Field(min_length=1, max_length=200)
+    dry_run: bool = True
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+class DataDeletionRequestResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    target_type: str
+    target_id: str
+    dry_run: bool
+    status: str
+    scope_preview: dict[str, Any]
+    deletion_certificate: dict[str, Any]
+    policy_decision_id: str
+    requested_by: str
+    approved_by: str | None
+    created_at: str
+    updated_at: str
+    version: int
+
+
+class LegalHoldCreate(APIModel):
+    tenant_id: str = Field(default="system", min_length=1, max_length=120)
+    project_id: str = Field(default="project-alpha", min_length=1, max_length=120)
+    hold_type: Literal["litigation", "incident", "regulatory", "customer_request"] = "incident"
+    reason: str = Field(min_length=3, max_length=1000)
+    scope: dict[str, Any] = Field(default_factory=dict)
+
+
+class LegalHoldResponse(APIModel):
+    id: str
+    tenant_id: str
+    project_id: str
+    hold_type: str
+    status: str
+    reason: str
+    scope: dict[str, Any]
+    policy_decision_id: str
+    created_by: str
+    released_by: str | None
+    created_at: str
+    updated_at: str
+    version: int
+
+
 class PolicyEvaluationRequest(APIModel):
     action: Literal[
         "asset.probe",
@@ -1753,6 +1975,19 @@ class PolicyEvaluationRequest(APIModel):
         "release.rollback",
         "release.drift.review",
         "release.compliance.generate",
+        "acceptance.run",
+        "acceptance.review",
+        "delivery.generate",
+        "delivery.download",
+        "compliance.map",
+        "compliance.generate",
+        "data.export",
+        "data.delete.request",
+        "data.delete.approve",
+        "legal-hold.create",
+        "legal-hold.release",
+        "secret.rotate",
+        "production-readiness.review",
         "task.execute",
         "context.restore",
         "rag.search",

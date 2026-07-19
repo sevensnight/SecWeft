@@ -1,3 +1,4 @@
+from .acceptance import router as acceptance_router
 from .audit import router as audit_router
 from .authorization import router as authorization_router
 from .cases import router as cases_router
@@ -25,6 +26,7 @@ ALL_ROUTERS = (
     cases_router,
     evaluations_router,
     releases_router,
+    acceptance_router,
     validation_plans_router,
     validation_executions_router,
     execution_router,

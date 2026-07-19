@@ -26,7 +26,7 @@ def test_checked_in_openapi_matches_reviewed_semantic_snapshot() -> None:
 def test_checked_in_p1_operations_exist_in_runtime() -> None:
     result = check(runtime=True)
     assert result["valid"], result["errors"]
-    assert result["operation_count"] == 123
+    assert result["operation_count"] == 135
 
 
 def test_sse_contract_is_resumable_and_uses_event_stream_media_type() -> None:
@@ -90,7 +90,8 @@ def test_p0_runtime_critical_read_paths_and_request_correlation(settings) -> Non
 def test_p3_signed_contract_dispatches_tasks_without_sync_run_operation() -> None:
     document = load_document()
     paths = set(document["paths"])
-    assert all("/run" not in path for path in paths)
+    assert all(path not in {"/run", "/tasks/{task_id}/run", "/validation-runs"} for path in paths)
+    assert all(not path.endswith("/run") for path in paths)
     assert all("/sandbox" not in path for path in paths)
     assert all("/assets/probe" not in path for path in paths)
     assert all("/validation-runs" not in path for path in paths)

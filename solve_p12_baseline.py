@@ -317,7 +317,7 @@ def run(full: bool) -> dict[str, Any]:
     }
     return {
         "phase": "P12",
-        "version": "2.13.0-p13",
+        "version": "2.14.0-p14",
         "valid": summary["failed"] == 0 and summary["skipped"] == 0,
         "summary": summary,
         "checks": [asdict(check) for check in checks],

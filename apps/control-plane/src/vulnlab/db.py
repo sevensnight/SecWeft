@@ -1275,6 +1275,121 @@ CREATE TABLE IF NOT EXISTS release_compliance_evidence_packages (
     UNIQUE(candidate_id, package_digest)
 );
 
+CREATE TABLE IF NOT EXISTS p14_acceptance_runs (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    scenario_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('passed','failed','blocked','completed_with_blocked_production')),
+    valid INTEGER NOT NULL DEFAULT 0,
+    production_ready INTEGER NOT NULL DEFAULT 0,
+    runtime INTEGER NOT NULL DEFAULT 0,
+    runtime_not_claimed INTEGER NOT NULL DEFAULT 1,
+    trace_id TEXT NOT NULL,
+    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+    request_json TEXT NOT NULL DEFAULT '{}',
+    result_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS p14_delivery_packages (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    package_type TEXT NOT NULL CHECK(package_type IN ('candidate','formal')),
+    formal INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL CHECK(status IN ('candidate_generated','formal_generated','blocked')),
+    root_path TEXT NOT NULL,
+    package_digest TEXT NOT NULL,
+    manifest_json TEXT NOT NULL DEFAULT '{}',
+    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+    generated_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, package_digest)
+);
+
+CREATE TABLE IF NOT EXISTS p14_data_exports (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    export_type TEXT NOT NULL CHECK(export_type IN ('tenant')),
+    status TEXT NOT NULL CHECK(status IN ('completed','blocked','failed')),
+    manifest_json TEXT NOT NULL DEFAULT '{}',
+    redacted INTEGER NOT NULL DEFAULT 1,
+    secret_count INTEGER NOT NULL DEFAULT 0,
+    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+    requested_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS p14_deletion_requests (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    target_type TEXT NOT NULL CHECK(target_type IN ('tenant','project','case','report','validation_metadata')),
+    target_id TEXT NOT NULL,
+    dry_run INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL CHECK(status IN ('dry_run_completed','approval_required','blocked_by_legal_hold','approved','rejected','completed')),
+    scope_preview_json TEXT NOT NULL DEFAULT '{}',
+    deletion_certificate_json TEXT NOT NULL DEFAULT '{}',
+    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+    requested_by TEXT NOT NULL REFERENCES users(id),
+    approved_by TEXT REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS p14_legal_holds (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    hold_type TEXT NOT NULL CHECK(hold_type IN ('litigation','incident','regulatory','customer_request')),
+    status TEXT NOT NULL CHECK(status IN ('active','released')),
+    reason TEXT NOT NULL,
+    scope_json TEXT NOT NULL DEFAULT '{}',
+    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+    created_by TEXT NOT NULL REFERENCES users(id),
+    released_by TEXT REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS p14_compliance_evidence_packages (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    package_digest TEXT NOT NULL,
+    controls_json TEXT NOT NULL DEFAULT '{}',
+    policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+    generated_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(tenant_id, package_digest)
+);
+
+CREATE TABLE IF NOT EXISTS p14_secret_rotation_records (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    secret_type TEXT NOT NULL CHECK(secret_type IN ('api_key','keycloak_client','minio_credential','nats_credential','database_credential','signing_identity')),
+    status TEXT NOT NULL CHECK(status IN ('created','rotated','revoked','expired','failed')),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    rotated_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE INDEX IF NOT EXISTS idx_evaluation_suites_tenant_project
     ON evaluation_suites(tenant_id, project_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_evaluation_datasets_suite
@@ -1323,6 +1438,20 @@ CREATE INDEX IF NOT EXISTS idx_release_drift_deployment
     ON release_drift_detection_results(deployment_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_release_compliance_candidate
     ON release_compliance_evidence_packages(candidate_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_p14_acceptance_runs_tenant
+    ON p14_acceptance_runs(tenant_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_p14_delivery_packages_tenant
+    ON p14_delivery_packages(tenant_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_p14_data_exports_tenant
+    ON p14_data_exports(tenant_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_p14_deletion_requests_tenant
+    ON p14_deletion_requests(tenant_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_p14_legal_holds_tenant
+    ON p14_legal_holds(tenant_id, project_id, status);
+CREATE INDEX IF NOT EXISTS idx_p14_compliance_packages_tenant
+    ON p14_compliance_evidence_packages(tenant_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_p14_secret_rotations_tenant
+    ON p14_secret_rotation_records(tenant_id, project_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_actor_time
     ON model_invocations(actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_model_invocations_provider_time

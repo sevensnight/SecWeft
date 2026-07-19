@@ -135,3 +135,29 @@ tools/contracts/     快照和静态校验工具
 ## 下一阶段
 
 进入 P2：在 P1 身份、数据范围和审计边界上实现模型供应商、模型实例、write-only 凭据、流式/结构化调用、限流、熔断、成本与调用审计。P3 再实现服务身份和持久 Task/Agent 编排；不得跳过 P5 授权、策略、审批和 Sandbox 直接开发漏洞验证。
+# P14 enterprise acceptance status
+
+Current target version: `2.14.0-p14`.
+
+P14 adds final enterprise acceptance, requirement traceability, candidate delivery package generation, data governance metadata, secret lifecycle posture, compliance evidence mapping, upgrade/rollback deterministic checks, and a unified production readiness gate.
+
+Authoritative GitHub/Linux isolated runtime artifacts are not present in this local workspace, so production readiness remains fail-closed:
+
+```json
+{
+  "runtime": false,
+  "runtime_not_claimed": true,
+  "production_ready": false
+}
+```
+
+Useful P14 commands:
+
+```powershell
+.\.venv\Scripts\python.exe solve_p14_baseline.py
+.\.venv\Scripts\python.exe solve_p14_e2e.py --json
+.\.venv\Scripts\python.exe solve_p14_upgrade.py --json
+.\.venv\Scripts\python.exe solve_p14_delivery.py --json
+```
+
+P14 does not add new vulnerability types, validation templates, scanners, PoC upload, or arbitrary command execution.

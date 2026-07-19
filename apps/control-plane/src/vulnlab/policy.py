@@ -14,7 +14,7 @@ from .schemas import PolicyEvaluationRequest
 from .scope import ScopeService, ScopeViolation
 from .security import Principal, redact
 
-POLICY_VERSION = "p13-release-governance-policy-v1"
+POLICY_VERSION = "p14-enterprise-acceptance-policy-v1"
 SHELL_META = re.compile(r"[;&|<>`$]")
 RELEASE_POLICY_ACTIONS = (
     "release.artifact.register",
@@ -30,6 +30,21 @@ RELEASE_POLICY_ACTIONS = (
     "release.rollback",
     "release.drift.review",
     "release.compliance.generate",
+)
+P14_POLICY_ACTIONS = (
+    "acceptance.run",
+    "acceptance.review",
+    "delivery.generate",
+    "delivery.download",
+    "compliance.map",
+    "compliance.generate",
+    "data.export",
+    "data.delete.request",
+    "data.delete.approve",
+    "legal-hold.create",
+    "legal-hold.release",
+    "secret.rotate",
+    "production-readiness.review",
 )
 
 
@@ -55,6 +70,7 @@ class PolicyService:
         rules = {
             "version": POLICY_VERSION,
             "release_actions": RELEASE_POLICY_ACTIONS,
+            "p14_actions": P14_POLICY_ACTIONS,
             "rules": [
                 "destructive actions are denied",
                 "legacy execution actions are denied when legacy execution is disabled",
@@ -66,6 +82,10 @@ class PolicyService:
                 "release artifacts must use immutable digest identities",
                 "production promotion requires authoritative runtime acceptance and separation of duties",
                 "release exceptions require explicit expiry and compensating controls",
+                "P14 production readiness is derived from critical gates and cannot be manually overridden",
+                "data deletion requests cannot approve themselves and never erase audit or evidence metadata directly",
+                "delivery packages must not include live secrets",
+                "compliance mapping is evidence export and not certification",
             ],
         }
         encoded = json.dumps(rules, sort_keys=True, separators=(",", ":")).encode()
