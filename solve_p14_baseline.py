@@ -41,6 +41,14 @@ REQUIRED_FILES = (
     "solve_p14_e2e.py",
     "solve_p14_upgrade.py",
     "solve_p14_delivery.py",
+    "solve_p14_local_authoritative.py",
+    "solve_all_from_scratch.py",
+    "tools/p14/bootstrap-local-runtime.ps1",
+    "tools/p14/bootstrap-local-runtime.sh",
+    "tools/p14/verify-clean-worktree.ps1",
+    "tools/p14/verify-clean-worktree.sh",
+    "tests/test_p14_local_closure.py",
+    ".github/workflows/ci.yml",
     "infrastructure/migrations/0014_p14_enterprise_acceptance_delivery.up.sql",
     "infrastructure/migrations/0014_p14_enterprise_acceptance_delivery.down.sql",
     "docs/architecture/p14-enterprise-delivery.md",
@@ -55,6 +63,8 @@ REQUIRED_FILES = (
     "docs/operations/tenant-offboarding.md",
     "docs/acceptance/p14-final-acceptance-report.md",
     "docs/acceptance/requirements-traceability-matrix.md",
+    "docs/acceptance/p14-local-full-revalidation-report.md",
+    "docs/acceptance/p0-p14-final-verification-report.md",
     "docs/release/known-limitations.md",
 )
 
@@ -195,6 +205,12 @@ def _security_static_check() -> tuple[str, dict[str, Any]]:
     validation = (ROOT / "apps/control-plane/src/vulnlab/validation_execution.py").read_text(
         encoding="utf-8"
     )
+    release = (ROOT / "apps/control-plane/src/vulnlab/release_governance.py").read_text(
+        encoding="utf-8"
+    )
+    local_runtime = (ROOT / "solve_p14_local_authoritative.py").read_text(encoding="utf-8")
+    from_scratch = (ROOT / "solve_all_from_scratch.py").read_text(encoding="utf-8")
+    workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     invariants = {
         "p14_policy_actions_present": all(
             action in schemas and action in policy for action in P14_POLICY_ACTIONS
@@ -215,6 +231,39 @@ def _security_static_check() -> tuple[str, dict[str, Any]]:
             for marker in ('"http.response"', '"sbom.dependency-version"', '"local.training-lab"')
         )
         and "shell.arbitrary" not in validation,
+        "runtime_evidence_source_model_present": all(
+            marker in release
+            for marker in (
+                "GITHUB_ISOLATED_RUNTIME",
+                "LOCAL_ISOLATED_LINUX_RUNTIME",
+                "DETERMINISTIC_BASELINE",
+                "production requires GitHub isolated authoritative runtime acceptance",
+            )
+        ),
+        "local_runtime_does_not_claim_production": all(
+            marker in local_runtime
+            for marker in (
+                '"github_runtime_not_claimed": True',
+                '"runtime_not_claimed": True',
+                '"production_ready": False',
+            )
+        ),
+        "from_scratch_has_no_remote_mutation": all(
+            marker not in from_scratch
+            for marker in ("workflow_dispatch", "git push", "git tag", "gh workflow", "gh run")
+        ),
+        "future_github_workflow_collects_p14_artifacts": all(
+            marker in workflow
+            for marker in (
+                "p13-baseline-result.json",
+                "p14-baseline-result.json",
+                "p14-e2e-result.json",
+                "p14-upgrade-result.json",
+                "p14-delivery-result.json",
+                "release-gate-result.json",
+                "production-readiness-result.json",
+            )
+        ),
     }
     errors = sorted(name for name, valid in invariants.items() if not valid)
     return ("PASS" if not errors else "FAIL"), {"invariants": invariants, "errors": errors}

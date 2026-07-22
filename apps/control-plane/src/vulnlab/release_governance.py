@@ -916,10 +916,25 @@ class ReleaseGovernanceService:
             raise ReleaseStateError("candidate artifact is missing")
         components = self._artifact_components(candidate["artifact_id"])
         metadata = _json(candidate["metadata_json"], {})
-        accepted_runtime = (
-            metadata.get("p12_authoritative_runtime", {}).get("status") == "RUNTIME_ACCEPTED"
-            and metadata.get("p12_authoritative_runtime", {}).get("runtime") is True
-            and metadata.get("p12_authoritative_runtime", {}).get("runtime_not_claimed") is False
+        runtime_evidence = metadata.get("p12_authoritative_runtime", {})
+        if not isinstance(runtime_evidence, dict):
+            runtime_evidence = {}
+        evidence_source = runtime_evidence.get("evidence_source", "GITHUB_ISOLATED_RUNTIME")
+        authority_level = runtime_evidence.get(
+            "authority_level",
+            "authoritative" if evidence_source == "GITHUB_ISOLATED_RUNTIME" else "local",
+        )
+        github_runtime_accepted = (
+            evidence_source == "GITHUB_ISOLATED_RUNTIME"
+            and authority_level == "authoritative"
+            and runtime_evidence.get("status") == "RUNTIME_ACCEPTED"
+            and runtime_evidence.get("runtime") is True
+            and runtime_evidence.get("runtime_not_claimed") is False
+        )
+        local_runtime_verified = (
+            evidence_source == "LOCAL_ISOLATED_LINUX_RUNTIME"
+            and runtime_evidence.get("status") in {"LOCAL_VERIFIED", "RUNTIME_ACCEPTED"}
+            and runtime_evidence.get("runtime") is True
         )
         license_passed = components["license_scan"] is not None and _bool(
             components["license_scan"]["passed"]
@@ -947,7 +962,11 @@ class ReleaseGovernanceService:
         for gate_id in RELEASE_GATES:
             status = "passed"
             reason = "gate passed"
-            evidence: dict[str, Any] = {"environment": environment}
+            evidence: dict[str, Any] = {
+                "environment": environment,
+                "evidence_source": "DETERMINISTIC_BASELINE",
+                "authority_level": "deterministic",
+            }
             if gate_id in static_defaults and not static_defaults[gate_id]:
                 status = "failed"
                 reason = f"{gate_id} evidence is missing or failed"
@@ -986,15 +1005,30 @@ class ReleaseGovernanceService:
                     else "provenance subject or source commit mismatch"
                 )
             elif gate_id == "p12_authoritative_runtime":
-                if accepted_runtime:
+                evidence = {
+                    **evidence,
+                    "evidence_source": evidence_source,
+                    "authority_level": authority_level,
+                    "source_commit": runtime_evidence.get("source_commit")
+                    or candidate["source_commit"],
+                    "runtime": runtime_evidence.get("runtime") is True,
+                    "runtime_not_claimed": runtime_evidence.get("runtime_not_claimed", True),
+                }
+                if github_runtime_accepted:
                     status = "passed"
-                    reason = "P12 authoritative runtime accepted"
+                    reason = "GitHub isolated authoritative runtime accepted"
+                elif local_runtime_verified and environment != "production":
+                    status = "passed"
+                    reason = "local isolated Linux runtime verified for non-production gate"
                 elif environment == "production":
                     status = "failed"
-                    reason = "production requires P12 authoritative runtime acceptance"
+                    reason = (
+                        "production requires P12 authoritative runtime acceptance; "
+                        "production requires GitHub isolated authoritative runtime acceptance"
+                    )
                 else:
                     status = "warning"
-                    reason = "P12 authoritative runtime not claimed; non-production policy warning"
+                    reason = "authoritative runtime not claimed; non-production policy warning"
             evidence["candidate_id"] = candidate["id"]
             result.append(
                 {"gate_id": gate_id, "status": status, "reason": reason, "evidence": evidence}

@@ -22,3 +22,5 @@ apps/web-console/test-results/
 infrastructure/docker-compose/.env.platform
 infrastructure/backups/
 *.log
+.tools/
+artifacts/acceptance/

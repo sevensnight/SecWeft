@@ -305,7 +305,7 @@ jobs:
           version: v1.32.2
       - name: Confirm isolated runtime dispatch
         run: |
-          mkdir -p work/p12r/artifacts work/p12r/private work/p12r/artifacts/pod-logs work/p12r/artifacts/p9-p12-baseline-results
+          mkdir -p work/p12r/artifacts work/p12r/private work/p12r/artifacts/pod-logs work/p12r/artifacts/p9-p14-baseline-results
           python - <<'PY'
           import json
           from datetime import UTC, datetime
@@ -466,12 +466,159 @@ jobs:
           PY
       - name: Run P12-R chaos runtime acceptance
         run: python solve_p12_chaos.py --runtime --all --report-json work/p12r/artifacts/chaos-runtime-result.json
-      - name: Rerun P9-P12 deterministic baselines after runtime
+      - name: Rerun P9-P14 deterministic baselines after runtime
         run: |
-          python solve_p9_baseline.py > work/p12r/artifacts/p9-p12-baseline-results/p9.txt
-          python solve_p10_baseline.py > work/p12r/artifacts/p9-p12-baseline-results/p10.txt
-          python solve_p11_baseline.py > work/p12r/artifacts/p9-p12-baseline-results/p11.txt
-          python solve_p12_baseline.py --full > work/p12r/artifacts/p9-p12-baseline-results/p12.txt
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          artifacts = Path("work/p12r/artifacts")
+          logs = artifacts / "p9-p14-baseline-results"
+          logs.mkdir(parents=True, exist_ok=True)
+          commands = {
+              "p9-baseline-result.json": [sys.executable, "solve_p9_baseline.py", "--full"],
+              "p10-baseline-result.json": [sys.executable, "solve_p10_baseline.py", "--full"],
+              "p11-baseline-result.json": [sys.executable, "solve_p11_baseline.py", "--full"],
+              "p12-baseline-result.json": [sys.executable, "solve_p12_baseline.py", "--full"],
+              "p13-baseline-result.json": [sys.executable, "solve_p13_baseline.py", "--full", "--json"],
+              "p14-baseline-result.json": [sys.executable, "solve_p14_baseline.py", "--full", "--json"],
+              "p14-e2e-result.json": [sys.executable, "solve_p14_e2e.py", "--json"],
+              "p14-upgrade-result.json": [sys.executable, "solve_p14_upgrade.py", "--json"],
+              "p14-delivery-result.json": [sys.executable, "solve_p14_delivery.py", "--json"],
+          }
+
+          def parse_json(text):
+              decoder = json.JSONDecoder()
+              stripped = text.strip()
+              for index in range(len(stripped) - 1, -1, -1):
+                  if stripped[index] != "{":
+                      continue
+                  try:
+                      value, end = decoder.raw_decode(stripped[index:])
+                  except json.JSONDecodeError:
+                      continue
+                  if isinstance(value, dict) and stripped[index + end :].strip() == "":
+                      return value
+              return None
+
+          failures = []
+          for filename, command in commands.items():
+              completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+              (logs / filename.replace(".json", ".log")).write_text(completed.stdout, encoding="utf-8")
+              payload = parse_json(completed.stdout) or {"valid": False, "error": "structured JSON result missing"}
+              payload["command"] = command
+              payload["exit_code"] = completed.returncode
+              if completed.returncode != 0:
+                  payload["valid"] = False
+              (artifacts / filename).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+              summary = payload.get("summary", {})
+              failed = int(summary.get("failed", payload.get("failed", 0)) or 0) if isinstance(summary, dict) else int(payload.get("failed", 0) or 0)
+              skipped = int(summary.get("skipped", payload.get("skipped", 0)) or 0) if isinstance(summary, dict) else int(payload.get("skipped", 0) or 0)
+              if payload.get("valid") is not True or failed != 0 or skipped != 0:
+                  failures.append(filename)
+          if failures:
+              raise SystemExit(f"P9-P14 deterministic regression failures: {failures}")
+          PY
+      - name: Capture P13 release gate and P14 production readiness
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          artifacts = Path("work/p12r/artifacts")
+          source_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          required = [
+              "environment-fingerprint.json",
+              "scale-runtime-result.json",
+              "dr-backup-result.json",
+              "dr-restore-result.json",
+              "chaos-runtime-result.json",
+              "evidence-consistency-result.json",
+              "rpo-rto-result.json",
+              "p9-baseline-result.json",
+              "p10-baseline-result.json",
+              "p11-baseline-result.json",
+              "p12-baseline-result.json",
+              "p13-baseline-result.json",
+              "p14-baseline-result.json",
+              "p14-e2e-result.json",
+              "p14-upgrade-result.json",
+              "p14-delivery-result.json",
+          ]
+          payloads = {}
+          failures = []
+          for name in required:
+              path = artifacts / name
+              if not path.is_file():
+                  failures.append(f"{name}:missing")
+                  continue
+              payload = json.loads(path.read_text(encoding="utf-8"))
+              payloads[name] = payload
+              summary = payload.get("summary", {})
+              failed = int(summary.get("failed", payload.get("failed", 0)) or 0) if isinstance(summary, dict) else int(payload.get("failed", 0) or 0)
+              skipped = int(summary.get("skipped", payload.get("skipped", 0)) or 0) if isinstance(summary, dict) else int(payload.get("skipped", 0) or 0)
+              if payload.get("valid") is not True or failed != 0 or skipped != 0:
+                  failures.append(f"{name}:invalid")
+          accepted = not failures
+          release_gate = {
+              "valid": accepted,
+              "runtime": True,
+              "runtime_not_claimed": not accepted,
+              "source_commit": source_commit,
+              "evidence_source": "GITHUB_ISOLATED_RUNTIME",
+              "authority_level": "authoritative",
+              "critical_gates_failed": 0 if accepted else len(failures),
+              "failed": len(failures),
+              "skipped": 0,
+              "failures": failures,
+              "evaluated_at": datetime.now(UTC).isoformat(),
+          }
+          production_readiness = {
+              "valid": accepted,
+              "runtime": True,
+              "runtime_not_claimed": not accepted,
+              "production_ready": accepted,
+              "source_commit": source_commit,
+              "evidence_source": "GITHUB_ISOLATED_RUNTIME",
+              "authority_level": "authoritative",
+              "critical_gates_failed": 0 if accepted else len(failures),
+              "failed": len(failures),
+              "skipped": 0,
+              "failures": failures,
+              "evaluated_at": datetime.now(UTC).isoformat(),
+          }
+          (artifacts / "release-gate-result.json").write_text(json.dumps(release_gate, ensure_ascii=False, indent=2), encoding="utf-8")
+          (artifacts / "production-readiness-result.json").write_text(json.dumps(production_readiness, ensure_ascii=False, indent=2), encoding="utf-8")
+          manifest_entries = []
+          for path in sorted(artifacts.rglob("*")):
+              if path.is_file():
+                  manifest_entries.append({
+                      "path": str(path.relative_to(artifacts)),
+                      "size": path.stat().st_size,
+                      "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                  })
+          manifest = {
+              "schema_version": 1,
+              "source_commit": source_commit,
+              "github_run_id": os.getenv("GITHUB_RUN_ID"),
+              "github_sha": os.getenv("GITHUB_SHA"),
+              "runtime": True,
+              "runtime_not_claimed": not accepted,
+              "production_ready": accepted,
+              "critical_gates_failed": 0 if accepted else len(failures),
+              "artifacts": manifest_entries,
+              "created_at": datetime.now(UTC).isoformat(),
+          }
+          (artifacts / "artifact-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+          if not accepted:
+              raise SystemExit(f"authoritative P14 runtime closure failed: {failures}")
+          PY
       - name: Mark runtime accepted
         run: |
           python - <<'PY'
@@ -485,19 +632,29 @@ jobs:
               artifacts / "dr-backup-result.json",
               artifacts / "dr-restore-result.json",
               artifacts / "chaos-runtime-result.json",
+              artifacts / "p13-baseline-result.json",
+              artifacts / "p14-baseline-result.json",
+              artifacts / "p14-e2e-result.json",
+              artifacts / "p14-upgrade-result.json",
+              artifacts / "p14-delivery-result.json",
+              artifacts / "release-gate-result.json",
+              artifacts / "production-readiness-result.json",
           ]
           payloads = [json.loads(path.read_text(encoding="utf-8")) for path in reports]
-          accepted = all(item.get("valid") is True and item.get("runtime_not_claimed") is False for item in payloads)
+          accepted = all(item.get("valid") is True for item in payloads)
+          readiness = json.loads((artifacts / "production-readiness-result.json").read_text(encoding="utf-8"))
+          accepted = accepted and readiness.get("production_ready") is True and readiness.get("runtime_not_claimed") is False
           status = {
               "status": "RUNTIME_ACCEPTED" if accepted else "RUNTIME_FAILED",
               "runtime": True,
               "runtime_not_claimed": not accepted,
+              "production_ready": accepted,
               "updated_at": datetime.now(UTC).isoformat(),
               "reports": [str(path) for path in reports],
           }
           artifacts.joinpath("runtime-status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
           if not accepted:
-              raise SystemExit("P12-R runtime reports did not all claim authoritative runtime success")
+              raise SystemExit("P14 authoritative runtime closure reports did not all pass")
           PY
       - name: Collect Kubernetes runtime diagnostics
         if: always()
