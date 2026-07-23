@@ -273,17 +273,15 @@ jobs:
     timeout-minutes: 90
     env:
       ENVIRONMENT: test
+      VULNLAB_ENV: test
       P12_RUNTIME_ACCEPTANCE: "true"
       P12R_RUNTIME_ENV: isolated
-      P12R_RUNTIME_NAMESPACE: vulnlab
       P12R_TEST_CLUSTER_MARKER: isolated-runtime
+      P12R_RUNTIME_SECRET_NAME: vulnlab-platform-secrets
       CHAOS_ENABLED: "true"
       VULNLAB_P12_CHAOS_ACK: isolated-chaos
       VULNLAB_P12_DR_MODE: isolated
       VULNLAB_P12_DR_CONFIRM: isolated-restore
-      DATABASE_URL: postgresql://vulnlab@postgres.vulnlab.svc.cluster.local:5432/vulnlab
-      VULNLAB_MINIO_ENDPOINT: http://minio.vulnlab.svc.cluster.local:9000
-      VULNLAB_ALLOWED_HOSTS: localhost,127.0.0.1,vulnlab.local
       IMAGE_TAG: p12r-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
@@ -349,12 +347,25 @@ jobs:
       - run: python -m pip install --no-deps -e .
       - run: python tools/ci/check_runtime_dependencies.py
       - run: pnpm install --frozen-lockfile
-      - name: Require caller-provided runtime values
+      - name: Generate isolated runtime metadata
         run: |
-          if [ -z "${P12R_RUNTIME_VALUES_B64:-}" ]; then
-            echo "P12R_RUNTIME_VALUES_B64 must contain the isolated runtime Helm values file."
-            echo "The runtime job intentionally fails without real PostgreSQL/NATS/MinIO/training-lab values."
-            exit 1
+          run_id="p12r-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          namespace="vulnlab-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          {
+            echo "P12R_RUNTIME_RUN_ID=${run_id}"
+            echo "P12R_RUNTIME_NAMESPACE=${namespace}"
+            echo "VULNLAB_KUBERNETES_NAMESPACE=${namespace}"
+            echo "DATABASE_URL=postgresql://vulnlab@postgres.${namespace}.svc.cluster.local:5432/vulnlab"
+            echo "VULNLAB_NATS_URL=nats://nats.${namespace}.svc.cluster.local:4222"
+            echo "VULNLAB_MINIO_ENDPOINT=minio.${namespace}.svc.cluster.local:9000"
+            echo "VULNLAB_TRAINING_LAB_ENDPOINT=http://p12r-training-lab.${namespace}.svc.cluster.local:8080"
+            echo "VULNLAB_ALLOWED_HOSTS=p12r-training-lab,p12r-training-lab.${namespace}.svc.cluster.local"
+          } >> "$GITHUB_ENV"
+      - name: Decode optional runtime override values
+        run: |
+          : > work/p12r/private/override-values.yaml
+          if [ -n "${P12R_RUNTIME_VALUES_B64:-}" ]; then
+            printf '%s' "$P12R_RUNTIME_VALUES_B64" | base64 -d > work/p12r/private/override-values.yaml
           fi
         env:
           P12R_RUNTIME_VALUES_B64: ${{ secrets.P12R_RUNTIME_VALUES_B64 }}
@@ -363,8 +374,9 @@ jobs:
           kind create cluster --name vulnlab-p12r
           kubectl cluster-info
           kubectl label node --all vulnlab.openai.local/p12-runtime=isolated --overwrite
-          kubectl create namespace vulnlab
-          kubectl label namespace vulnlab vulnlab.openai.local/p12-runtime=isolated --overwrite
+          kubectl create namespace "$P12R_RUNTIME_NAMESPACE"
+          kubectl label namespace "$P12R_RUNTIME_NAMESPACE" vulnlab.openai.local/p12-runtime=isolated --overwrite
+          kubectl label namespace "$P12R_RUNTIME_NAMESPACE" "vulnlab.openai.local/p12r-run-id=$P12R_RUNTIME_RUN_ID" --overwrite
       - name: Build and load runtime images
         run: |
           docker build -t "vulnlab/control-plane:${IMAGE_TAG}" .
@@ -375,29 +387,36 @@ jobs:
           kind load docker-image "vulnlab/api-gateway:${IMAGE_TAG}" --name vulnlab-p12r
           kind load docker-image "vulnlab/web-console:${IMAGE_TAG}" --name vulnlab-p12r
           kind load docker-image "vulnlab/local-training-lab:${IMAGE_TAG}" --name vulnlab-p12r
-      - name: Write runtime values
+      - name: Write runtime inputs and deploy isolated dependencies
         run: |
-          printf '%s' "$P12R_RUNTIME_VALUES_B64" | base64 -d > work/p12r/private/runtime-values.yaml
-          cat >> work/p12r/private/runtime-values.yaml <<EOF
-          gateway:
-            image:
-              repository: vulnlab/api-gateway
-              tag: ${IMAGE_TAG}
-          webConsole:
-            image:
-              repository: vulnlab/web-console
-              tag: ${IMAGE_TAG}
-          controlPlane:
-            image:
-              repository: vulnlab/control-plane
-              tag: ${IMAGE_TAG}
-          validationWorker:
-            image:
-              repository: vulnlab/control-plane
-              tag: ${IMAGE_TAG}
-          EOF
-        env:
-          P12R_RUNTIME_VALUES_B64: ${{ secrets.P12R_RUNTIME_VALUES_B64 }}
+          python tools/p12/p12r_runtime.py write-inputs \
+            --namespace "$P12R_RUNTIME_NAMESPACE" \
+            --run-id "$P12R_RUNTIME_RUN_ID" \
+            --image-tag "$IMAGE_TAG" \
+            --secret-name "$P12R_RUNTIME_SECRET_NAME" \
+            --override-values work/p12r/private/override-values.yaml \
+            --values-out work/p12r/private/runtime-values.yaml \
+            --secret-out work/p12r/private/runtime-secret.yaml \
+            --dependencies-out work/p12r/private/runtime-dependencies.yaml \
+            --report-json work/p12r/artifacts/runtime-inputs-result.json
+          kubectl apply -f work/p12r/private/runtime-secret.yaml
+          kubectl apply -f work/p12r/private/runtime-dependencies.yaml
+      - name: Wait isolated dependency readiness
+        run: |
+          python tools/p12/p12r_runtime.py wait-dependencies \
+            --namespace "$P12R_RUNTIME_NAMESPACE" \
+            --report-json work/p12r/artifacts/dependency-readiness-result.json
+      - name: Apply PostgreSQL migrations 0001-0014
+        run: |
+          python tools/p12/p12r_runtime.py apply-migrations \
+            --namespace "$P12R_RUNTIME_NAMESPACE" \
+            --report-json work/p12r/artifacts/migration-result.json
+      - name: Helm lint and template runtime values
+        run: |
+          python tools/p12/p12r_runtime.py helm-check \
+            --namespace "$P12R_RUNTIME_NAMESPACE" \
+            --values work/p12r/private/runtime-values.yaml \
+            --report-dir work/p12r/artifacts
       - name: Capture environment fingerprint
         run: |
           python - <<'PY'
@@ -427,9 +446,36 @@ jobs:
           PY
       - name: Run P12-R scale runtime acceptance
         run: |
-          python solve_p12_scale.py --runtime --namespace vulnlab --release p12 \
+          python solve_p12_scale.py --runtime --namespace "$P12R_RUNTIME_NAMESPACE" --release p12 \
             --values work/p12r/private/runtime-values.yaml \
             --report-json work/p12r/artifacts/scale-runtime-result.json
+      - name: Capture Helm install result
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          artifacts = Path("work/p12r/artifacts")
+          scale = json.loads((artifacts / "scale-runtime-result.json").read_text(encoding="utf-8"))
+          install = {
+              "valid": scale.get("valid") is True,
+              "runtime": True,
+              "runtime_not_claimed": scale.get("runtime_not_claimed", True),
+              "captured_at": datetime.now(UTC).isoformat(),
+              "source": "scale-runtime-result.json",
+              "failed": int(scale.get("summary", {}).get("failed", 0) or 0),
+              "skipped": int(scale.get("summary", {}).get("skipped", 0) or 0),
+          }
+          for check in scale.get("checks", []):
+              if check.get("name") == "kind_or_k3d_runtime_rollout":
+                  install["details"] = check.get("details", {})
+                  break
+          (artifacts / "helm-install-result.json").write_text(
+              json.dumps(install, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          PY
       - name: Run P12-R DR runtime backup
         run: python solve_p12_disaster_recovery.py backup --runtime --report-json work/p12r/artifacts/dr-backup-result.json
       - name: Run P12-R DR runtime restore
@@ -469,7 +515,9 @@ jobs:
           (artifacts / "evidence-consistency-result.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
           PY
       - name: Run P12-R chaos runtime acceptance
-        run: python solve_p12_chaos.py --runtime --all --report-json work/p12r/artifacts/chaos-runtime-result.json
+        run: |
+          python solve_p12_chaos.py --runtime --all --namespace "$P12R_RUNTIME_NAMESPACE" \
+            --report-json work/p12r/artifacts/chaos-runtime-result.json
       - name: Rerun P9-P14 deterministic baselines after runtime
         run: |
           python - <<'PY'
@@ -525,6 +573,22 @@ jobs:
           if failures:
               raise SystemExit(f"P9-P14 deterministic regression failures: {failures}")
           PY
+      - name: Collect Kubernetes runtime diagnostics
+        if: always()
+        run: |
+          helm status p12 -n "${P12R_RUNTIME_NAMESPACE:-vulnlab}" > work/p12r/artifacts/helm-status.txt 2>&1 || true
+          kubectl get all -A -o wide > work/p12r/artifacts/pod-status.txt 2>&1 || true
+          kubectl get events -A --sort-by=.lastTimestamp > work/p12r/artifacts/kubectl-events.txt 2>&1 || true
+          for pod in $(kubectl get pods -n "${P12R_RUNTIME_NAMESPACE:-vulnlab}" -o name 2>/dev/null | sed 's#pod/##'); do
+            kubectl logs -n "${P12R_RUNTIME_NAMESPACE:-vulnlab}" "$pod" --all-containers=true --tail=500 > "work/p12r/artifacts/pod-logs/${pod}.log" 2>&1 || true
+          done
+      - name: Scan runtime artifacts for secret leaks
+        if: always()
+        run: |
+          python tools/p12/p12r_runtime.py scan-artifacts \
+            --artifact-dir work/p12r/artifacts \
+            --secret-manifest work/p12r/private/runtime-secret.yaml \
+            --report-json work/p12r/artifacts/artifact-secret-scan-result.json || true
       - name: Capture P13 release gate and P14 production readiness
         run: |
           python - <<'PY'
@@ -539,12 +603,19 @@ jobs:
           source_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
           required = [
               "environment-fingerprint.json",
+              "runtime-inputs-result.json",
+              "dependency-readiness-result.json",
+              "helm-lint-result.json",
+              "helm-template-result.json",
+              "helm-install-result.json",
+              "migration-result.json",
               "scale-runtime-result.json",
               "dr-backup-result.json",
               "dr-restore-result.json",
               "chaos-runtime-result.json",
               "evidence-consistency-result.json",
               "rpo-rto-result.json",
+              "artifact-secret-scan-result.json",
               "p9-baseline-result.json",
               "p10-baseline-result.json",
               "p11-baseline-result.json",
@@ -599,10 +670,10 @@ jobs:
           }
           (artifacts / "release-gate-result.json").write_text(json.dumps(release_gate, ensure_ascii=False, indent=2), encoding="utf-8")
           (artifacts / "production-readiness-result.json").write_text(json.dumps(production_readiness, ensure_ascii=False, indent=2), encoding="utf-8")
-          manifest_entries = []
-          for path in sorted(artifacts.rglob("*")):
-              if path.is_file():
-                  manifest_entries.append({
+           manifest_entries = []
+           for path in sorted(artifacts.rglob("*")):
+               if path.is_file() and path.name != "artifact-manifest.json":
+                   manifest_entries.append({
                       "path": str(path.relative_to(artifacts)),
                       "size": path.stat().st_size,
                       "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -632,10 +703,16 @@ jobs:
 
           artifacts = Path("work/p12r/artifacts")
           reports = [
+              artifacts / "dependency-readiness-result.json",
+              artifacts / "helm-lint-result.json",
+              artifacts / "helm-template-result.json",
+              artifacts / "helm-install-result.json",
+              artifacts / "migration-result.json",
               artifacts / "scale-runtime-result.json",
               artifacts / "dr-backup-result.json",
               artifacts / "dr-restore-result.json",
               artifacts / "chaos-runtime-result.json",
+              artifacts / "artifact-secret-scan-result.json",
               artifacts / "p13-baseline-result.json",
               artifacts / "p14-baseline-result.json",
               artifacts / "p14-e2e-result.json",
@@ -660,15 +737,76 @@ jobs:
           if not accepted:
               raise SystemExit("P14 authoritative runtime closure reports did not all pass")
           PY
-      - name: Collect Kubernetes runtime diagnostics
+      - name: Cleanup isolated runtime
         if: always()
         run: |
-          helm status p12 -n vulnlab > work/p12r/artifacts/helm-status.txt 2>&1 || true
-          kubectl get all -A -o wide > work/p12r/artifacts/pod-status.txt 2>&1 || true
-          kubectl get events -A --sort-by=.lastTimestamp > work/p12r/artifacts/kubectl-events.txt 2>&1 || true
-          for pod in $(kubectl get pods -n vulnlab -o name 2>/dev/null | sed 's#pod/##'); do
-            kubectl logs -n vulnlab "$pod" --all-containers=true --tail=500 > "work/p12r/artifacts/pod-logs/${pod}.log" 2>&1 || true
-          done
+          namespace="${P12R_RUNTIME_NAMESPACE:-vulnlab}"
+          kubectl delete namespace "$namespace" --ignore-not-found=true --wait=false >/dev/null 2>&1 || true
+          rm -rf work/p12r/private
+          kind delete cluster --name vulnlab-p12r >/dev/null 2>&1 || true
+          clusters="$(kind get clusters 2>/dev/null || true)"
+          cleanup_verified=true
+          if printf '%s\n' "$clusters" | grep -Fxq vulnlab-p12r; then
+            cleanup_verified=false
+          fi
+          export cleanup_verified
+          python - <<PY
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          artifacts = Path("work/p12r/artifacts")
+          cleanup_verified = os.environ.get("cleanup_verified", "false") == "true"
+          payload = {
+              "valid": cleanup_verified,
+              "runtime": True,
+              "runtime_not_claimed": not cleanup_verified,
+              "cleanup_verified": cleanup_verified,
+              "namespace": "${namespace}",
+              "kind_cluster": "vulnlab-p12r",
+              "private_files_removed": not Path("work/p12r/private").exists(),
+              "checked_at": datetime.now(UTC).isoformat(),
+          }
+          (artifacts / "cleanup-result.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          readiness_path = artifacts / "production-readiness-result.json"
+          readiness = {}
+          if readiness_path.is_file():
+              readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+          source_commit = readiness.get("source_commit") or subprocess.check_output(
+              ["git", "rev-parse", "HEAD"],
+              text=True,
+          ).strip()
+          entries = []
+          for path in sorted(artifacts.rglob("*")):
+              if path.is_file() and path.name != "artifact-manifest.json":
+                  entries.append({
+                      "path": str(path.relative_to(artifacts)).replace("\\", "/"),
+                      "size": path.stat().st_size,
+                      "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                  })
+          manifest = {
+              "schema_version": 1,
+              "source_commit": source_commit,
+              "github_run_id": os.getenv("GITHUB_RUN_ID"),
+              "github_sha": os.getenv("GITHUB_SHA"),
+              "runtime": True,
+              "runtime_not_claimed": readiness.get("runtime_not_claimed", not cleanup_verified),
+              "production_ready": readiness.get("production_ready", False),
+              "critical_gates_failed": readiness.get("critical_gates_failed", 1),
+              "artifacts": entries,
+              "created_at": datetime.now(UTC).isoformat(),
+          }
+          (artifacts / "artifact-manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          PY
       - name: Upload P12-R runtime reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -677,9 +815,6 @@ jobs:
           path: work/p12r/artifacts/**
           if-no-files-found: warn
           retention-days: 30
-      - name: Destroy isolated kind cluster
-        if: always()
-        run: kind delete cluster --name vulnlab-p12r || true
 
   delivery-static:
     name: Delivery manifests and scripts

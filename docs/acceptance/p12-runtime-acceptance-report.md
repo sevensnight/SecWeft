@@ -80,17 +80,28 @@ workflow_dispatch:
   confirm_isolated_runtime=RUN_P12_ISOLATED_RUNTIME
 ```
 
-The job uses Ubuntu 24.04, Docker, kind, kubectl, Helm, Python 3.11, Node.js, and pnpm. It creates an isolated kind cluster, builds project images, loads them into kind, writes private runtime Helm values outside the artifact directory, runs P12 scale/DR/chaos runtime entry points, reruns P9-P12 deterministic baselines, collects Kubernetes diagnostics, uploads sanitized artifacts, and destroys kind in an `always()` cleanup step.
+The job uses Ubuntu 24.04, Docker, kind, kubectl, Helm, Python 3.11, Node.js, and pnpm. It creates an isolated kind cluster, generates a unique namespace, builds project images, loads them into kind, generates run-scoped credentials, creates the runtime Kubernetes Secret, deploys ephemeral PostgreSQL/NATS JetStream/MinIO/training-lab dependencies, writes private runtime Helm values outside the artifact directory, runs P12 scale/DR/chaos runtime entry points, reruns P9-P12 deterministic baselines, collects Kubernetes diagnostics, uploads sanitized artifacts, and destroys kind in an `always()` cleanup step.
+
+`P12R_RUNTIME_VALUES_B64` is optional. When present, it may only provide non-secret, non-production Helm value overrides. The default path uses `infrastructure/kubernetes/acceptance/p12r/runtime-values.yaml` plus run-scoped image tags and generated Kubernetes Secret material.
 
 Required sanitized artifacts:
 
 - `scale-runtime-result.json`
+- `runtime-inputs-result.json`
+- `dependency-readiness-result.json`
+- `helm-lint-result.json`
+- `helm-template-result.json`
+- `helm-install-result.json`
+- `migration-result.json`
 - `dr-backup-result.json`
 - `dr-restore-result.json`
 - `chaos-runtime-result.json`
 - `environment-fingerprint.json`
 - `rpo-rto-result.json`
 - `evidence-consistency-result.json`
+- `artifact-secret-scan-result.json`
+- `artifact-manifest.json`
+- `cleanup-result.json`
 - `helm-status.txt`
 - `kubectl-events.txt`
 - `pod-logs/`

@@ -54,9 +54,47 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "vulnlab.fullname" . }}-control-plane
-            - secretRef:
-                name: {{ include "vulnlab.secretName" . }}
           env:
+            - name: VULNLAB_ADMIN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: VULNLAB_ADMIN_KEY
+            - name: VULNLAB_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: VULNLAB_MASTER_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: DATABASE_URL
+            - name: VULNLAB_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: VULNLAB_DATABASE_URL
+            - name: VULNLAB_NATS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: VULNLAB_NATS_URL
+            - name: VULNLAB_MINIO_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: VULNLAB_MINIO_ENDPOINT
+            - name: VULNLAB_MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: VULNLAB_MINIO_ACCESS_KEY
+            - name: VULNLAB_MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulnlab.secretName" . }}
+                  key: VULNLAB_MINIO_SECRET_KEY
             - name: VULNLAB_CONTROL_PLANE_INSTANCE_ID
               valueFrom:
                 fieldRef:
