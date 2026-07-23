@@ -74,7 +74,7 @@ jobs:
           python -m pytest -q -p no:cacheprovider tests/integration/test_p1_enterprise_api.py
       - name: Upload Python test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-test-results
           path: work/test-results/python.xml
@@ -104,7 +104,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - name: Upload console bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-console-dist
           path: apps/web-console/dist
@@ -259,7 +259,7 @@ jobs:
           PY
       - name: Upload P12-R precondition reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: p12r-runtime-precondition-reports
           path: work/p12r/*.json
@@ -809,7 +809,7 @@ jobs:
           PY
       - name: Upload P12-R runtime reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: p12r-runtime-reports
           path: work/p12r/artifacts/**
@@ -867,7 +867,7 @@ jobs:
             > work/rendered-vulnlab-platform.yaml
           test -s work/rendered-vulnlab-platform.yaml
       - name: Upload rendered Kubernetes manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rendered-kubernetes-manifest
           path: work/rendered-vulnlab-platform.yaml
@@ -915,7 +915,7 @@ jobs:
           exit-code: "1"
       - name: Upload SBOM
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: repository-sbom
           path: work/sbom.cdx.json
