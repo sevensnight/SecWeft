@@ -17,7 +17,7 @@
     "check:bundle": "pnpm --filter @vulnlab/web-console check:bundle"
   },
   "devDependencies": {
-    "turbo": "2.10.4"
+    "turbo": "2.10.6"
   },
   "pnpm": {
     "overrides": {
