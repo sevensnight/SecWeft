@@ -36,6 +36,37 @@ class _CapturingNatsQueue(NatsJetStreamValidationQueue):
         self.published.append({"subject": subject, "payload": payload, "headers": headers})
 
 
+class _TimeoutNatsQueue(NatsJetStreamValidationQueue):
+    async def _ensure_stream(self, js: Any) -> None:
+        return None
+
+    async def _connect(self) -> tuple[Any, Any]:
+        class _Connection:
+            def __init__(self) -> None:
+                self.closed = False
+
+            async def close(self) -> None:
+                self.closed = True
+
+        class _Subscription:
+            async def fetch(self, count: int, *, timeout: float) -> list[Any]:
+                from nats.errors import TimeoutError as NatsTimeoutError
+
+                raise NatsTimeoutError
+
+        class _JetStream:
+            async def pull_subscribe(
+                self,
+                subject: str,
+                *,
+                durable: str,
+                stream: str,
+            ) -> _Subscription:
+                return _Subscription()
+
+        return _Connection(), _JetStream()
+
+
 def _http_plan_payload() -> dict[str, Any]:
     return {
         "objectives": ["Confirm approved HTTP response characteristics"],
@@ -165,6 +196,21 @@ def test_p9r_nats_dispatcher_publishes_outbox_headers_and_marks_row(
     assert row["published_at"] is not None
     assert row["publish_attempt"] == 1
     assert row["last_publish_error"] is None
+
+
+def test_p9r_nats_fetch_timeout_is_empty_queue_not_worker_crash(
+    settings: Any,
+    client: Any,
+) -> None:
+    services = client.app.state.services
+    nats_settings = replace(
+        settings,
+        validation_queue_backend="nats",
+        nats_url="nats://unit-test:4222",
+    )
+    queue = _TimeoutNatsQueue(services.db, nats_settings)
+
+    assert queue.consume_once("worker-timeout") is None
 
 
 def test_p9r_duplicate_message_after_completion_does_not_duplicate_execution(
