@@ -1,0 +1,61 @@
+global:
+  imagePullPolicy: Never
+
+controlPlane:
+  environment: test
+  authMode: compatibility
+  executionMode: docker
+  repositoryBackend: postgres
+  repositorySchema: compat
+  validationQueueBackend: nats
+  validationSandboxBackend: docker
+  validationSandboxNetwork: vulnlab-authorized-lab
+  evidenceStoreBackend: minio
+  legacyExecutionEnabled: false
+  allowedHosts: p12r-training-lab,p12r-training-lab.vulnlab.svc.cluster.local
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 65
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+validationWorker:
+  enabled: true
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 65
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+runtimeSecrets:
+  existingSecret: vulnlab-platform-secrets
+
+trainingLab:
+  endpoint: http://p12r-training-lab:8080
+
+nats:
+  stream: VALIDATION_EXECUTIONS
+  subject: validation.executions.requested
+  durable: validation-worker
+  fetchTimeoutSeconds: 5
+
+minio:
+  bucket: validation-evidence
+  secure: false
+
+networkPolicy:
+  enabled: true
+
+backup:
+  enabled: true
+
+restore:
+  enabled: false

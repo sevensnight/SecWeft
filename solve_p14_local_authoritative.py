@@ -369,7 +369,7 @@ def runtime_values(run_id: str, namespace: str, image_tag: str, path: Path) -> N
                 "    repository: vulnlab/control-plane",
                 f"    tag: {image_tag}",
                 "  environment: test",
-                "  authMode: api_key",
+                "  authMode: compatibility",
                 "  repositoryBackend: postgres",
                 "  validationQueueBackend: nats",
                 "  validationSandboxBackend: docker",

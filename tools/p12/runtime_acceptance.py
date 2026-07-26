@@ -7,8 +7,10 @@ import shutil
 import subprocess
 import sys
 from datetime import UTC, datetime
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -130,6 +132,46 @@ def _unsafe_endpoint(value: str | None) -> bool:
     return any(marker in lowered for marker in ("prod", "production", "amazonaws.com", "rds."))
 
 
+def _endpoint_host(value: str | None) -> str | None:
+    if not value:
+        return None
+    candidate = value
+    if "://" not in candidate:
+        candidate = f"tcp://{candidate}"
+    parsed = urlparse(candidate)
+    return parsed.hostname
+
+
+def _localhost_endpoint(value: str | None) -> bool:
+    host = _endpoint_host(value)
+    return bool(host and host.lower() in {"localhost", "127.0.0.1", "0.0.0.0", "::1"})
+
+
+def _public_ip_endpoint(value: str | None) -> bool:
+    host = _endpoint_host(value)
+    if not host:
+        return False
+    try:
+        parsed = ip_address(host)
+    except ValueError:
+        return False
+    return not (
+        parsed.is_private
+        or parsed.is_loopback
+        or parsed.is_link_local
+        or parsed.is_reserved
+        or parsed.is_multicast
+    )
+
+
+def _in_cluster_service_endpoint(value: str | None, service: str) -> bool:
+    host = _endpoint_host(value)
+    if not host:
+        return False
+    host = host.lower()
+    return host == service or host.startswith(f"{service}.") and ".svc" in host
+
+
 def _first_env(*names: str) -> tuple[str, str | None]:
     for name in names:
         value = os.getenv(name)
@@ -138,14 +180,70 @@ def _first_env(*names: str) -> tuple[str, str | None]:
     return names[0], None
 
 
+def _runtime_secret_report(namespace: str | None, secret_name: str | None) -> dict[str, Any]:
+    required = [
+        "VULNLAB_ADMIN_KEY",
+        "VULNLAB_MASTER_KEY",
+        "DATABASE_URL",
+        "VULNLAB_DATABASE_URL",
+        "VULNLAB_NATS_URL",
+        "VULNLAB_MINIO_ENDPOINT",
+        "VULNLAB_MINIO_ACCESS_KEY",
+        "VULNLAB_MINIO_SECRET_KEY",
+    ]
+    if not namespace or not secret_name or shutil.which("kubectl") is None:
+        return {
+            "checked": False,
+            "secret_name": secret_name,
+            "required_keys": required,
+            "missing_keys": required,
+        }
+    completed = run_command(
+        ["kubectl", "get", "secret", secret_name, "-n", namespace, "-o", "json"],
+        timeout_seconds=30,
+    )
+    if completed.returncode != 0:
+        return {
+            "checked": True,
+            "present": False,
+            "secret_name": secret_name,
+            "required_keys": required,
+            "missing_keys": required,
+            "error": "secret_not_found",
+            "output": completed.stdout[-1000:],
+        }
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        return {
+            "checked": True,
+            "present": False,
+            "secret_name": secret_name,
+            "required_keys": required,
+            "missing_keys": required,
+            "error": f"invalid_secret_json:{exc}",
+        }
+    data = payload.get("data", {})
+    missing = [key for key in required if key not in data]
+    return {
+        "checked": True,
+        "present": True,
+        "secret_name": secret_name,
+        "required_keys": required,
+        "missing_keys": missing,
+    }
+
+
 def require_isolated_runtime(*, chaos: bool = False) -> tuple[bool, dict[str, Any]]:
     errors: list[str] = []
     environment = os.getenv("ENVIRONMENT", "").lower()
     vulnlab_env = os.getenv("VULNLAB_ENV", "").lower()
     p12_runtime_env = os.getenv("P12R_RUNTIME_ENV", "").lower()
+    run_id = os.getenv("P12R_RUNTIME_RUN_ID")
     runtime_acceptance = os.getenv("P12_RUNTIME_ACCEPTANCE", "").lower()
     marker = os.getenv("P12R_TEST_CLUSTER_MARKER") or os.getenv("VULNLAB_P12_TEST_CLUSTER_MARKER")
     namespace = os.getenv("P12R_RUNTIME_NAMESPACE") or os.getenv("VULNLAB_KUBERNETES_NAMESPACE")
+    secret_name = os.getenv("P12R_RUNTIME_SECRET_NAME", "vulnlab-platform-secrets")
     current_context = _current_kubernetes_context()
     ephemeral_label = (
         _cluster_ephemeral_label() if current_context else {"checked": False, "present": False}
@@ -154,6 +252,8 @@ def require_isolated_runtime(*, chaos: bool = False) -> tuple[bool, dict[str, An
         "DATABASE_URL", "VULNLAB_DATABASE_URL", "POSTGRES_HOST"
     )
     minio_endpoint_name, minio_endpoint = _first_env("VULNLAB_MINIO_ENDPOINT", "MINIO_ENDPOINT")
+    nats_endpoint_name, nats_endpoint = _first_env("VULNLAB_NATS_URL", "NATS_URL")
+    training_lab_name, training_lab = _first_env("VULNLAB_TRAINING_LAB_ENDPOINT")
     domain_name, domain = _first_env(
         "VULNLAB_ALLOWED_HOSTS",
         "VULNLAB_PUBLIC_BASE_URL",
@@ -183,16 +283,59 @@ def require_isolated_runtime(*, chaos: bool = False) -> tuple[bool, dict[str, An
         errors.append("P12R_RUNTIME_NAMESPACE or VULNLAB_KUBERNETES_NAMESPACE is required")
     if namespace and namespace.lower() in {"prod", "production", "default", "kube-system"}:
         errors.append(f"production or shared namespace is refused: {namespace}")
+    if namespace and run_id and run_id.lower() not in namespace.lower():
+        errors.append("P12R runtime namespace must include the unique run id")
     if not db_endpoint:
         errors.append("DATABASE_URL, VULNLAB_DATABASE_URL, or POSTGRES_HOST is required")
     elif _unsafe_endpoint(db_endpoint):
         errors.append(f"production-like database endpoint is refused from {db_endpoint_name}")
+    elif _localhost_endpoint(db_endpoint) or _public_ip_endpoint(db_endpoint):
+        errors.append(
+            f"database endpoint must not be localhost or public IP from {db_endpoint_name}"
+        )
+    elif not _in_cluster_service_endpoint(db_endpoint, "postgres"):
+        errors.append(
+            f"database endpoint must be an in-cluster postgres Service from {db_endpoint_name}"
+        )
+    if not nats_endpoint:
+        errors.append("VULNLAB_NATS_URL or NATS_URL is required")
+    elif _unsafe_endpoint(nats_endpoint):
+        errors.append(f"production-like NATS endpoint is refused from {nats_endpoint_name}")
+    elif _localhost_endpoint(nats_endpoint) or _public_ip_endpoint(nats_endpoint):
+        errors.append(f"NATS endpoint must not be localhost or public IP from {nats_endpoint_name}")
+    elif not _in_cluster_service_endpoint(nats_endpoint, "nats"):
+        errors.append(f"NATS endpoint must be an in-cluster nats Service from {nats_endpoint_name}")
     if not minio_endpoint:
         errors.append("VULNLAB_MINIO_ENDPOINT or MINIO_ENDPOINT is required")
     elif _unsafe_endpoint(minio_endpoint):
         errors.append(f"production-like MinIO endpoint is refused from {minio_endpoint_name}")
+    elif _localhost_endpoint(minio_endpoint) or _public_ip_endpoint(minio_endpoint):
+        errors.append(
+            f"MinIO endpoint must not be localhost or public IP from {minio_endpoint_name}"
+        )
+    elif not _in_cluster_service_endpoint(minio_endpoint, "minio"):
+        errors.append(
+            f"MinIO endpoint must be an in-cluster minio Service from {minio_endpoint_name}"
+        )
+    if not training_lab:
+        errors.append("VULNLAB_TRAINING_LAB_ENDPOINT is required")
+    elif _unsafe_endpoint(training_lab):
+        errors.append(f"production-like training-lab endpoint is refused from {training_lab_name}")
+    elif _localhost_endpoint(training_lab) or _public_ip_endpoint(training_lab):
+        errors.append(
+            f"training-lab endpoint must not be localhost or public IP from {training_lab_name}"
+        )
+    elif not _in_cluster_service_endpoint(training_lab, "p12r-training-lab"):
+        errors.append(
+            f"training-lab endpoint must be an in-cluster p12r-training-lab Service from {training_lab_name}"
+        )
     if domain and _unsafe_endpoint(domain):
         errors.append(f"production-like domain is refused from {domain_name}")
+    if domain and (_localhost_endpoint(domain) or "localhost" in domain or "127.0.0.1" in domain):
+        errors.append(f"localhost domain is refused from {domain_name}")
+    secret_report = _runtime_secret_report(namespace, secret_name)
+    if secret_report.get("missing_keys"):
+        errors.append("runtime Kubernetes Secret is missing required keys")
     if chaos:
         if os.getenv("CHAOS_ENABLED", "").lower() != "true":
             errors.append("CHAOS_ENABLED=true is required")
@@ -202,13 +345,17 @@ def require_isolated_runtime(*, chaos: bool = False) -> tuple[bool, dict[str, An
         "environment": environment or None,
         "vulnlab_env": vulnlab_env or None,
         "p12_runtime_env": p12_runtime_env or None,
+        "run_id": run_id,
         "p12_runtime_acceptance": runtime_acceptance or None,
         "test_cluster_marker": marker,
         "namespace": namespace,
         "kubernetes_context": current_context,
         "ephemeral_cluster_label": ephemeral_label,
         "database_endpoint_env": db_endpoint_name if db_endpoint else None,
+        "nats_endpoint_env": nats_endpoint_name if nats_endpoint else None,
         "minio_endpoint_env": minio_endpoint_name if minio_endpoint else None,
+        "training_lab_endpoint_env": training_lab_name if training_lab else None,
+        "runtime_secret": secret_report,
         "domain_env": domain_name if domain else None,
         "chaos_enabled": os.getenv("CHAOS_ENABLED"),
         "errors": errors,

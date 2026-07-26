@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "vulnlab-platform Helm values",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "controlPlane": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "environment": {
+          "type": "string",
+          "enum": ["development", "test", "staging", "production", "prod"]
+        },
+        "authMode": {
+          "type": "string",
+          "enum": ["compatibility", "oidc"]
+        },
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "repositoryBackend": {
+          "type": "string",
+          "enum": ["sqlite", "postgres"]
+        },
+        "validationQueueBackend": {
+          "type": "string",
+          "enum": ["sqlite", "nats"]
+        },
+        "validationSandboxBackend": {
+          "type": "string",
+          "enum": ["inprocess", "docker"]
+        },
+        "evidenceStoreBackend": {
+          "type": "string",
+          "enum": ["filesystem", "minio"]
+        },
+        "autoscaling": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "minReplicas": {"type": "integer", "minimum": 1},
+            "maxReplicas": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "validationWorker": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "replicaCount": {"type": "integer", "minimum": 1},
+        "autoscaling": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "minReplicas": {"type": "integer", "minimum": 1},
+            "maxReplicas": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "runtimeSecrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "existingSecret": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        }
+      }
+    },
+    "trainingLab": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        }
+      }
+    },
+    "nats": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "stream": {"type": "string", "minLength": 1},
+        "subject": {"type": "string", "minLength": 1},
+        "durable": {"type": "string", "minLength": 1},
+        "fetchTimeoutSeconds": {"type": "number", "minimum": 0.1}
+      }
+    },
+    "minio": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "bucket": {"type": "string", "minLength": 1},
+        "secure": {"type": "boolean"}
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "create": {"type": "boolean"},
+        "existingSecret": {"type": "string"},
+        "adminKey": {"type": "string"},
+        "masterKey": {"type": "string"}
+      }
+    }
+  }
+}

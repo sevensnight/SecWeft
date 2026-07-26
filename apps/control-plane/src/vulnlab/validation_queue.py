@@ -369,6 +369,7 @@ class NatsJetStreamValidationQueue:
         }
 
     async def _fetch_nats_message(self) -> tuple[Any | None, Any | None]:
+        from nats.errors import TimeoutError as NatsTimeoutError
         from nats.js.errors import FetchTimeoutError
 
         nc, js = await self._connect()
@@ -380,7 +381,7 @@ class NatsJetStreamValidationQueue:
         )
         try:
             messages = await sub.fetch(1, timeout=self.settings.nats_fetch_timeout_seconds)
-        except FetchTimeoutError:
+        except (FetchTimeoutError, NatsTimeoutError):
             await nc.close()
             return None, None
         if not messages:
