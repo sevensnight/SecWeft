@@ -38,9 +38,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "vulnlab.secretName" -}}
-{{- if .Values.secrets.create }}
+{{- if .Values.runtimeSecrets.existingSecret }}
+{{- .Values.runtimeSecrets.existingSecret }}
+{{- else if .Values.secrets.create }}
 {{- printf "%s-runtime" (include "vulnlab.fullname" .) }}
 {{- else }}
-{{- required "secrets.existingSecret is required when secrets.create=false" .Values.secrets.existingSecret }}
+{{- required "runtimeSecrets.existingSecret or secrets.existingSecret is required" .Values.secrets.existingSecret }}
 {{- end }}
 {{- end }}

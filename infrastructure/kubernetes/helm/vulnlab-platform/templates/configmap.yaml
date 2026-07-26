@@ -25,6 +25,7 @@ data:
   VULNLAB_EVIDENCE_STORE_BACKEND: {{ .Values.controlPlane.evidenceStoreBackend | quote }}
   VULNLAB_MINIO_BUCKET: {{ .Values.minio.bucket | quote }}
   VULNLAB_MINIO_SECURE: {{ .Values.minio.secure | quote }}
+  VULNLAB_TRAINING_LAB_ENDPOINT: {{ .Values.trainingLab.endpoint | quote }}
   VULNLAB_LEGACY_EXECUTION_ENABLED: {{ .Values.controlPlane.legacyExecutionEnabled | quote }}
   VULNLAB_ALLOWED_HOSTS: {{ .Values.controlPlane.allowedHosts | quote }}
   VULNLAB_ALLOWED_PORTS: {{ .Values.controlPlane.allowedPorts | quote }}

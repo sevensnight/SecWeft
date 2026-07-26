@@ -4,15 +4,21 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
+import base64
 import json
+import os
 import shutil
+import socket
 import subprocess
 import sys
 import time
+import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
@@ -169,6 +175,247 @@ def _delete_component_pod(
     }
 
 
+def _free_local_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _wait_tcp(port: int, *, timeout_seconds: float = 20) -> None:
+    deadline = time.time() + timeout_seconds
+    last_error: Exception | None = None
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=1):
+                return
+        except OSError as exc:
+            last_error = exc
+            time.sleep(0.2)
+    raise RuntimeError(f"port-forward did not become ready: {last_error}")
+
+
+def _runtime_secret(namespace: str) -> dict[str, str]:
+    secret_name = os.getenv("P12R_RUNTIME_SECRET_NAME", "vulnlab-platform-secrets")
+    completed = _run(
+        ["kubectl", "get", "secret", secret_name, "-n", namespace, "-o", "json"],
+        timeout_seconds=60,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stdout[-1000:])
+    data = json.loads(completed.stdout).get("data", {})
+    return {
+        key: base64.b64decode(value).decode("utf-8")
+        for key, value in data.items()
+        if key in {"VULNLAB_NATS_URL"}
+    }
+
+
+def _port_forward_nats(namespace: str) -> tuple[subprocess.Popen[str], str]:
+    local_port = _free_local_port()
+    process = subprocess.Popen(
+        [
+            "kubectl",
+            "port-forward",
+            "svc/nats",
+            f"{local_port}:4222",
+            "-n",
+            namespace,
+        ],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    try:
+        _wait_tcp(local_port)
+    except Exception:
+        process.terminate()
+        raise
+    nats_url = _runtime_secret(namespace)["VULNLAB_NATS_URL"]
+    parsed = urlparse(nats_url)
+    replacement = parsed._replace(
+        netloc=f"{parsed.username}:{parsed.password}@127.0.0.1:{local_port}"
+    )
+    return process, urlunparse(replacement)
+
+
+def _runtime_timeout_job(namespace: str) -> tuple[str, dict[str, Any]]:
+    image_probe = _kubectl_json(
+        [
+            "kubectl",
+            "get",
+            "deployment",
+            "p12-vulnlab-platform-validation-worker",
+            "-n",
+            namespace,
+            "-o",
+            "json",
+        ]
+    )
+    if not image_probe["ok"]:
+        return "FAIL", {"runtime_executed": False, "errors": ["worker_image_lookup_failed"]}
+    image = image_probe["json"]["spec"]["template"]["spec"]["containers"][0]["image"]
+    job_name = f"p12r-timeout-{uuid.uuid4().hex[:8]}"
+    manifest = {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "metadata": {"name": job_name, "namespace": namespace},
+        "spec": {
+            "activeDeadlineSeconds": 2,
+            "backoffLimit": 0,
+            "template": {
+                "spec": {
+                    "restartPolicy": "Never",
+                    "containers": [
+                        {
+                            "name": "timeout",
+                            "image": image,
+                            "command": ["python", "-c", "import time; time.sleep(30)"],
+                        }
+                    ],
+                }
+            },
+        },
+    }
+    create = subprocess.run(
+        ["kubectl", "apply", "-f", "-"],
+        cwd=ROOT,
+        input=json.dumps(manifest),
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+        timeout=60,
+    )
+    failed = _run(
+        [
+            "kubectl",
+            "wait",
+            "--for=condition=failed",
+            f"job/{job_name}",
+            "-n",
+            namespace,
+            "--timeout=60s",
+        ],
+        timeout_seconds=90,
+    )
+    delete = _run(
+        ["kubectl", "delete", "job", job_name, "-n", namespace, "--ignore-not-found=true"],
+        timeout_seconds=60,
+    )
+    ok = create.returncode == 0 and failed.returncode == 0 and delete.returncode == 0
+    return ("PASS" if ok else "FAIL"), {
+        "runtime_executed": True,
+        "target": "sandbox-timeout",
+        "job": job_name,
+        "image": image,
+        "deadline_seconds": 2,
+        "create_returncode": create.returncode,
+        "wait_failed_returncode": failed.returncode,
+        "delete_returncode": delete.returncode,
+        "errors": [] if ok else ["timeout_job_did_not_fail_closed"],
+    }
+
+
+async def _nats_duplicate_probe(nats_url: str) -> dict[str, Any]:
+    import nats
+    from nats.js.api import StorageType, StreamConfig
+
+    nc = await nats.connect(nats_url)
+    js = nc.jetstream()
+    suffix = uuid.uuid4().hex
+    stream = f"P12R_DUP_{suffix}"
+    subject = f"p12r.duplicate.{suffix}"
+    await js.add_stream(
+        config=StreamConfig(
+            name=stream,
+            subjects=[subject],
+            storage=StorageType.MEMORY,
+            duplicate_window=120,
+        )
+    )
+    msg_id = f"p12r-duplicate-{suffix}"
+    first = await js.publish(subject, b'{"runtime":"duplicate"}', headers={"Nats-Msg-Id": msg_id})
+    second = await js.publish(subject, b'{"runtime":"duplicate"}', headers={"Nats-Msg-Id": msg_id})
+    info = await js.stream_info(stream)
+    await js.delete_stream(stream)
+    await nc.close()
+    return {
+        "first_duplicate": bool(getattr(first, "duplicate", False)),
+        "second_duplicate": bool(getattr(second, "duplicate", False)),
+        "messages": int(info.state.messages),
+    }
+
+
+async def _nats_poison_probe(nats_url: str) -> dict[str, Any]:
+    import nats
+    from nats.js.api import AckPolicy, ConsumerConfig, StorageType, StreamConfig
+
+    nc = await nats.connect(nats_url)
+    js = nc.jetstream()
+    suffix = uuid.uuid4().hex
+    stream = f"P12R_POISON_{suffix}"
+    subject = f"p12r.poison.{suffix}"
+    durable = f"p12r-poison-{suffix[:8]}"
+    await js.add_stream(
+        config=StreamConfig(name=stream, subjects=[subject], storage=StorageType.MEMORY)
+    )
+    await js.add_consumer(
+        stream,
+        config=ConsumerConfig(durable_name=durable, ack_policy=AckPolicy.EXPLICIT, max_deliver=1),
+    )
+    await js.publish(subject, b"{not-json", headers={"Nats-Msg-Id": f"p12r-poison-{suffix}"})
+    sub = await js.pull_subscribe(subject, durable=durable, stream=stream)
+    poison = (await sub.fetch(1, timeout=5))[0]
+    await poison.term()
+    await js.publish(subject, b'{"replay":true}', headers={"Nats-Msg-Id": f"p12r-replay-{suffix}"})
+    replay = (await sub.fetch(1, timeout=5))[0]
+    await replay.ack()
+    info = await js.consumer_info(stream, durable)
+    await js.delete_stream(stream)
+    await nc.close()
+    return {
+        "poison_terminated": True,
+        "manual_replay_acked": True,
+        "num_redelivered": int(info.num_redelivered),
+    }
+
+
+def _runtime_nats_probe(namespace: str, target: str) -> tuple[str, dict[str, Any]]:
+    process: subprocess.Popen[str] | None = None
+    try:
+        process, nats_url = _port_forward_nats(namespace)
+        if target == "duplicate-message":
+            details = asyncio.run(_nats_duplicate_probe(nats_url))
+            ok = details["second_duplicate"] is True and details["messages"] == 1
+        else:
+            details = asyncio.run(_nats_poison_probe(nats_url))
+            ok = details["poison_terminated"] and details["manual_replay_acked"]
+        return ("PASS" if ok else "FAIL"), {
+            "runtime_executed": True,
+            "target": target,
+            "details": details,
+            "errors": [] if ok else [f"{target}_probe_failed"],
+        }
+    except Exception as exc:
+        return "FAIL", {
+            "runtime_executed": True,
+            "target": target,
+            "errors": [f"{type(exc).__name__}: {exc}"],
+        }
+    finally:
+        if process is not None:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+
+
 def _runtime_guard(target: str | None, namespace: str) -> tuple[str, dict[str, Any]]:
     isolation_ok, isolation = require_isolated_runtime(chaos=True)
     if not isolation_ok:
@@ -200,6 +447,10 @@ def _runtime_guard(target: str | None, namespace: str) -> tuple[str, dict[str, A
     }
     if target in pod_targets:
         return _delete_component_pod(namespace, target=target, selector=pod_targets[target])
+    if target == "sandbox-timeout":
+        return _runtime_timeout_job(namespace)
+    if target in {"duplicate-message", "poison-message"}:
+        return _runtime_nats_probe(namespace, target)
     return "FAIL", {
         "runtime_executed": False,
         "target": target,
