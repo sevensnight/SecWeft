@@ -1,8 +1,8 @@
 # Known Limitations
 
-- Authoritative GitHub/Linux isolated runtime artifacts were not available in this workspace during P14.
-- `production_ready` remains `false` while `runtime_not_claimed=true`.
-- Candidate delivery packages can be generated for review; formal delivery packages require all critical production gates.
+- Production readiness is accepted only for the GitHub Actions isolated Linux runtime evidence from run `30195998389` and source commit `59efe16144563f57033724c00ea70cfe895ba890`.
+- Runtime images were built and loaded into an ephemeral kind cluster for acceptance. They were not pushed to an external production registry by this workflow.
 - Compliance mapping is not certification.
 - P14 does not add new validation templates, scanners, PoC upload, or arbitrary command execution.
 - Unsupported cross-version upgrades must not be claimed as tested.
+- Future maintenance releases must preserve fail-closed behavior when authoritative runtime artifacts are absent or source commits do not match.
