@@ -55,6 +55,15 @@ def test_p12r_chart_uses_explicit_secret_key_refs() -> None:
         assert f"key: {key}" in combined
 
 
+def test_p12r_chart_sets_initial_replicas_even_with_hpa() -> None:
+    control_plane = (CHART / "templates/deployment-control-plane.yaml").read_text(encoding="utf-8")
+    worker = (CHART / "templates/deployment-validation-worker.yaml").read_text(encoding="utf-8")
+    assert "replicas: {{ .Values.controlPlane.replicaCount }}" in control_plane
+    assert "replicas: {{ .Values.validationWorker.replicaCount }}" in worker
+    assert "if not .Values.controlPlane.autoscaling.enabled" not in control_plane
+    assert "if not .Values.validationWorker.autoscaling.enabled" not in worker
+
+
 def test_p12r_workflow_no_longer_requires_values_secret() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "P12R_RUNTIME_VALUES_B64 must contain" not in workflow

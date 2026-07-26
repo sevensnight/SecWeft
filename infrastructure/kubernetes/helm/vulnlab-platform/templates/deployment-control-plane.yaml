@@ -6,9 +6,7 @@ metadata:
     {{- include "vulnlab.labels" . | nindent 4 }}
     app.kubernetes.io/component: control-plane
 spec:
-  {{- if not .Values.controlPlane.autoscaling.enabled }}
   replicas: {{ .Values.controlPlane.replicaCount }}
-  {{- end }}
   strategy:
     type: RollingUpdate
     rollingUpdate:

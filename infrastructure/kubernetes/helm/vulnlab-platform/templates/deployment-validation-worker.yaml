@@ -7,9 +7,7 @@ metadata:
     {{- include "vulnlab.labels" . | nindent 4 }}
     app.kubernetes.io/component: validation-worker
 spec:
-  {{- if not .Values.validationWorker.autoscaling.enabled }}
   replicas: {{ .Values.validationWorker.replicaCount }}
-  {{- end }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
