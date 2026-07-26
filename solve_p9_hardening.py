@@ -146,18 +146,65 @@ def _postgres_check(name: str, behaviors: list[str]) -> tuple[str, dict[str, Any
 
 
 _RUNTIME_RESULT: dict[str, Any] | None = None
+_RUNTIME_ERROR: dict[str, Any] | None = None
 
 
 def _runtime() -> dict[str, Any]:
-    global _RUNTIME_RESULT
+    global _RUNTIME_ERROR, _RUNTIME_RESULT
     if _RUNTIME_RESULT is not None:
         return _RUNTIME_RESULT
-    _RUNTIME_RESULT = _run_json([sys.executable, "solve_p9_runtime.py"], phase="P9-R")
-    return _RUNTIME_RESULT
+    if _RUNTIME_ERROR is not None:
+        return _RUNTIME_ERROR
+    completed = _run([sys.executable, "solve_p9_runtime.py"], timeout_seconds=900)
+    objects = _json_objects(completed.stdout)
+    selected = next((item for item in reversed(objects) if item.get("phase") == "P9-R"), None)
+    if selected is not None:
+        _RUNTIME_RESULT = selected
+        return _RUNTIME_RESULT
+    _RUNTIME_ERROR = {
+        "phase": "P9-R",
+        "valid": False,
+        "summary": {"total": 1, "passed": 0, "failed": 1},
+        "checks": [
+            {
+                "name": "p9r_runtime_runner",
+                "status": "FAIL",
+                "details": {
+                    "command": "python solve_p9_runtime.py",
+                    "returncode": completed.returncode,
+                    "output_tail": completed.stdout[-4000:],
+                },
+            }
+        ],
+    }
+    return _RUNTIME_ERROR
+
+
+def _runtime_startup_failure(result: dict[str, Any]) -> dict[str, Any] | None:
+    for check in result.get("checks", []):
+        if (
+            check.get("name")
+            in {
+                "p9r_runtime_environment_startup",
+                "p9r_runtime_runner",
+            }
+            and check.get("status") != "PASS"
+        ):
+            return check
+    return None
 
 
 def _runtime_check(name: str, required_check_names: list[str]) -> tuple[str, dict[str, Any]]:
     result = _runtime()
+    startup_failure = _runtime_startup_failure(result)
+    if startup_failure is not None:
+        return "BLOCKED_BY_DEPENDENCY", {
+            "runtime_valid": result.get("valid"),
+            "required_checks": required_check_names,
+            "blocked_by": startup_failure.get("name"),
+            "blocked_reason": startup_failure.get("details", {}),
+            "summary": result.get("summary", {}),
+        }
     checks = {item["name"]: item for item in result.get("checks", [])}
     missing = [item for item in required_check_names if item not in checks]
     failed = [
@@ -264,11 +311,12 @@ def main() -> int:
         "passed": sum(1 for check in checks if check.status == "PASS"),
         "failed": sum(1 for check in checks if check.status == "FAIL"),
         "skipped": sum(1 for check in checks if check.status == "SKIP"),
+        "blocked": sum(1 for check in checks if check.status == "BLOCKED_BY_DEPENDENCY"),
     }
     report = {
         "phase": "P9-H",
         "target_version": "2.9.1-p9h",
-        "valid": summary["failed"] == 0 and summary["skipped"] == 0,
+        "valid": summary["failed"] == 0 and summary["skipped"] == 0 and summary["blocked"] == 0,
         "summary": summary,
         "checks": [asdict(check) for check in checks],
     }

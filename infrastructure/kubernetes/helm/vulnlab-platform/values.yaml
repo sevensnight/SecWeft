@@ -157,6 +157,12 @@ minio:
   bucket: validation-evidence
   secure: false
 
+trainingLab:
+  endpoint: ""
+
+runtimeSecrets:
+  existingSecret: vulnlab-platform-secrets
+
 backup:
   enabled: true
   schedule: "*/15 * * * *"
@@ -182,6 +188,8 @@ restore:
       memory: 512Mi
 
 secrets:
+  # Legacy compatibility for charts that create only admin/master test secrets.
+  # Production and P12-R runtime should use runtimeSecrets.existingSecret.
   create: false
   existingSecret: vulnlab-platform-secrets
   adminKey: ""

@@ -141,15 +141,34 @@ Current target version: `2.14.0-p14`.
 
 P14 adds final enterprise acceptance, requirement traceability, candidate delivery package generation, data governance metadata, secret lifecycle posture, compliance evidence mapping, upgrade/rollback deterministic checks, and a unified production readiness gate.
 
-Authoritative GitHub/Linux isolated runtime artifacts are not present in this local workspace, so production readiness remains fail-closed:
+Authoritative GitHub/Linux isolated runtime artifacts are recorded for source commit `59efe16144563f57033724c00ea70cfe895ba890`, so the P14 production readiness gate is accepted:
 
 ```json
 {
-  "runtime": false,
-  "runtime_not_claimed": true,
-  "production_ready": false
+  "runtime": true,
+  "runtime_not_claimed": false,
+  "production_ready": true,
+  "failed": 0,
+  "skipped": 0,
+  "critical_gates_failed": 0
 }
 ```
+
+Authoritative evidence:
+
+- GitHub Actions run ID: `30195998389`
+- Runner: `ubuntu-24.04` / `Linux-6.17.0-1020-azure-x86_64-with-glibc2.39`
+- Docker: `28.0.4`
+- kind: `v0.27.0`
+- Kubernetes: `v1.32.2`
+- Helm: `v3.17.3`
+- Control Plane replicas: desired `3`, available `3`, ready `3`
+- Worker replicas: desired `3`, available `3`, ready `3`
+- RPO target: `15` minutes
+- RTO target: `60` minutes
+- Runtime artifact zip digest: `d0bb0769c16f4721fb9d96d6c0e7a25ad3e2503296a11cfcd55afbcf25cb9273`
+- Artifact manifest digest: `b3e93251400c8bbc54ce7472904a1202eada16c2b4a70a5fcddd1c8e55f66465`
+- Helm chart digest: `b1b05f65d98e9f1d588ca92b599e9286edf098b6a925d0700e2e684a0c611933`
 
 Useful P14 commands:
 

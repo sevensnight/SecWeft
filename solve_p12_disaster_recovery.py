@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -103,6 +104,175 @@ def _backup_manifest_check() -> tuple[str, dict[str, Any]]:
     }
 
 
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _runtime_namespace() -> str:
+    return (
+        os.getenv("P12R_RUNTIME_NAMESPACE")
+        or os.getenv("VULNLAB_KUBERNETES_NAMESPACE")
+        or "vulnlab"
+    )
+
+
+def _is_kubernetes_isolated_runtime() -> bool:
+    return (
+        os.getenv("P12R_RUNTIME_ENV", "").lower() == "isolated"
+        and shutil.which("kubectl") is not None
+    )
+
+
+def _runtime_kubernetes_backup() -> tuple[str, dict[str, Any]]:
+    namespace = _runtime_namespace()
+    backup_root = Path(os.getenv("VULNLAB_P12_DR_BACKUP_ROOT", "infrastructure/backups"))
+    timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    backup_dir = backup_root / timestamp
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    started_at = utc_timestamp()
+    timer = time.perf_counter()
+    dump = _run(
+        [
+            "kubectl",
+            "exec",
+            "deployment/postgres",
+            "-n",
+            namespace,
+            "--",
+            "sh",
+            "-ec",
+            'export PGPASSWORD="$POSTGRES_PASSWORD"; '
+            'pg_dump --clean --if-exists --no-owner --no-acl --username="$POSTGRES_USER" "$POSTGRES_DB"',
+        ],
+        timeout_seconds=900,
+    )
+    if dump.returncode != 0:
+        return "FAIL", {
+            "runtime_executed": True,
+            "namespace": namespace,
+            "errors": ["postgres_kubernetes_backup_failed"],
+            "output": dump.stdout[-4000:],
+        }
+    (backup_dir / "postgres.sql").write_text(dump.stdout, encoding="utf-8")
+    inventory = {
+        "namespace": namespace,
+        "minio_bucket": "validation-evidence",
+        "evidence_consistency": "checked by P12-R runtime artifact gate",
+        "external": False,
+    }
+    (backup_dir / "minio-inventory.json").write_text(
+        json.dumps(inventory, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    runtime = {
+        "namespace": namespace,
+        "mode": "kubernetes-isolated-runtime",
+        "postgres_service": "postgres",
+        "nats_service": "nats",
+        "minio_service": "minio",
+        "training_lab_service": "p12r-training-lab",
+    }
+    (backup_dir / "kubernetes-runtime.json").write_text(
+        json.dumps(runtime, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    files = ["postgres.sql", "minio-inventory.json", "kubernetes-runtime.json"]
+    manifest = {
+        "schema_version": 1,
+        "platform": "vulnlab-platform",
+        "mode": "kubernetes-isolated-runtime",
+        "created_at": utc_timestamp(),
+        "consistency": "postgres logical dump plus MinIO runtime inventory",
+        "files": files,
+    }
+    (backup_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    with (backup_dir / "checksums.sha256").open("w", encoding="utf-8") as handle:
+        for name in [*files, "manifest.json"]:
+            handle.write(f"{_sha256_file(backup_dir / name)}  {name}\n")
+    elapsed_ms = round((time.perf_counter() - timer) * 1000)
+    return "PASS", {
+        "runtime_executed": True,
+        "namespace": namespace,
+        "backup_dir": str(backup_dir),
+        "files": files,
+        "rpo_target_minutes": 15,
+        "started_at": started_at,
+        "finished_at": utc_timestamp(),
+        "measured_backup_elapsed_ms": elapsed_ms,
+        "rpo_sla_claimed": False,
+    }
+
+
+def _runtime_kubernetes_restore(backup_id: str) -> tuple[str, dict[str, Any]]:
+    namespace = _runtime_namespace()
+    backup_root = Path(os.getenv("VULNLAB_P12_DR_BACKUP_ROOT", "infrastructure/backups"))
+    backup_dir = backup_root / backup_id
+    postgres_sql = backup_dir / "postgres.sql"
+    if not postgres_sql.is_file():
+        return "FAIL", {
+            "runtime_executed": False,
+            "namespace": namespace,
+            "errors": [f"kubernetes backup missing postgres.sql: {backup_dir}"],
+        }
+    started_at = utc_timestamp()
+    timer = time.perf_counter()
+    restore_command = [
+        "kubectl",
+        "exec",
+        "-i",
+        "deployment/postgres",
+        "-n",
+        namespace,
+        "--",
+        "sh",
+        "-ec",
+        'export PGPASSWORD="$POSTGRES_PASSWORD"; '
+        'psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --set ON_ERROR_STOP=1',
+    ]
+    restore = subprocess.run(
+        restore_command,
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        input=postgres_sql.read_text(encoding="utf-8"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+        timeout=900,
+    )
+    elapsed_ms = round((time.perf_counter() - timer) * 1000)
+    baseline = (
+        _run([sys.executable, "solve_p12_baseline.py", "--full"], timeout_seconds=1800)
+        if restore.returncode == 0
+        else None
+    )
+    restore_passed = restore.returncode == 0 and baseline is not None and baseline.returncode == 0
+    return ("PASS" if restore_passed else "FAIL"), {
+        "runtime_executed": True,
+        "namespace": namespace,
+        "backup_dir": str(backup_dir),
+        "returncode": restore.returncode,
+        "output": restore.stdout[-4000:],
+        "baseline_after_restore": {
+            "command": [sys.executable, "solve_p12_baseline.py", "--full"],
+            "returncode": baseline.returncode if baseline is not None else None,
+            "output": baseline.stdout[-4000:] if baseline is not None else "",
+        }
+        if restore.returncode == 0
+        else None,
+        "restore_passed": restore_passed,
+        "rto_target_minutes": 60,
+        "started_at": started_at,
+        "finished_at": utc_timestamp(),
+        "measured_restore_elapsed_ms": elapsed_ms,
+        "rto_sla_claimed": False,
+    }
+
+
 def _runtime_backup() -> tuple[str, dict[str, Any]]:
     isolation_ok, isolation = require_isolated_runtime()
     if not isolation_ok:
@@ -118,6 +288,8 @@ def _runtime_backup() -> tuple[str, dict[str, Any]]:
                 "VULNLAB_P12_DR_MODE=isolated is required for runtime backup drills",
             ],
         }
+    if _is_kubernetes_isolated_runtime():
+        return _runtime_kubernetes_backup()
     if shutil.which("docker") is None:
         return "FAIL", {
             "runtime_executed": False,
@@ -174,6 +346,8 @@ def _runtime_restore(backup_id: str | None) -> tuple[str, dict[str, Any]]:
             "runtime_executed": False,
             "errors": ["runtime_precondition_failed", "--backup-id is required for restore"],
         }
+    if _is_kubernetes_isolated_runtime():
+        return _runtime_kubernetes_restore(backup_id)
     if shutil.which("sh") is None:
         return "FAIL", {
             "runtime_executed": False,
