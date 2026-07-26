@@ -9,7 +9,19 @@ updates:
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
     groups:
+      react-ecosystem:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
+        update-types: [minor, patch]
       workspace-minor-patch:
+        exclude-patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
         update-types: [minor, patch]
 
   - package-ecosystem: pip
