@@ -168,6 +168,35 @@ Default mode is read/report only. Repair must be explicit, auditable, idempotent
 
 ## Current acceptance status
 
-Authoritative Linux runtime acceptance is not claimed in this local checkout because the required kind/k3d Kubernetes environment and runtime values are unavailable.
+Authoritative Linux runtime acceptance is accepted for source commit `59efe16144563f57033724c00ea70cfe895ba890`.
 
-The P12-R script and documentation work hardens the gate so that missing runtime infrastructure fails explicitly instead of passing as static readiness.
+| Field | Value |
+| --- | --- |
+| GitHub Actions run ID | `30195998389` |
+| Runtime job | `P12-R isolated Linux runtime acceptance` |
+| Runtime start | `2026-07-26T09:11:23Z` |
+| Runtime end | `2026-07-26T09:37:56Z` |
+| Runner | `ubuntu-24.04` / `Linux-6.17.0-1020-azure-x86_64-with-glibc2.39` |
+| Docker | `28.0.4` |
+| kind | `v0.27.0` |
+| Kubernetes | `v1.32.2` |
+| Helm | `v3.17.3` |
+| Artifact zip digest | `d0bb0769c16f4721fb9d96d6c0e7a25ad3e2503296a11cfcd55afbcf25cb9273` |
+| Artifact manifest digest | `b3e93251400c8bbc54ce7472904a1202eada16c2b4a70a5fcddd1c8e55f66465` |
+
+Runtime summary:
+
+- `valid=true`
+- `runtime=true`
+- `runtime_not_claimed=false`
+- `failed=0`
+- `skipped=0`
+- `critical_gates_failed=0`
+- Control Plane replicas: desired `3`, available `3`, ready `3`
+- Worker replicas: desired `3`, available `3`, ready `3`
+- RPO target: `15` minutes
+- RTO target: `60` minutes
+- backup drill elapsed: `614 ms`
+- restore drill elapsed: `5003 ms`
+
+The accepted workflow created an isolated kind cluster, built images from the source commit, loaded them into kind, installed the Helm chart, applied PostgreSQL migrations `0001` through `0014`, verified scale, DR, evidence consistency, chaos recovery, P9-P14 deterministic regression, release gates, production readiness, artifact integrity, and runtime cleanup.
