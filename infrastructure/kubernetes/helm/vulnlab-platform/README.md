@@ -8,7 +8,9 @@ This chart is the P12 Kubernetes deployment boundary for:
 - HPA, PDB, rolling updates, readiness/liveness separation, topology spreading, and anti-affinity.
 - Backup CronJob and disabled-by-default restore Job.
 
-The chart does not install PostgreSQL, NATS JetStream, MinIO, OIDC, Docker runtime, or telemetry backends. Production mode must receive those dependencies through managed services or separately operated in-cluster charts. Runtime secrets must be provided by `secrets.existingSecret`; values files must not contain credentials.
+The chart does not install PostgreSQL, NATS JetStream, MinIO, OIDC, Docker runtime, or telemetry backends for production. Production mode must receive those dependencies through managed services or separately operated in-cluster charts. Runtime secrets must be provided by `runtimeSecrets.existingSecret`; values files must not contain credentials.
+
+The manual P12-R isolated GitHub runtime job is the exception for acceptance infrastructure only: it creates ephemeral PostgreSQL, NATS JetStream, MinIO, and training-lab resources inside a temporary kind namespace, generates run-scoped credentials, creates the `runtimeSecrets.existingSecret` Kubernetes Secret, and deletes the cluster during cleanup. Those credentials are not stored in Git, repository secrets, or uploaded artifacts.
 
 Required secret keys include at least:
 
@@ -19,6 +21,9 @@ Required secret keys include at least:
 - `VULNLAB_MINIO_ENDPOINT`
 - `VULNLAB_MINIO_ACCESS_KEY`
 - `VULNLAB_MINIO_SECRET_KEY`
+
+OIDC production deployments additionally require:
+
 - `VULNLAB_OIDC_ISSUER`
 - `VULNLAB_OIDC_AUDIENCE`
 - `VULNLAB_OIDC_JWKS_URL`
