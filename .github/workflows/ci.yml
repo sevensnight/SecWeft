@@ -421,11 +421,22 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import subprocess
           from pathlib import Path
           from tools.p12.runtime_acceptance import environment_fingerprint
 
+          source_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          fingerprint = environment_fingerprint()
+          fingerprint.update({
+              "valid": True,
+              "runtime": True,
+              "runtime_not_claimed": False,
+              "source_commit": source_commit,
+              "failed": 0,
+              "skipped": 0,
+          })
           Path("work/p12r/artifacts/environment-fingerprint.json").write_text(
-              json.dumps(environment_fingerprint(), ensure_ascii=False, indent=2),
+              json.dumps(fingerprint, ensure_ascii=False, indent=2),
               encoding="utf-8",
           )
           PY
@@ -495,19 +506,30 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import subprocess
           from datetime import UTC, datetime
           from pathlib import Path
 
           artifacts = Path("work/p12r/artifacts")
+          source_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
           backup = json.loads((artifacts / "dr-backup-result.json").read_text(encoding="utf-8"))
           restore = json.loads((artifacts / "dr-restore-result.json").read_text(encoding="utf-8"))
+          backup_summary = backup.get("summary", {})
+          restore_summary = restore.get("summary", {})
+          failed = int(backup_summary.get("failed", 0) or 0) + int(restore_summary.get("failed", 0) or 0)
+          skipped = int(backup_summary.get("skipped", 0) or 0) + int(restore_summary.get("skipped", 0) or 0)
+          valid = backup.get("valid") is True and restore.get("valid") is True and failed == 0 and skipped == 0
           payload = {
-              "status": "RUNTIME_ACCEPTED" if backup.get("valid") and restore.get("valid") else "RUNTIME_FAILED",
+              "valid": valid,
+              "status": "RUNTIME_ACCEPTED" if valid else "RUNTIME_FAILED",
               "runtime": True,
               "runtime_not_claimed": not (backup.get("runtime_not_claimed") is False and restore.get("runtime_not_claimed") is False),
+              "source_commit": source_commit,
+              "failed": failed,
+              "skipped": skipped,
               "captured_at": datetime.now(UTC).isoformat(),
-              "backup_summary": backup.get("summary"),
-              "restore_summary": restore.get("summary"),
+              "backup_summary": backup_summary,
+              "restore_summary": restore_summary,
               "backup_checks": [check.get("name") for check in backup.get("checks", [])],
               "restore_checks": [check.get("name") for check in restore.get("checks", [])],
           }
@@ -635,6 +657,12 @@ jobs:
                   continue
               payload = json.loads(path.read_text(encoding="utf-8"))
               payloads[name] = payload
+              existing_source_commit = payload.get("source_commit")
+              if existing_source_commit is None:
+                  payload["source_commit"] = source_commit
+                  path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+              elif existing_source_commit != source_commit:
+                  failures.append(f"{name}:source_commit_mismatch")
               summary = payload.get("summary", {})
               failed = int(summary.get("failed", payload.get("failed", 0)) or 0) if isinstance(summary, dict) else int(payload.get("failed", 0) or 0)
               skipped = int(summary.get("skipped", payload.get("skipped", 0)) or 0) if isinstance(summary, dict) else int(payload.get("skipped", 0) or 0)
@@ -670,10 +698,10 @@ jobs:
           }
           (artifacts / "release-gate-result.json").write_text(json.dumps(release_gate, ensure_ascii=False, indent=2), encoding="utf-8")
           (artifacts / "production-readiness-result.json").write_text(json.dumps(production_readiness, ensure_ascii=False, indent=2), encoding="utf-8")
-           manifest_entries = []
-           for path in sorted(artifacts.rglob("*")):
-               if path.is_file() and path.name != "artifact-manifest.json":
-                   manifest_entries.append({
+          manifest_entries = []
+          for path in sorted(artifacts.rglob("*")):
+              if path.is_file() and path.name != "artifact-manifest.json":
+                  manifest_entries.append({
                       "path": str(path.relative_to(artifacts)),
                       "size": path.stat().st_size,
                       "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
