@@ -96,6 +96,8 @@ jobs:
           node-version: 22.17.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:react-alignment
+      - run: pnpm check:react-alignment
       - run: pnpm generate:api
       - name: Generated contract types are reproducible
         run: git diff --exit-code -- packages/shared-types/src/api.generated.ts

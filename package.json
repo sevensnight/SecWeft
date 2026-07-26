@@ -10,7 +10,9 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
+    "check:react-alignment": "node tools/ci/check-react-version-alignment.mjs",
     "lint": "turbo run lint",
+    "test:react-alignment": "node --test tools/ci/check-react-version-alignment.test.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "generate:api": "pnpm --filter @vulnlab/shared-types generate",
