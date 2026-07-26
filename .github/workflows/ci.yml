@@ -350,7 +350,7 @@ jobs:
       - name: Generate isolated runtime metadata
         run: |
           run_id="p12r-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          namespace="vulnlab-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          namespace="vulnlab-${run_id}"
           {
             echo "P12R_RUNTIME_RUN_ID=${run_id}"
             echo "P12R_RUNTIME_NAMESPACE=${namespace}"
@@ -786,7 +786,7 @@ jobs:
           for path in sorted(artifacts.rglob("*")):
               if path.is_file() and path.name != "artifact-manifest.json":
                   entries.append({
-                      "path": str(path.relative_to(artifacts)).replace("\\", "/"),
+                      "path": path.relative_to(artifacts).as_posix(),
                       "size": path.stat().st_size,
                       "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                   })
