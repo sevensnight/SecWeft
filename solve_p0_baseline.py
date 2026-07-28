@@ -128,7 +128,16 @@ def _safe_defaults_check() -> tuple[str, dict[str, Any]]:
 
 
 def _git_baseline_check() -> tuple[str, dict[str, Any]]:
-    if not (ROOT / ".git").is_dir():
+    inside_work_tree = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if inside_work_tree.returncode != 0 or inside_work_tree.stdout.strip() != "true":
         return "FAIL", {"errors": ["Git repository is not initialized"]}
     branch = subprocess.run(
         ["git", "branch", "--show-current"],
@@ -148,11 +157,19 @@ def _git_baseline_check() -> tuple[str, dict[str, Any]]:
         errors="replace",
         check=False,
     )
-    valid = branch.returncode == 0 and branch.stdout.strip() == "main" and head.returncode == 0
+    branch_name = branch.stdout.strip()
+    detached_head = branch.returncode == 0 and branch_name == ""
+    valid = (
+        branch.returncode == 0 and (branch_name == "main" or detached_head) and head.returncode == 0
+    )
     return ("PASS" if valid else "FAIL"), {
-        "branch": branch.stdout.strip(),
+        "inside_work_tree": inside_work_tree.stdout.strip() == "true",
+        "branch": branch_name,
+        "detached_head": detached_head,
         "has_baseline_commit": head.returncode == 0,
-        "errors": [] if valid else ["expected main branch with a baseline commit"],
+        "errors": []
+        if valid
+        else ["expected main branch or detached verification HEAD with a baseline commit"],
     }
 
 
