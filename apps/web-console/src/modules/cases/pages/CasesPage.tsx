@@ -6,6 +6,7 @@ import { App, Button, Card, Form, Input, Select, Space, Table, Tag, Typography }
 import { queryClient } from '../../../app/query-client';
 import { LoadingState } from '../../../components/LoadingState';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnLabel } from '../../../i18n/formatters';
 import { createVulnerabilityCase, listVulnerabilityCases } from '../../../services/cases';
 
 interface CaseFormValue {
@@ -33,7 +34,7 @@ export function CasesPage() {
     mutationFn: (value: VulnerabilityCaseCreate) => createVulnerabilityCase(value),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['vulnerability-cases'] });
-      message.success('Case created.');
+      message.success('案件已创建。');
     },
   });
   const firstError = cases.error ?? createCase.error;
@@ -41,9 +42,9 @@ export function CasesPage() {
   return (
     <section>
       <div className="page-title-row">
-        <Typography.Title level={2}>Vulnerability Cases</Typography.Title>
+        <Typography.Title level={2}>漏洞案件</Typography.Title>
         <Typography.Text type="secondary">
-          Track findings from validation through remediation decision, retest comparison, report, and closure.
+          跟踪发现项从验证、修复决策、复测对比、报告生成到关闭的完整流程。
         </Typography.Text>
       </div>
       {cases.isPending ? <LoadingState /> : null}
@@ -51,7 +52,7 @@ export function CasesPage() {
         createCase.reset();
         void cases.refetch();
       }} /> : null}
-      <Card title="Create case">
+      <Card title="创建案件">
         <Form<CaseFormValue>
           layout="vertical"
           initialValues={{ project_id: 'project-alpha', severity: 'medium' }}
@@ -65,43 +66,43 @@ export function CasesPage() {
           })}
         >
           <Space wrap align="start">
-            <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+            <Form.Item name="title" label="标题" rules={[{ required: true }]}>
               <Input className="wide-input" />
             </Form.Item>
-            <Form.Item name="summary" label="Summary" rules={[{ required: true }]}>
+            <Form.Item name="summary" label="摘要" rules={[{ required: true }]}>
               <Input className="wide-input" />
             </Form.Item>
-            <Form.Item name="severity" label="Severity" rules={[{ required: true }]}>
+            <Form.Item name="severity" label="严重程度" rules={[{ required: true }]}>
               <Select
                 className="compact-select"
-                options={['informational', 'low', 'medium', 'high', 'critical'].map((value) => ({ value, label: value }))}
+                options={['informational', 'low', 'medium', 'high', 'critical'].map((value) => ({ value, label: cnLabel(value) }))}
               />
             </Form.Item>
-            <Form.Item name="project_id" label="Project">
+            <Form.Item name="project_id" label="项目">
               <Input />
             </Form.Item>
             <Form.Item label=" ">
-              <Button type="primary" htmlType="submit" loading={createCase.isPending}>Create</Button>
+              <Button type="primary" htmlType="submit" loading={createCase.isPending}>创建</Button>
             </Form.Item>
           </Space>
         </Form>
       </Card>
-      <Card title="Cases" className="section-gap" loading={cases.isPending}>
+      <Card title="案件列表" className="section-gap" loading={cases.isPending}>
         <Table<VulnerabilityCase>
           size="small"
           rowKey="id"
           dataSource={cases.data ?? []}
           columns={[
             {
-              title: 'Case',
+              title: '案件',
               dataIndex: 'title',
               render: (value: string, record) => <Link to="/cases/$caseId" params={{ caseId: record.id }}>{value}</Link>,
             },
-            { title: 'Severity', dataIndex: 'severity', render: (value: string) => <Tag>{value}</Tag> },
-            { title: 'Status', dataIndex: 'status', render: (value: string) => <Tag color={caseStatusColor(value)}>{value}</Tag> },
-            { title: 'Project', dataIndex: 'project_id' },
-            { title: 'Version', dataIndex: 'version' },
-            { title: 'Updated', dataIndex: 'updated_at' },
+            { title: '严重程度', dataIndex: 'severity', render: (value: string) => <Tag>{cnLabel(value)}</Tag> },
+            { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={caseStatusColor(value)}>{cnLabel(value)}</Tag> },
+            { title: '项目', dataIndex: 'project_id' },
+            { title: '版本', dataIndex: 'version' },
+            { title: '更新时间', dataIndex: 'updated_at' },
           ]}
         />
       </Card>

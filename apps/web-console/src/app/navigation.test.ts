@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { P7_ROUTE_KEYS, selectNavigationKey } from './navigation';
+import { APP_ROUTE_KEYS, selectNavigationKey } from './navigation';
 
-describe('P7 navigation', () => {
-  it('keeps the enterprise console route surface wired', () => {
-    expect(P7_ROUTE_KEYS).toEqual(expect.arrayContaining([
+describe('console navigation', () => {
+  it('keeps the console route surface wired', () => {
+    expect(APP_ROUTE_KEYS).toEqual(expect.arrayContaining([
       '/',
       '/tasks',
       '/models',

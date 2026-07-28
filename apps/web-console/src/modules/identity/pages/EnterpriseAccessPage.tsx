@@ -17,6 +17,7 @@ import {
 import { queryClient } from '../../../app/query-client';
 import { LoadingState } from '../../../components/LoadingState';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnBoolean, cnLabel } from '../../../i18n/formatters';
 import { useSessionStore } from '../../../stores/session';
 import {
   enterpriseAuditQuery,
@@ -85,7 +86,7 @@ export function EnterpriseAccessPage() {
         allowClear
         placeholder="选择项目上下文"
         value={selectedProjectId ?? undefined}
-        loading={projects.isPending}
+        loading={projects.isLoading}
         options={(projects.data ?? []).map((project) => ({
           value: project.id,
           label: project.display_name,
@@ -118,7 +119,7 @@ export function EnterpriseAccessPage() {
         <Descriptions column={{ xs: 1, md: 2 }}>
           <Descriptions.Item label="用户名">{session.data.username}</Descriptions.Item>
           <Descriptions.Item label="租户状态">
-            <Tag color="green">{session.data.tenant_status}</Tag>
+            <Tag color="green">{cnLabel(session.data.tenant_status)}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="用户 ID">{session.data.user_id}</Descriptions.Item>
           <Descriptions.Item label="租户 ID">{session.data.tenant_id}</Descriptions.Item>
@@ -130,7 +131,7 @@ export function EnterpriseAccessPage() {
       </Card>
 
       {canReadTenant ? (
-        <Card title="租户" className="section-gap" loading={tenant.isPending}>
+        <Card title="租户" className="section-gap" loading={tenant.isLoading}>
           {tenant.data ? (
             <Descriptions column={{ xs: 1, md: 3 }}>
               <Descriptions.Item label="名称">{tenant.data.display_name}</Descriptions.Item>
@@ -142,12 +143,12 @@ export function EnterpriseAccessPage() {
       ) : null}
 
       {canReadUsers ? (
-        <Card title="租户成员" className="section-gap" loading={users.isPending}>
+        <Card title="租户成员" className="section-gap" loading={users.isLoading}>
           <List
             dataSource={users.data ?? []}
             locale={{ emptyText: '暂无成员' }}
             renderItem={(user) => (
-              <List.Item extra={<Tag color={user.active ? 'green' : 'default'}>{user.active ? 'ACTIVE' : 'DISABLED'}</Tag>}>
+              <List.Item extra={<Tag color={user.active ? 'green' : 'default'}>{cnBoolean(user.active)}</Tag>}>
                 <List.Item.Meta title={user.username} description={user.email ?? user.subject} />
               </List.Item>
             )}
@@ -156,15 +157,15 @@ export function EnterpriseAccessPage() {
       ) : null}
 
       {canReadRoles ? (
-        <Card title="角色与显式权限" className="section-gap" loading={roles.isPending}>
+        <Card title="角色与显式权限" className="section-gap" loading={roles.isLoading}>
           <List
             dataSource={roles.data ?? []}
             locale={{ emptyText: '暂无角色' }}
             renderItem={(role) => (
               <List.Item>
                 <List.Item.Meta
-                  title={<Space><Typography.Text strong>{role.code}</Typography.Text><Tag>{role.scope_type}</Tag></Space>}
-                  description={`${role.description} · ${role.permissions.length} permissions`}
+                  title={<Space><Typography.Text strong>{role.code}</Typography.Text><Tag>{cnLabel(role.scope_type)}</Tag></Space>}
+                  description={`${role.description} · ${role.permissions.length} 项权限`}
                 />
               </List.Item>
             )}
@@ -173,12 +174,12 @@ export function EnterpriseAccessPage() {
       ) : null}
 
       {canReadAudit ? (
-        <Card title="最近审计事件" className="section-gap" loading={audit.isPending}>
+        <Card title="最近审计事件" className="section-gap" loading={audit.isLoading}>
           <List
             dataSource={(audit.data ?? []).slice(0, 20)}
             locale={{ emptyText: '暂无审计事件' }}
             renderItem={(event) => (
-              <List.Item extra={<Tag>{event.outcome}</Tag>}>
+              <List.Item extra={<Tag>{cnLabel(event.outcome)}</Tag>}>
                 <List.Item.Meta
                   title={event.action}
                   description={`${event.resource_type}:${event.resource_id} · ${new Date(event.occurred_at).toLocaleString()}`}

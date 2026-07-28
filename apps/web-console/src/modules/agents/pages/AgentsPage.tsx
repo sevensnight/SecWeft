@@ -3,6 +3,7 @@ import { Card, Col, Row, Space, Statistic, Table, Tabs, Tag, Typography } from '
 
 import { LoadingState } from '../../../components/LoadingState';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnBoolean, cnLabel } from '../../../i18n/formatters';
 import { listAgents, listSkills, listWorkflows } from '../../../services/api';
 
 export function AgentsPage() {
@@ -27,9 +28,9 @@ export function AgentsPage() {
   return (
     <section>
       <div className="page-title-row">
-        <Typography.Title level={2}>Agent / Skill 管理</Typography.Title>
+        <Typography.Title level={2}>智能体与技能管理</Typography.Title>
         <Typography.Text type="secondary">
-          展示已注册 Agent、Workflow 和 Skill 的职责、风险、预算与启用状态。
+          展示已注册智能体、工作流和技能的职责、风险、预算与启用状态。
         </Typography.Text>
       </div>
 
@@ -43,16 +44,16 @@ export function AgentsPage() {
       {!isPending && !firstError ? (
         <Space direction="vertical" size="large" className="full-width">
           <Row gutter={[16, 16]}>
-            <Col xs={24} md={8}><Card><Statistic title="Agent" value={agents.data?.length ?? 0} /></Card></Col>
-            <Col xs={24} md={8}><Card><Statistic title="Workflow" value={workflows.data?.length ?? 0} /></Card></Col>
-            <Col xs={24} md={8}><Card><Statistic title="Skill" value={skills.data?.length ?? 0} /></Card></Col>
+            <Col xs={24} md={8}><Card><Statistic title="智能体" value={agents.data?.length ?? 0} /></Card></Col>
+            <Col xs={24} md={8}><Card><Statistic title="工作流" value={workflows.data?.length ?? 0} /></Card></Col>
+            <Col xs={24} md={8}><Card><Statistic title="技能" value={skills.data?.length ?? 0} /></Card></Col>
           </Row>
 
           <Tabs
             items={[
               {
                 key: 'agents',
-                label: 'Agent',
+                label: '智能体',
                 children: (
                   <Table
                     size="small"
@@ -61,7 +62,7 @@ export function AgentsPage() {
                     columns={[
                       { title: '名称', dataIndex: 'name' },
                       { title: '版本', dataIndex: 'version' },
-                      { title: '风险', dataIndex: 'risk_level', render: (value) => <Tag>{value}</Tag> },
+                      { title: '风险', dataIndex: 'risk_level', render: (value) => <Tag>{cnLabel(value)}</Tag> },
                       { title: 'Token 预算', dataIndex: 'token_budget' },
                       { title: '超时秒数', dataIndex: 'timeout_seconds' },
                       {
@@ -75,7 +76,7 @@ export function AgentsPage() {
               },
               {
                 key: 'workflows',
-                label: 'Workflow',
+                label: '工作流',
                 children: (
                   <Table
                     size="small"
@@ -96,7 +97,7 @@ export function AgentsPage() {
               },
               {
                 key: 'skills',
-                label: 'Skill',
+                label: '技能',
                 children: (
                   <Table
                     size="small"
@@ -105,9 +106,9 @@ export function AgentsPage() {
                     columns={[
                       { title: '名称', dataIndex: 'name' },
                       { title: '版本', dataIndex: 'version' },
-                      { title: '执行器', dataIndex: 'executor_type', render: (value) => <Tag>{value}</Tag> },
-                      { title: '风险', dataIndex: 'risk_level', render: (value) => <Tag>{value}</Tag> },
-                      { title: '审批', dataIndex: 'approval_required', render: (value) => value ? '需要' : '不需要' },
+                      { title: '执行器', dataIndex: 'executor_type', render: (value) => <Tag>{cnLabel(value)}</Tag> },
+                      { title: '风险', dataIndex: 'risk_level', render: (value) => <Tag>{cnLabel(value)}</Tag> },
+                      { title: '需要审批', dataIndex: 'approval_required', render: (value) => cnBoolean(Boolean(value)) },
                       {
                         title: '状态',
                         dataIndex: 'enabled',

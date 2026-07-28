@@ -24,7 +24,7 @@ export function AssetsPage() {
         showIcon
         type="success"
         message="默认不连接互联网真实目标"
-        description="资产探测、端口访问和验证步骤必须经过 Scope、Policy、审批和审计；未在契约中开放的执行能力不会在前端伪造。"
+        description="资产探测、端口访问和验证步骤必须经过范围、策略、审批和审计；未在契约中开放的执行能力不会在前端伪造。"
       />
 
       {tasks.isPending || system.isPending ? <LoadingState /> : null}
@@ -37,7 +37,7 @@ export function AssetsPage() {
         <>
           <Row gutter={[16, 16]} className="section-gap">
             <Col xs={24} md={8}><Card><Statistic title="任务目标" value={tasks.data?.length ?? 0} /></Card></Col>
-            <Col xs={24} md={8}><Card><Statistic title="Scope 绑定" value={scopes.size} /></Card></Col>
+            <Col xs={24} md={8}><Card><Statistic title="范围绑定" value={scopes.size} /></Card></Col>
             <Col xs={24} md={8}><Card><Statistic title="排除能力" value={system.data?.excluded.length ?? 0} /></Card></Col>
           </Row>
 
@@ -49,7 +49,7 @@ export function AssetsPage() {
               columns={[
                 { title: '任务', dataIndex: 'title' },
                 { title: '目标', dataIndex: 'target', ellipsis: true },
-                { title: 'Scope', dataIndex: 'scope_id', ellipsis: true },
+                { title: '授权范围', dataIndex: 'scope_id', ellipsis: true },
                 { title: '审批', dataIndex: 'approval_status', render: (value: string) => <Tag>{value}</Tag> },
                 { title: '状态', dataIndex: 'status', render: (value: string) => <Tag>{value}</Tag> },
               ]}

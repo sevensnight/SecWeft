@@ -34,7 +34,7 @@ export function ApiKeyDialog({ open, onCancel, onClear, onSubmit }: ApiKeyDialog
         <Alert
           showIcon
           type="warning"
-          message="密钥只保存在当前页面内存中；刷新即清空，不写入浏览器持久存储。"
+          message="密钥只保存在当前浏览器标签页会话中；刷新会保留，关闭标签页或点击清除后移除，不写入 localStorage、URL 或日志。"
         />
         <Controller
           name="apiKey"

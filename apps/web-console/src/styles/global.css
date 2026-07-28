@@ -5,18 +5,26 @@
   text-rendering: optimizeLegibility;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-.app-layout { min-height: 100vh; }
+body { background: #f5f5f5; margin: 0; min-width: 320px; }
+[data-color-mode="dark"] body { background: #000; }
+.app-layout { background: transparent; min-height: 100vh; }
 .app-sider { position: sticky !important; top: 0; height: 100vh; }
 .brand {
   align-items: center; color: #fff; display: flex; font-size: 20px; font-weight: 700;
   gap: 10px; height: 64px; justify-content: center; letter-spacing: .04em;
 }
 .app-header {
-  background: color-mix(in srgb, Canvas 94%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+  background: rgba(255, 255, 255, .94);
+  border-bottom: 1px solid rgba(5, 5, 5, .12);
+  color: rgba(0, 0, 0, .88);
   height: auto; line-height: normal; padding-block: 14px; position: sticky; top: 0; z-index: 10;
 }
+[data-color-mode="dark"] .app-header {
+  background: rgba(20, 20, 20, .96);
+  border-bottom-color: rgba(255, 255, 255, .12);
+  color: rgba(255, 255, 255, .88);
+}
+.app-header .ant-typography { color: inherit; }
 .app-content { padding: 24px; }
 .page-title-row { margin-bottom: 24px; }
 .page-title-row h2 { margin-block: 0 4px; }

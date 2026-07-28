@@ -1,4 +1,5 @@
 import { Tag } from 'antd';
+import type { ReactNode } from 'react';
 
 const COLORS: Record<string, string> = {
   approved: 'blue',
@@ -9,9 +10,10 @@ const COLORS: Record<string, string> = {
 };
 
 export interface StatusPillProps {
+  label?: ReactNode;
   status: string;
 }
 
-export function StatusPill({ status }: StatusPillProps) {
-  return <Tag color={COLORS[status] ?? 'default'}>{status.replaceAll('_', ' ')}</Tag>;
+export function StatusPill({ label, status }: StatusPillProps) {
+  return <Tag color={COLORS[status] ?? 'default'}>{label ?? status.replaceAll('_', ' ')}</Tag>;
 }

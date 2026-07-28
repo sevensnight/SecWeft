@@ -2,7 +2,9 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import type { PolicyEvaluationRequest } from '@vulnlab/shared-types';
 import { Alert, Button, Card, Form, Input, InputNumber, List, Select, Space, Switch, Tag, Typography } from 'antd';
 
+import { authMode } from '../../../auth/config';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnLabel } from '../../../i18n/formatters';
 import { evaluatePolicy, listAuditEvents } from '../../../services/api';
 
 interface PolicyFormValue {
@@ -14,9 +16,11 @@ interface PolicyFormValue {
 }
 
 export function PoliciesPage() {
+  const auditEnabled = authMode === 'oidc';
   const audit = useQuery({
     queryKey: ['audit', 'policy', 'recent'],
     queryFn: () => listAuditEvents(50),
+    enabled: auditEnabled,
     staleTime: 10_000,
   });
   const evaluation = useMutation({
@@ -28,7 +32,7 @@ export function PoliciesPage() {
       <div className="page-title-row">
         <Typography.Title level={2}>策略审批</Typography.Title>
         <Typography.Text type="secondary">
-          手工预评估策略命中结果；真正执行仍必须由后端 PEP、Scope 和审批状态再次校验。
+          手工预评估策略命中结果；真正执行仍必须由后端策略执行点、范围和审批状态再次校验。
         </Typography.Text>
       </div>
 
@@ -61,11 +65,11 @@ export function PoliciesPage() {
               <Select
                 className="wide-select"
                 options={[
-                  { value: 'asset.probe', label: 'asset.probe' },
-                  { value: 'sandbox.run', label: 'sandbox.run' },
-                  { value: 'task.execute', label: 'task.execute' },
-                  { value: 'context.restore', label: 'context.restore' },
-                  { value: 'rag.search', label: 'rag.search' },
+                  { value: 'asset.probe', label: '资产探测（asset.probe）' },
+                  { value: 'sandbox.run', label: '沙箱运行（sandbox.run）' },
+                  { value: 'task.execute', label: '任务执行（task.execute）' },
+                  { value: 'context.restore', label: '上下文恢复（context.restore）' },
+                  { value: 'rag.search', label: '知识检索（rag.search）' },
                 ]}
               />
             </Form.Item>
@@ -93,7 +97,9 @@ export function PoliciesPage() {
         <Card title="策略结果" className="section-gap">
           <Space direction="vertical">
             <Space>
-              <Tag color={evaluation.data.decision === 'allow' ? 'green' : 'red'}>{evaluation.data.decision}</Tag>
+              <Tag color={evaluation.data.decision === 'allow' ? 'green' : 'red'}>
+                {cnLabel(evaluation.data.decision)}
+              </Tag>
               <Typography.Text>{evaluation.data.reason}</Typography.Text>
             </Space>
             <Typography.Text code copyable>{evaluation.data.policy_hash}</Typography.Text>
@@ -101,19 +107,30 @@ export function PoliciesPage() {
         </Card>
       ) : null}
 
-      <Card title="近期策略审计" className="section-gap" loading={audit.isPending}>
-        <List
-          dataSource={(audit.data ?? []).filter((item) => item.action.startsWith('policy.')).slice(0, 12)}
-          locale={{ emptyText: '暂无策略审计事件' }}
-          renderItem={(item) => (
-            <List.Item extra={<Tag>{item.outcome}</Tag>}>
-              <List.Item.Meta
-                title={item.action}
-                description={`${item.resource_type}:${item.resource_id} · ${new Date(item.occurred_at).toLocaleString()}`}
-              />
-            </List.Item>
-          )}
-        />
+      <Card title="近期策略审计" className="section-gap" loading={audit.isLoading}>
+        {!auditEnabled ? (
+          <Alert
+            showIcon
+            type="info"
+            message="审计事件需要 OIDC 模式"
+            description="当前 API Key 兼容模式仍可执行策略预评估，但不会读取租户级审计事件。"
+          />
+        ) : audit.isError ? (
+          <QueryErrorState error={audit.error} onRetry={() => void audit.refetch()} />
+        ) : (
+          <List
+            dataSource={(audit.data ?? []).filter((item) => item.action.startsWith('policy.')).slice(0, 12)}
+            locale={{ emptyText: '暂无策略审计事件' }}
+            renderItem={(item) => (
+              <List.Item extra={<Tag>{cnLabel(item.outcome)}</Tag>}>
+                <List.Item.Meta
+                  title={item.action}
+                  description={`${item.resource_type}:${item.resource_id} · ${new Date(item.occurred_at).toLocaleString()}`}
+                />
+              </List.Item>
+            )}
+          />
+        )}
       </Card>
     </section>
   );

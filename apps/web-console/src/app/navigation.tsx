@@ -28,7 +28,7 @@ export interface NavigationEntry {
   oidcOnly?: boolean;
 }
 
-export const P7_NAVIGATION: NavigationEntry[] = [
+export const APP_NAVIGATION: NavigationEntry[] = [
   { key: '/', labelKey: 'dashboard', icon: <AppstoreOutlined /> },
   { key: '/access', labelKey: 'access', icon: <TeamOutlined />, oidcOnly: true },
   { key: '/tasks', labelKey: 'tasks', icon: <SafetyCertificateOutlined /> },
@@ -42,15 +42,15 @@ export const P7_NAVIGATION: NavigationEntry[] = [
   { key: '/releases', labelKey: 'releases', icon: <RocketOutlined /> },
   { key: '/sandboxes', labelKey: 'sandboxes', icon: <ControlOutlined /> },
   { key: '/policies', labelKey: 'policies', icon: <SafetyCertificateOutlined /> },
-  { key: '/audit', labelKey: 'audit', icon: <AuditOutlined /> },
+  { key: '/audit', labelKey: 'audit', icon: <AuditOutlined />, oidcOnly: true },
   { key: '/reports', labelKey: 'reports', icon: <FileTextOutlined /> },
   { key: '/system', labelKey: 'system', icon: <SettingOutlined /> },
 ];
 
-export const P7_ROUTE_KEYS = P7_NAVIGATION.map((entry) => entry.key);
+export const APP_ROUTE_KEYS = APP_NAVIGATION.map((entry) => entry.key);
 
 export function getNavigationItems(messages: Messages, includeOidcItems: boolean) {
-  return P7_NAVIGATION.filter((entry) => includeOidcItems || !entry.oidcOnly).map((entry) => ({
+  return APP_NAVIGATION.filter((entry) => includeOidcItems || !entry.oidcOnly).map((entry) => ({
     key: entry.key,
     icon: entry.icon,
     label: <Link to={entry.key}>{messages[entry.labelKey]}</Link>,
@@ -58,7 +58,7 @@ export function getNavigationItems(messages: Messages, includeOidcItems: boolean
 }
 
 export function selectNavigationKey(pathname: string) {
-  return [...P7_ROUTE_KEYS]
+  return [...APP_ROUTE_KEYS]
     .sort((left, right) => right.length - left.length)
     .find((key) => pathname === key || (key !== '/' && pathname.startsWith(`${key}/`))) ?? '/';
 }

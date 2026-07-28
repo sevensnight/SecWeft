@@ -14,7 +14,7 @@ export function CapabilityGate({ enabled, children, reason }: CapabilityGateProp
       showIcon
       type="info"
       message="该能力尚未开放"
-      description={reason ?? '当前阶段仅展示受控企业控制台能力。'}
+      description={reason ?? '当前仅展示已接入的受控控制台能力。'}
     />
   );
 }

@@ -3,6 +3,7 @@ import type { RAGSearchRequest } from '@vulnlab/shared-types';
 import { Button, Card, Form, Input, InputNumber, List, Select, Space, Tag, Typography } from 'antd';
 
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnLabel } from '../../../i18n/formatters';
 import { searchRagDocuments } from '../../../services/api';
 
 interface SearchFormValue {
@@ -19,16 +20,16 @@ export function KnowledgePage() {
   return (
     <section>
       <div className="page-title-row">
-        <Typography.Title level={2}>Knowledge Base</Typography.Title>
+        <Typography.Title level={2}>知识库</Typography.Title>
         <Typography.Text type="secondary">
-          Permission-aware retrieval for CVE notes, internal guidance, task evidence, and historical findings.
+          面向 CVE 记录、内部指引、任务证据和历史发现的权限感知检索。
         </Typography.Text>
       </div>
 
-      <Card title="Hybrid retrieval">
+      <Card title="混合检索">
         <Form<SearchFormValue>
           layout="vertical"
-          initialValues={{ query: 'authorized validation evidence', top_k: 5 }}
+          initialValues={{ query: '授权验证证据', top_k: 5 }}
           onFinish={(value) => {
             const request: RAGSearchRequest = { query: value.query, top_k: value.top_k };
             if (value.classifications?.length) request.classifications = value.classifications;
@@ -37,29 +38,29 @@ export function KnowledgePage() {
         >
           <Form.Item
             name="query"
-            label="Query"
-            rules={[{ required: true, min: 2, message: 'Enter at least two characters.' }]}
+            label="查询内容"
+            rules={[{ required: true, min: 2, message: '请输入至少两个字符。' }]}
           >
-            <Input.Search enterButton="Search" loading={search.isPending} />
+            <Input.Search enterButton="搜索" loading={search.isPending} />
           </Form.Item>
           <Space wrap>
-            <Form.Item name="top_k" label="Top K">
+            <Form.Item name="top_k" label="返回条数">
               <InputNumber min={1} max={20} />
             </Form.Item>
-            <Form.Item name="classifications" label="Classification filter">
+            <Form.Item name="classifications" label="密级过滤">
               <Select
                 mode="multiple"
                 allowClear
                 className="wide-select"
                 options={[
-                  { value: 'public', label: 'public' },
-                  { value: 'internal', label: 'internal' },
-                  { value: 'restricted', label: 'restricted' },
+                  { value: 'public', label: '公开' },
+                  { value: 'internal', label: '内部' },
+                  { value: 'restricted', label: '受限' },
                 ]}
               />
             </Form.Item>
             <Form.Item label=" ">
-              <Button htmlType="submit" type="primary" loading={search.isPending}>Search</Button>
+              <Button htmlType="submit" type="primary" loading={search.isPending}>搜索</Button>
             </Form.Item>
           </Space>
         </Form>
@@ -67,19 +68,19 @@ export function KnowledgePage() {
 
       {search.isError ? <QueryErrorState error={search.error} onRetry={() => search.reset()} /> : null}
       {search.data ? (
-        <Card title={`Results: ${search.data.results.length}`} className="section-gap">
+        <Card title={`检索结果：${search.data.results.length}`} className="section-gap">
           <List
             dataSource={search.data.results}
-            locale={{ emptyText: 'No results' }}
+            locale={{ emptyText: '暂无结果' }}
             renderItem={(item) => (
               <List.Item>
                 <List.Item.Meta
-                  title={<Space><span>{item.title}</span><Tag>{item.classification}</Tag><Tag>{item.trust}</Tag></Space>}
+                  title={<Space><span>{item.title}</span><Tag>{cnLabel(item.classification)}</Tag><Tag>{cnLabel(item.trust)}</Tag></Space>}
                   description={(
                     <Space direction="vertical" size={2}>
                       <Typography.Paragraph ellipsis={{ rows: 2 }}>{item.excerpt}</Typography.Paragraph>
                       <Typography.Text type="secondary">
-                        {item.source}@{item.version} · chunk #{item.chunk_index} · score {item.score.toFixed(3)}
+                        {item.source}@{item.version} · 分片 #{item.chunk_index} · 得分 {item.score.toFixed(3)}
                       </Typography.Text>
                       <Typography.Text code copyable>{item.citation.chunk_hash}</Typography.Text>
                     </Space>

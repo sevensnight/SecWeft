@@ -6,6 +6,7 @@ import { App, Button, Card, Table, Tag, Typography } from 'antd';
 import { queryClient } from '../../../app/query-client';
 import { LoadingState } from '../../../components/LoadingState';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnLabel } from '../../../i18n/formatters';
 import {
   createEvaluationCase,
   createEvaluationDataset,
@@ -52,7 +53,7 @@ function deterministicRunPayload(suiteId: string, datasetId: string, projectId: 
     evaluation_type: 'deterministic_offline',
     variants: [
       {
-        name: 'baseline-v1',
+      name: '基线-v1',
         role: 'baseline',
         model_configuration: { provider: 'offline-mock', model: 'deterministic-v1' },
         prompt_template: { name: 'validation-selector', version: '1.0' },
@@ -66,7 +67,7 @@ function deterministicRunPayload(suiteId: string, datasetId: string, projectId: 
         case_outputs: [baselineOutput],
       },
       {
-        name: 'candidate-v2',
+      name: '候选-v2',
         role: 'candidate',
         model_configuration: { provider: 'offline-mock', model: 'deterministic-v1' },
         prompt_template: { name: 'validation-selector', version: '1.1' },
@@ -104,16 +105,16 @@ export function EvaluationsPage() {
     mutationFn: async () => {
       const suffix = Date.now().toString(36);
       const suite = await createEvaluationSuite({
-        name: `P11 web evaluation ${suffix}`,
-        description: 'Deterministic evaluation suite created from the web console.',
+        name: `Web 评测 ${suffix}`,
+        description: '从 Web 控制台创建的确定性评测套件。',
         project_id: 'project-alpha',
         version: '1.0',
         metadata: { created_from: 'web-console' },
       });
       const dataset = await createEvaluationDataset({
         suite_id: suite.id,
-        name: `P11 dataset ${suffix}`,
-        description: 'Versioned ground truth dataset for regression gates.',
+        name: `回归数据集 ${suffix}`,
+        description: '用于回归门禁的版本化真值数据集。',
         version: '2026.07',
         project_id: suite.project_id,
         ground_truth_version: 'gt-2026-07-18',
@@ -147,7 +148,7 @@ export function EvaluationsPage() {
         queryClient.invalidateQueries({ queryKey: ['evaluation-suites'] }),
         queryClient.invalidateQueries({ queryKey: ['evaluation-runs'] }),
       ]);
-      message.success('Evaluation run created.');
+      message.success('评测运行已创建。');
     },
   });
   const firstError = suites.error ?? runs.error ?? createSampleRun.error;
@@ -155,9 +156,9 @@ export function EvaluationsPage() {
   return (
     <section>
       <div className="page-title-row">
-        <Typography.Title level={2}>AI Evaluation Governance</Typography.Title>
+        <Typography.Title level={2}>AI 评测治理</Typography.Title>
         <Typography.Text type="secondary">
-          Version datasets, run baseline/candidate variants, compare regressions, and require human promotion decisions.
+          管理数据集版本、运行基线和候选变体、比较回归，并要求人工提升决策。
         </Typography.Text>
       </div>
       {suites.isPending || runs.isPending ? <LoadingState /> : null}
@@ -172,26 +173,26 @@ export function EvaluationsPage() {
         />
       ) : null}
       <Card
-        title="Deterministic offline evaluation"
+        title="确定性离线评测"
         extra={
           <Button type="primary" loading={createSampleRun.isPending} onClick={() => createSampleRun.mutate()}>
-            Create sample run
+            创建示例运行
           </Button>
         }
       >
         <Typography.Paragraph>
-          Creates a versioned suite, dataset, explicit ground-truth case, baseline variant, candidate variant,
-          metric results, regression comparison, and gate result. It uses no new validation template or shell execution.
+          创建带版本的套件、数据集、显式真值用例、基线变体、候选变体、指标结果、回归对比和门禁结果。
+          该流程不会引入新的验证模板，也不会执行 Shell。
         </Typography.Paragraph>
       </Card>
-      <Card title="Evaluation runs" className="section-gap" loading={runs.isPending}>
+      <Card title="评测运行" className="section-gap" loading={runs.isPending}>
         <Table<EvaluationRun>
           size="small"
           rowKey="id"
           dataSource={runs.data ?? []}
           columns={[
             {
-              title: 'Run',
+              title: '运行',
               dataIndex: 'id',
               render: (value: string) => (
                 <Link to="/evaluations/$runId" params={{ runId: value }}>
@@ -199,26 +200,26 @@ export function EvaluationsPage() {
                 </Link>
               ),
             },
-            { title: 'Type', dataIndex: 'evaluation_type' },
-            { title: 'Status', dataIndex: 'status', render: (value: string) => <Tag color={statusColor(value)}>{value}</Tag> },
-            { title: 'Gate', dataIndex: 'gate_status', render: (value: string) => <Tag color={statusColor(value)}>{value}</Tag> },
-            { title: 'Project', dataIndex: 'project_id' },
-            { title: 'Config hash', dataIndex: 'config_hash', render: (value: string) => value.slice(0, 12) },
-            { title: 'Updated', dataIndex: 'updated_at' },
+            { title: '类型', dataIndex: 'evaluation_type', render: (value: string) => cnLabel(value) },
+            { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={statusColor(value)}>{cnLabel(value)}</Tag> },
+            { title: '门禁', dataIndex: 'gate_status', render: (value: string) => <Tag color={statusColor(value)}>{cnLabel(value)}</Tag> },
+            { title: '项目', dataIndex: 'project_id' },
+            { title: '配置哈希', dataIndex: 'config_hash', render: (value: string) => value.slice(0, 12) },
+            { title: '更新时间', dataIndex: 'updated_at' },
           ]}
         />
       </Card>
-      <Card title="Evaluation suites" className="section-gap" loading={suites.isPending}>
+      <Card title="评测套件" className="section-gap" loading={suites.isPending}>
         <Table<EvaluationSuite>
           size="small"
           rowKey="id"
           dataSource={suites.data ?? []}
           columns={[
-            { title: 'Suite', dataIndex: 'name' },
-            { title: 'Version', dataIndex: 'version' },
-            { title: 'Project', dataIndex: 'project_id' },
-            { title: 'Status', dataIndex: 'status', render: (value: string) => <Tag>{value}</Tag> },
-            { title: 'Updated', dataIndex: 'updated_at' },
+            { title: '套件', dataIndex: 'name' },
+            { title: '版本', dataIndex: 'version' },
+            { title: '项目', dataIndex: 'project_id' },
+            { title: '状态', dataIndex: 'status', render: (value: string) => <Tag>{cnLabel(value)}</Tag> },
+            { title: '更新时间', dataIndex: 'updated_at' },
           ]}
         />
       </Card>

@@ -127,7 +127,7 @@ export async function listTaskEvidence(taskId: string, limit = 100): Promise<Evi
 
 export async function getEnterpriseSession(): Promise<EnterpriseSession> {
   const { data, error, response } = await apiClient.GET('/session');
-  return requireData(data, error, response, '无法读取企业会话');
+  return requireData(data, error, response, '无法读取当前会话');
 }
 
 export async function getCurrentTenant(): Promise<Tenant> {

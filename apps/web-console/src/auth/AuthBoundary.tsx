@@ -100,7 +100,7 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
     return (
       <main className="auth-screen" aria-live="polite">
         <Spin size="large" />
-        <Typography.Text>正在验证企业身份…</Typography.Text>
+        <Typography.Text>正在验证组织身份…</Typography.Text>
       </main>
     );
   }
@@ -109,7 +109,7 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
       <main className="auth-screen">
         <Result
           status="error"
-          title="企业身份验证失败"
+          title="身份验证失败"
           subTitle={error}
           extra={oidcConfigured ? <Button type="primary" onClick={() => void login()}>重新登录</Button> : null}
         />
@@ -121,9 +121,9 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
       <main className="auth-screen">
         <Result
           icon={<div className="auth-mark">VL</div>}
-          title="VulnLab 企业控制台"
+          title="SecWeft 控制台"
           subTitle="使用组织的 OpenID Connect 身份登录；控制台不会持久化访问令牌。"
-          extra={<Button type="primary" size="large" onClick={() => void login()}>使用企业身份登录</Button>}
+          extra={<Button type="primary" size="large" onClick={() => void login()}>使用组织身份登录</Button>}
         />
         <Alert
           type="info"

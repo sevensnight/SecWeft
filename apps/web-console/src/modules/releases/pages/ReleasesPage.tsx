@@ -6,6 +6,7 @@ import { App, Button, Card, Space, Table, Tag, Typography } from 'antd';
 import { queryClient } from '../../../app/query-client';
 import { LoadingState } from '../../../components/LoadingState';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnLabel } from '../../../i18n/formatters';
 import {
   createReleaseCandidate,
   listReleaseArtifacts,
@@ -31,7 +32,7 @@ function sampleArtifactPayload(suffix: string): ReleaseArtifactCreate {
   return {
     tenant_id: 'system',
     project_id: 'project-alpha',
-    name: `P13 sample artifact ${suffix}`,
+    name: `示例产物 ${suffix}`,
     artifact_type: 'container',
     digest: imageDigest,
     repository: 'registry.local/vulnlab/control-plane',
@@ -103,7 +104,7 @@ export function ReleasesPage() {
       return createReleaseCandidate({
         tenant_id: artifact.tenant_id,
         project_id: artifact.project_id,
-        name: `P13 sample RC ${suffix}`,
+        name: `示例发布候选 ${suffix}`,
         artifact_id: artifact.id,
         configuration_hash: SHA_B,
         migration_set: ['0001-0013'],
@@ -125,7 +126,7 @@ export function ReleasesPage() {
         queryClient.invalidateQueries({ queryKey: ['release-artifacts'] }),
         queryClient.invalidateQueries({ queryKey: ['release-candidates'] }),
       ]);
-      message.success('Release candidate created.');
+      message.success('发布候选已创建。');
     },
   });
   const firstError = artifacts.error ?? candidates.error ?? createSample.error;
@@ -133,10 +134,9 @@ export function ReleasesPage() {
   return (
     <section>
       <div className="page-title-row">
-        <Typography.Title level={2}>Release Governance</Typography.Title>
+        <Typography.Title level={2}>发布治理</Typography.Title>
         <Typography.Text type="secondary">
-          Register immutable artifacts, freeze release candidates, evaluate gates, track approvals,
-          promotions, rollbacks, drift, and compliance evidence.
+          登记不可变产物、冻结发布候选、评估门禁，并跟踪审批、提升、回滚、漂移与合规证据。
         </Typography.Text>
       </div>
       {artifacts.isPending || candidates.isPending ? <LoadingState /> : null}
@@ -151,27 +151,26 @@ export function ReleasesPage() {
         />
       ) : null}
       <Card
-        title="Supply-chain release candidate"
+        title="供应链发布候选"
         extra={
           <Button type="primary" loading={createSample.isPending} onClick={() => createSample.mutate()}>
-            Create sample RC
+            创建示例发布候选
           </Button>
         }
       >
         <Typography.Paragraph>
-          The sample flow registers one immutable container digest with SBOM, provenance, signature,
-          vulnerability scan, and license scan metadata, then freezes a release candidate. It does not
-          execute a build, scanner, shell, PoC, or deployment.
+          示例流程只登记一个包含 SBOM、来源证明、签名、漏洞扫描和许可证扫描元数据的不可变容器摘要，
+          然后冻结发布候选；不会执行构建、扫描器、Shell、PoC 或部署。
         </Typography.Paragraph>
       </Card>
-      <Card title="Release candidates" className="section-gap" loading={candidates.isPending}>
+      <Card title="发布候选" className="section-gap" loading={candidates.isPending}>
         <Table<ReleaseCandidate>
           size="small"
           rowKey="id"
           dataSource={candidates.data ?? []}
           columns={[
             {
-              title: 'Candidate',
+              title: '候选',
               dataIndex: 'id',
               render: (value: string, record) => (
                 <Space direction="vertical" size={0}>
@@ -183,37 +182,37 @@ export function ReleasesPage() {
               ),
             },
             {
-              title: 'Status',
+              title: '状态',
               dataIndex: 'status',
-              render: (value: string) => <Tag color={gateColor(value)}>{value}</Tag>,
+              render: (value: string) => <Tag color={gateColor(value)}>{cnLabel(value)}</Tag>,
             },
-            { title: 'Project', dataIndex: 'project_id' },
-            { title: 'Commit', dataIndex: 'source_commit', render: (value: string) => value.slice(0, 12) },
+            { title: '项目', dataIndex: 'project_id' },
+            { title: '源码提交', dataIndex: 'source_commit', render: (value: string) => value.slice(0, 12) },
             {
-              title: 'Image digest',
+              title: '镜像摘要',
               dataIndex: 'image_digest',
               render: (value: string) => <Typography.Text code>{value.slice(0, 48)}...</Typography.Text>,
             },
-            { title: 'Version', dataIndex: 'version' },
-            { title: 'Updated', dataIndex: 'updated_at' },
+            { title: '版本', dataIndex: 'version' },
+            { title: '更新时间', dataIndex: 'updated_at' },
           ]}
         />
       </Card>
-      <Card title="Registered artifacts" className="section-gap" loading={artifacts.isPending}>
+      <Card title="已登记产物" className="section-gap" loading={artifacts.isPending}>
         <Table
           size="small"
           rowKey="id"
           dataSource={artifacts.data ?? []}
           columns={[
-            { title: 'Artifact', dataIndex: 'name' },
-            { title: 'Type', dataIndex: 'artifact_type' },
-            { title: 'Project', dataIndex: 'project_id' },
+            { title: '产物', dataIndex: 'name' },
+            { title: '类型', dataIndex: 'artifact_type', render: (value: string) => cnLabel(value) },
+            { title: '项目', dataIndex: 'project_id' },
             {
-              title: 'Digest',
+              title: '摘要',
               dataIndex: 'digest',
               render: (value: string) => <Typography.Text code>{value.slice(0, 56)}...</Typography.Text>,
             },
-            { title: 'Created', dataIndex: 'created_at' },
+            { title: '创建时间', dataIndex: 'created_at' },
           ]}
         />
       </Card>

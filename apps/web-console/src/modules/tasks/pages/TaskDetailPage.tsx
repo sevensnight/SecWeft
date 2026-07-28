@@ -6,6 +6,7 @@ import { Alert, Button, Card, Descriptions, Flex, List, Space, Tag, Typography }
 
 import { LoadingState } from '../../../components/LoadingState';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnLabel } from '../../../i18n/formatters';
 import { taskEventsQuery, taskQuery } from '../api/queries';
 import { useTaskEventStream } from '../hooks/useTaskEventStream';
 
@@ -30,8 +31,10 @@ export function TaskDetailPage() {
         <div>
           <Typography.Title level={2}>{task.data.title}</Typography.Title>
           <Space>
-            <StatusPill status={task.data.status} />
-            <Tag color={stream.state === 'open' ? 'green' : 'default'}>SSE {stream.state}</Tag>
+            <StatusPill status={task.data.status} label={cnLabel(task.data.status)} />
+            <Tag color={stream.state === 'open' ? 'green' : 'default'}>
+              事件流 {stream.state === 'open' ? '已连接' : '已关闭'}
+            </Tag>
           </Space>
         </div>
         <Link to="/tasks"><Button>返回任务中心</Button></Link>
@@ -41,8 +44,8 @@ export function TaskDetailPage() {
           <Descriptions column={1} size="small">
             <Descriptions.Item label="目标">{task.data.target}</Descriptions.Item>
             <Descriptions.Item label="意图">{task.data.intent}</Descriptions.Item>
-            <Descriptions.Item label="审批">{task.data.approval_status}</Descriptions.Item>
-            <Descriptions.Item label="Scope ID">{task.data.scope_id}</Descriptions.Item>
+            <Descriptions.Item label="审批">{cnLabel(task.data.approval_status)}</Descriptions.Item>
+            <Descriptions.Item label="范围 ID">{task.data.scope_id}</Descriptions.Item>
             <Descriptions.Item label="更新时间">{task.data.updated_at}</Descriptions.Item>
           </Descriptions>
         </Card>
@@ -55,7 +58,7 @@ export function TaskDetailPage() {
             renderItem={(event) => (
               <List.Item key={event.id}>
                 <List.Item.Meta
-                  title={<Space><Typography.Text code>#{event.id}</Typography.Text>{event.event_type}</Space>}
+                  title={<Space><Typography.Text code>#{event.id}</Typography.Text>{cnLabel(event.event_type)}</Space>}
                   description={new Date(event.created_at).toLocaleString()}
                 />
               </List.Item>

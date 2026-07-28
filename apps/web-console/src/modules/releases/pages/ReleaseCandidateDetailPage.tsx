@@ -25,6 +25,7 @@ import {
 import { queryClient } from '../../../app/query-client';
 import { LoadingState } from '../../../components/LoadingState';
 import { QueryErrorState } from '../../../components/QueryErrorState';
+import { cnLabel } from '../../../i18n/formatters';
 import {
   approveReleaseCandidate,
   detectDeploymentDrift,
@@ -65,51 +66,51 @@ export function ReleaseCandidateDetailPage() {
     mutationFn: () => evaluateReleaseCandidate(candidateId, { environment: 'staging' }),
     onSuccess: async () => {
       await invalidate();
-      message.success('Staging gates evaluated.');
+      message.success('预发布门禁已评估。');
     },
   });
   const approve = useMutation({
     mutationFn: (value: ReleaseApprovalCreate) => approveReleaseCandidate(candidateId, value),
     onSuccess: async () => {
       await invalidate();
-      message.success('Approval recorded.');
+      message.success('审批已记录。');
     },
   });
   const exception = useMutation({
     mutationFn: (value: ReleaseExceptionCreate) => requestReleaseException(candidateId, value),
     onSuccess: async () => {
       await invalidate();
-      message.success('Exception recorded.');
+      message.success('例外已记录。');
     },
   });
   const promote = useMutation({
     mutationFn: (value: EnvironmentPromotionCreate) => promoteReleaseCandidate(candidateId, value),
     onSuccess: async () => {
       await invalidate();
-      message.success('Promotion recorded.');
+      message.success('环境提升已记录。');
     },
   });
   const compliance = useMutation({
     mutationFn: () => generateCompliancePackage(candidateId),
     onSuccess: async () => {
       await invalidate();
-      message.success('Compliance package generated.');
+      message.success('合规包已生成。');
     },
   });
   const firstDeployment = candidate.data?.deployments?.[0];
   const rollback = useMutation({
     mutationFn: (deployment: DeploymentRecord) =>
-      rollbackDeployment(deployment.id, { reason: 'operator requested rollback from console' }),
+      rollbackDeployment(deployment.id, { reason: '控制台操作者请求回滚' }),
     onSuccess: async () => {
       await invalidate();
-      message.success('Rollback recorded.');
+      message.success('回滚已记录。');
     },
   });
   const drift = useMutation({
     mutationFn: (deployment: DeploymentRecord) => detectDeploymentDrift(deployment.id),
     onSuccess: async () => {
       await invalidate();
-      message.success('Drift report recorded.');
+      message.success('漂移报告已记录。');
     },
   });
   const firstError =
@@ -127,9 +128,9 @@ export function ReleaseCandidateDetailPage() {
   return (
     <section>
       <div className="page-title-row">
-        <Typography.Title level={2}>Release Candidate</Typography.Title>
+        <Typography.Title level={2}>发布候选详情</Typography.Title>
         <Typography.Text type="secondary">
-          Frozen artifact identity, gate evaluation, approvals, promotion records, drift, rollback, and compliance evidence.
+          展示冻结产物身份、门禁评估、审批、环境提升、漂移、回滚和合规证据。
         </Typography.Text>
       </div>
       {candidate.isPending ? <LoadingState /> : null}
@@ -150,36 +151,36 @@ export function ReleaseCandidateDetailPage() {
       ) : null}
       {detail ? (
         <>
-          <Card title="Frozen release identity">
+          <Card title="冻结发布身份">
             <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label="Candidate">{detail.name}</Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={statusColor(detail.status)}>{detail.status}</Tag>
+              <Descriptions.Item label="候选">{detail.name}</Descriptions.Item>
+              <Descriptions.Item label="状态">
+                <Tag color={statusColor(detail.status)}>{cnLabel(detail.status)}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Project">{detail.project_id}</Descriptions.Item>
-              <Descriptions.Item label="Source commit">{detail.source_commit}</Descriptions.Item>
-              <Descriptions.Item label="Image digest" span={2}>
+              <Descriptions.Item label="项目">{detail.project_id}</Descriptions.Item>
+              <Descriptions.Item label="源码提交">{detail.source_commit}</Descriptions.Item>
+              <Descriptions.Item label="镜像摘要" span={2}>
                 <Typography.Text code>{detail.image_digest}</Typography.Text>
               </Descriptions.Item>
-              <Descriptions.Item label="SBOM digest">{detail.sbom_digest}</Descriptions.Item>
-              <Descriptions.Item label="Provenance digest">{detail.provenance_digest}</Descriptions.Item>
-              <Descriptions.Item label="Signature digest">{detail.signature_digest}</Descriptions.Item>
-              <Descriptions.Item label="Helm chart digest">{detail.helm_chart_digest}</Descriptions.Item>
-              <Descriptions.Item label="Configuration hash">{detail.configuration_hash}</Descriptions.Item>
-              <Descriptions.Item label="Freeze hash">{detail.freeze_hash}</Descriptions.Item>
+              <Descriptions.Item label="SBOM 摘要">{detail.sbom_digest}</Descriptions.Item>
+              <Descriptions.Item label="来源证明摘要">{detail.provenance_digest}</Descriptions.Item>
+              <Descriptions.Item label="签名摘要">{detail.signature_digest}</Descriptions.Item>
+              <Descriptions.Item label="Helm 图表摘要">{detail.helm_chart_digest}</Descriptions.Item>
+              <Descriptions.Item label="配置哈希">{detail.configuration_hash}</Descriptions.Item>
+              <Descriptions.Item label="冻结哈希">{detail.freeze_hash}</Descriptions.Item>
             </Descriptions>
           </Card>
 
           <Card
-            title="Release gates"
+            title="发布门禁"
             className="section-gap"
             extra={
               <Space>
                 <Button loading={evaluate.isPending} onClick={() => evaluate.mutate()}>
-                  Evaluate staging
+                  评估预发布
                 </Button>
                 <Button loading={compliance.isPending} onClick={() => compliance.mutate()}>
-                  Compliance package
+                  生成合规包
                 </Button>
               </Space>
             }
@@ -189,47 +190,47 @@ export function ReleaseCandidateDetailPage() {
               rowKey="id"
               dataSource={detail.gates}
               columns={[
-                { title: 'Environment', dataIndex: 'environment' },
-                { title: 'Gate', dataIndex: 'gate_id' },
+                { title: '环境', dataIndex: 'environment', render: (value: string) => cnLabel(value) },
+                { title: '门禁', dataIndex: 'gate_id' },
                 {
-                  title: 'Status',
+                  title: '状态',
                   dataIndex: 'status',
-                  render: (value: string) => <Tag color={statusColor(value)}>{value}</Tag>,
+                  render: (value: string) => <Tag color={statusColor(value)}>{cnLabel(value)}</Tag>,
                 },
-                { title: 'Reason', dataIndex: 'reason' },
+                { title: '原因', dataIndex: 'reason' },
               ]}
             />
           </Card>
 
-          <Card title="Approvals, exceptions, and promotion" className="section-gap">
+          <Card title="审批、例外与环境提升" className="section-gap">
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               <Form<ApprovalFormValue>
                 layout="inline"
                 initialValues={{ environment: 'staging', decision: 'approved' }}
                 onFinish={(value) => approve.mutate(value)}
               >
-                <Form.Item name="environment" label="Environment" rules={[{ required: true }]}>
+                <Form.Item name="environment" label="环境" rules={[{ required: true }]}>
                   <Select
                     style={{ width: 150 }}
                     options={['development', 'integration', 'staging', 'production'].map((item) => ({
                       value: item,
-                      label: item,
+                      label: cnLabel(item),
                     }))}
                   />
                 </Form.Item>
-                <Form.Item name="decision" label="Decision" rules={[{ required: true }]}>
+                <Form.Item name="decision" label="决策" rules={[{ required: true }]}>
                   <Select
                     style={{ width: 130 }}
                     options={[
-                      { value: 'approved', label: 'approved' },
-                      { value: 'rejected', label: 'rejected' },
+                      { value: 'approved', label: '已批准' },
+                      { value: 'rejected', label: '已拒绝' },
                     ]}
                   />
                 </Form.Item>
-                <Form.Item name="reason" label="Reason">
-                  <Input placeholder="approval reason" />
+                <Form.Item name="reason" label="原因">
+                  <Input placeholder="填写审批原因" />
                 </Form.Item>
-                <Button htmlType="submit" loading={approve.isPending}>Record approval</Button>
+                <Button htmlType="submit" loading={approve.isPending}>记录审批</Button>
               </Form>
 
               <Form<PromotionFormValue>
@@ -243,19 +244,19 @@ export function ReleaseCandidateDetailPage() {
                   })
                 }
               >
-                <Form.Item name="environment" label="Promotion" rules={[{ required: true }]}>
+                <Form.Item name="environment" label="提升环境" rules={[{ required: true }]}>
                   <Select
                     style={{ width: 150 }}
                     options={['development', 'integration', 'staging', 'production'].map((item) => ({
                       value: item,
-                      label: item,
+                      label: cnLabel(item),
                     }))}
                   />
                 </Form.Item>
-                <Form.Item name="canary_percentage" label="Canary">
+                <Form.Item name="canary_percentage" label="金丝雀比例">
                   <InputNumber min={0} max={100} />
                 </Form.Item>
-                <Button htmlType="submit" loading={promote.isPending}>Promote</Button>
+                <Button htmlType="submit" loading={promote.isPending}>提升</Button>
               </Form>
 
               <Form<ExceptionFormValue>
@@ -274,48 +275,51 @@ export function ReleaseCandidateDetailPage() {
                   })
                 }
               >
-                <Form.Item name="gate_id" label="Exception gate" rules={[{ required: true }]}>
+                <Form.Item name="gate_id" label="例外门禁" rules={[{ required: true }]}>
                   <Input style={{ width: 220 }} />
                 </Form.Item>
-                <Form.Item name="risk" label="Risk" rules={[{ required: true }]}>
+                <Form.Item name="risk" label="风险" rules={[{ required: true }]}>
                   <Select
                     style={{ width: 120 }}
-                    options={['low', 'medium', 'high', 'critical'].map((item) => ({ value: item, label: item }))}
+                    options={['low', 'medium', 'high', 'critical'].map((item) => ({
+                      value: item,
+                      label: cnLabel(item),
+                    }))}
                   />
                 </Form.Item>
-                <Form.Item name="scope" label="Scope" rules={[{ required: true }]}>
+                <Form.Item name="scope" label="范围" rules={[{ required: true }]}>
                   <Input style={{ width: 160 }} />
                 </Form.Item>
-                <Form.Item name="reason" label="Reason" rules={[{ required: true }]}>
-                  <Input placeholder="exception reason" />
+                <Form.Item name="reason" label="原因" rules={[{ required: true }]}>
+                  <Input placeholder="填写例外原因" />
                 </Form.Item>
-                <Button htmlType="submit" loading={exception.isPending}>Request exception</Button>
+                <Button htmlType="submit" loading={exception.isPending}>申请例外</Button>
               </Form>
             </Space>
           </Card>
 
-          <Card title="Supply-chain evidence" className="section-gap">
+          <Card title="供应链证据" className="section-gap">
             <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label="SBOM documents">{detail.artifact.sbom_documents.length}</Descriptions.Item>
-              <Descriptions.Item label="Provenance statements">{detail.artifact.provenance_statements.length}</Descriptions.Item>
-              <Descriptions.Item label="Signature records">{detail.artifact.signature_records.length}</Descriptions.Item>
-              <Descriptions.Item label="Security scans">{detail.artifact.security_scans.length}</Descriptions.Item>
-              <Descriptions.Item label="License scans">{detail.artifact.license_scans.length}</Descriptions.Item>
-              <Descriptions.Item label="Artifact repository">{detail.artifact.repository}</Descriptions.Item>
+              <Descriptions.Item label="SBOM 文档">{detail.artifact.sbom_documents.length}</Descriptions.Item>
+              <Descriptions.Item label="来源证明">{detail.artifact.provenance_statements.length}</Descriptions.Item>
+              <Descriptions.Item label="签名记录">{detail.artifact.signature_records.length}</Descriptions.Item>
+              <Descriptions.Item label="安全扫描">{detail.artifact.security_scans.length}</Descriptions.Item>
+              <Descriptions.Item label="许可证扫描">{detail.artifact.license_scans.length}</Descriptions.Item>
+              <Descriptions.Item label="产物仓库">{detail.artifact.repository}</Descriptions.Item>
             </Descriptions>
           </Card>
 
           <Card
-            title="Deployments and drift"
+            title="部署与漂移"
             className="section-gap"
             extra={
               firstDeployment ? (
                 <Space>
                   <Button loading={drift.isPending} onClick={() => drift.mutate(firstDeployment)}>
-                    Detect drift
+                    检测漂移
                   </Button>
                   <Button danger loading={rollback.isPending} onClick={() => rollback.mutate(firstDeployment)}>
-                    Rollback latest
+                    回滚最新部署
                   </Button>
                 </Space>
               ) : null
@@ -326,19 +330,19 @@ export function ReleaseCandidateDetailPage() {
               rowKey="id"
               dataSource={detail.deployments}
               columns={[
-                { title: 'Environment', dataIndex: 'environment' },
+                { title: '环境', dataIndex: 'environment', render: (value: string) => cnLabel(value) },
                 {
-                  title: 'Status',
+                  title: '状态',
                   dataIndex: 'status',
-                  render: (value: string) => <Tag color={statusColor(value)}>{value}</Tag>,
+                  render: (value: string) => <Tag color={statusColor(value)}>{cnLabel(value)}</Tag>,
                 },
-                { title: 'Canary', dataIndex: 'canary_percentage', render: (value: number) => `${value}%` },
+                { title: '金丝雀比例', dataIndex: 'canary_percentage', render: (value: number) => `${value}%` },
                 {
-                  title: 'Digest',
+                  title: '摘要',
                   dataIndex: 'image_digest',
                   render: (value: string) => <Typography.Text code>{value.slice(0, 48)}...</Typography.Text>,
                 },
-                { title: 'Updated', dataIndex: 'updated_at' },
+                { title: '更新时间', dataIndex: 'updated_at' },
               ]}
             />
           </Card>

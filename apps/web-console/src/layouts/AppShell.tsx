@@ -35,6 +35,7 @@ export function AppShell() {
   const setColorMode = usePreferencesStore((state) => state.setColorMode);
   const setLocale = usePreferencesStore((state) => state.setLocale);
   const messages = getMessages(locale);
+  const isZh = locale === 'zh-CN';
   const selectedKey = selectNavigationKey(pathname);
   const menuItems = useMemo(
     () => getNavigationItems(messages, authMode === 'oidc'),
@@ -56,21 +57,30 @@ export function AppShell() {
         <Header className="app-header">
           <Flex align="center" justify="space-between" gap="middle">
             <Space>
-              <Typography.Text strong>模块二企业控制台</Typography.Text>
+              <Typography.Text strong>
+                {isZh ? 'SecWeft 控制台' : 'SecWeft Console'}
+              </Typography.Text>
               <Badge
                 status="processing"
-                text={authMode === 'oidc' ? 'P7 企业前端 / OIDC' : 'P7 企业前端 / API Key'}
+                text={
+                  authMode === 'oidc'
+                    ? (isZh ? '组织身份认证 / OIDC' : 'Organization identity / OIDC')
+                    : (isZh ? 'API Key 认证' : 'API Key authentication')
+                }
               />
             </Space>
             <Space wrap>
               <Select
-                aria-label="语言"
+                aria-label={isZh ? '语言' : 'Language'}
                 value={locale}
                 onChange={setLocale}
-                options={[{ value: 'zh-CN', label: '中文' }, { value: 'en-US', label: 'English' }]}
+                options={[
+                  { value: 'zh-CN', label: '简体中文' },
+                  { value: 'en-US', label: 'English' },
+                ]}
               />
               <Switch
-                aria-label="深色模式"
+                aria-label={isZh ? '深色模式' : 'Dark mode'}
                 checked={colorMode === 'dark'}
                 checkedChildren={<MoonOutlined />}
                 unCheckedChildren={<BulbOutlined />}
@@ -78,7 +88,8 @@ export function AppShell() {
               />
               {authMode === 'oidc' ? (
                 <Button icon={<LogoutOutlined />} onClick={() => void auth.logout()}>
-                  <UserOutlined /> {displayName ?? '企业用户'} · 退出
+                  <UserOutlined /> {displayName ?? (isZh ? '组织用户' : 'Organization user')} ·{' '}
+                  {isZh ? '退出' : 'Sign out'}
                 </Button>
               ) : (
                 <Button
@@ -86,7 +97,9 @@ export function AppShell() {
                   type={apiKey ? 'default' : 'primary'}
                   onClick={() => setApiKeyOpen(true)}
                 >
-                  {apiKey ? '认证已配置' : '配置 API Key'}
+                  {apiKey
+                    ? (isZh ? '认证已配置' : 'Authentication configured')
+                    : (isZh ? '配置 API Key' : 'Configure API Key')}
                 </Button>
               )}
             </Space>

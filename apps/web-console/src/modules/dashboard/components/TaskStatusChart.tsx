@@ -4,6 +4,8 @@ import * as echarts from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { useEffect, useRef } from 'react';
 
+import { cnLabel } from '../../../i18n/formatters';
+
 echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 export function TaskStatusChart({ values }: { values: Record<string, number> }) {
@@ -17,7 +19,7 @@ export function TaskStatusChart({ values }: { values: Record<string, number> }) 
       animationDuration: 250,
       tooltip: { trigger: 'axis' },
       grid: { left: 32, right: 16, bottom: 28, top: 16, containLabel: true },
-      xAxis: { type: 'category', data: entries.map(([status]) => status), axisLabel: { rotate: 20 } },
+      xAxis: { type: 'category', data: entries.map(([status]) => cnLabel(status)), axisLabel: { rotate: 20 } },
       yAxis: { type: 'value', minInterval: 1 },
       series: [{
         type: 'bar',

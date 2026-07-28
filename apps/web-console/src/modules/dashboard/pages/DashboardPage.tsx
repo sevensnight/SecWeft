@@ -21,7 +21,7 @@ export function DashboardPage() {
       <div className="page-title-row">
         <Typography.Title level={2}>综合态势</Typography.Title>
         <Typography.Text type="secondary">
-          汇总任务、模型、策略和验证工作流的企业控制台入口。
+          汇总任务、模型、策略和验证工作流的控制台入口。
         </Typography.Text>
       </div>
       <Alert
@@ -29,13 +29,12 @@ export function DashboardPage() {
         type="info"
         message="安全边界已启用"
         description="资产探测、沙箱运行和验证执行不会从前端直接触发；所有高风险动作必须走后端策略、审批和审计。"
-        className="section-gap"
       />
       {query.isPending ? <LoadingState /> : null}
       {query.isError ? <QueryErrorState error={query.error} onRetry={() => void query.refetch()} /> : null}
       {query.isSuccess ? (
         <>
-          <Row gutter={[16, 16]}>
+          <Row gutter={[16, 16]} className="section-gap">
             <Col xs={24} sm={12} lg={6}><Card><Statistic title="任务总数" value={tasks.length} /></Card></Col>
             <Col xs={24} sm={12} lg={6}><Card><Statistic title="运行中" value={statusCounts.running ?? 0} /></Card></Col>
             <Col xs={24} sm={12} lg={6}><Card><Statistic title="已成功" value={statusCounts.succeeded ?? 0} /></Card></Col>

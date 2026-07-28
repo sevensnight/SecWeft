@@ -6,6 +6,7 @@ import { Button, Flex, Typography } from 'antd';
 import { useRef } from 'react';
 
 import { EmptyState } from '../../../components/EmptyState';
+import { cnLabel } from '../../../i18n/formatters';
 
 export function TaskVirtualList({ tasks }: { tasks: Task[] }) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -37,7 +38,7 @@ export function TaskVirtualList({ tasks }: { tasks: Task[] }) {
                 <Typography.Text strong ellipsis>{task.title}</Typography.Text>
                 <Typography.Text type="secondary" ellipsis>{task.target}</Typography.Text>
               </Flex>
-              <StatusPill status={task.status} />
+              <StatusPill status={task.status} label={cnLabel(task.status)} />
               <Typography.Text className="task-row-date">
                 {new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(task.updated_at))}
               </Typography.Text>
