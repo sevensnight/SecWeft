@@ -139,6 +139,15 @@ tools/contracts/     快照和静态校验工具
 
 Current target version: `2.14.0-p14`.
 
+Current maintenance release: `v2.14.1`.
+
+`v2.14.1` is a post-release dependency maintenance release. It updates React and
+React-DOM to `19.2.8`, tightens Dependabot grouping and React runtime alignment
+checks, and fixes detached-worktree release validation. It does not add new
+validation templates, scanners, exploit execution paths, migrations, API
+contracts, Helm runtime behavior, or P12-R/P14 production-readiness state
+changes.
+
 P14 adds final enterprise acceptance, requirement traceability, candidate delivery package generation, data governance metadata, secret lifecycle posture, compliance evidence mapping, upgrade/rollback deterministic checks, and a unified production readiness gate.
 
 Authoritative GitHub/Linux isolated runtime artifacts are recorded for source commit `59efe16144563f57033724c00ea70cfe895ba890`, so the P14 production readiness gate is accepted:

@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.14.1
+
+Release date: 2026-07-28
+
+### Improved
+
+- Added explicit React and React-DOM version alignment validation with unit coverage and CI enforcement.
+- Improved Dependabot grouping so React ecosystem updates are isolated from the general workspace group, and Monaco Editor and Playwright updates are excluded from broad minor/patch workspace updates.
+- Improved P0 from-scratch acceptance so a clean detached Git worktree is recognized as a valid verification checkout.
+
+### Updated
+
+- Updated React and React-DOM from `19.2.7` to `19.2.8`.
+- Updated workspace minor/patch frontend dependencies, including `@hookform/resolvers`, TanStack React packages, `antd`, `react-hook-form`, `@testing-library/jest-dom`, `@vitejs/plugin-react`, `eslint`, `typescript-eslint`, `turbo`, and `vite`.
+- Updated development dependency constraint ranges in `requirements-dev.txt` for `mypy`, `pip-audit`, `pip-tools`, `ruff`, and `types-PyYAML`; deterministic CI continues to install from `requirements-dev.lock`.
+
+### Fixed
+
+- Fixed React/React-DOM dependency drift by aligning both runtime packages at `19.2.8`.
+- Fixed overly broad Dependabot workspace grouping that previously mixed dependencies with different compatibility risk profiles.
+- Fixed clean detached-worktree release validation compatibility in the P0 baseline runner.
+
+### Security and compatibility
+
+- No new vulnerability validation templates.
+- No new exploit execution capabilities, scanner capabilities, PoC upload, arbitrary shell execution, or arbitrary command execution product capabilities.
+- No database migration changes; the migration set remains `0001` through `0014`.
+- No OpenAPI contract changes.
+- No Helm template or production runtime behavior changes.
+- The v2.14.1 maintenance release does not rerun destructive isolated runtime acceptance. It reuses the accepted v2.14.0 authoritative runtime evidence because the release diff is limited to dependency maintenance, CI/dependency governance, validation tooling, and release documentation.
+- `pnpm audit --audit-level high` improved from the v2.14.0 baseline of 3 high / 1 low advisories to 2 high / 1 low advisories; no new high or critical advisory was introduced.
+
 ## 2.14.0-p14
 
 - Added enterprise requirement traceability and final acceptance APIs.

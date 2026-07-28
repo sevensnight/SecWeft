@@ -6,3 +6,4 @@
 - P14 does not add new validation templates, scanners, PoC upload, or arbitrary command execution.
 - Unsupported cross-version upgrades must not be claimed as tested.
 - Future maintenance releases must preserve fail-closed behavior when authoritative runtime artifacts are absent or source commits do not match.
+- v2.14.1 is a dependency-maintenance source release. It does not generate new isolated runtime artifacts; it reuses the accepted v2.14.0 authoritative runtime evidence because the release delta does not alter runtime behavior, migrations, Helm templates, API contracts, validation templates, sandboxing, or execution-plane logic.
