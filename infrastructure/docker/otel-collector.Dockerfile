@@ -1,4 +1,4 @@
-FROM otel/opentelemetry-collector-contrib:0.123.0 AS collector
+FROM otel/opentelemetry-collector-contrib:0.158.0 AS collector
 
 FROM alpine:3.21.3
 RUN apk add --no-cache ca-certificates curl \
