@@ -18,13 +18,13 @@
     "react-dom": ">=19"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "7.0.0",
+    "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vulnlab/config": "workspace:*",
-    "antd": "6.5.2",
-    "eslint": "10.8.0",
+    "antd": "6.6.0",
+    "eslint": "10.8.1",
     "jsdom": "29.1.1",
     "react": "catalog:",
     "react-dom": "catalog:",
