@@ -23,7 +23,7 @@ RUN pnpm install --frozen-lockfile \
     && pnpm --filter @vulnlab/web-console build \
     && find apps/web-console/dist -type f -name '*.map' -delete
 
-FROM nginxinc/nginx-unprivileged:1.27.5-alpine
+FROM nginxinc/nginx-unprivileged:1.31.5-alpine
 COPY apps/web-console/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build --chown=101:101 /workspace/apps/web-console/dist /usr/share/nginx/html
 USER 101:101
