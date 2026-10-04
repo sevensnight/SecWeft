@@ -1,4 +1,4 @@
-FROM caddy:2.9.1-alpine
+FROM caddy:2.10.2-alpine
 
 RUN setcap -r /usr/bin/caddy \
     && addgroup -S -g 1000 caddy \
