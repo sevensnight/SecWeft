@@ -24,7 +24,7 @@
     "@vulnlab/ui-components": "workspace:*",
     "antd": "6.5.2",
     "echarts": "6.1.0",
-    "monaco-editor": "0.55.1",
+    "monaco-editor": "0.57.0",
     "oidc-client-ts": "3.5.0",
     "openapi-fetch": "0.17.0",
     "react": "catalog:",
